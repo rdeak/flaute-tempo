@@ -77,4 +77,30 @@ class YinPitchDetectorTest {
         assertTrue(result.isFailure)
         assertEquals(IllegalArgumentException::class, result.exceptionOrNull()!!::class)
     }
+
+    // The flute-tuned detector (what the engine uses): searches only the flute's range and
+    // treats microphone hiss and a quiet room as silence.
+
+    @Test
+    fun `flute detector ignores voices and hum below the flute`() {
+        val flute = YinPitchDetector.forFlute(sampleRate)
+        assertNull("50 Hz mains hum", flute.detect(sine(50.0, harmonics = listOf(0.5, 0.3))))
+        assertNull("an adult voice", flute.detect(sine(150.0, harmonics = listOf(0.6, 0.4))))
+    }
+
+    @Test
+    fun `flute detector still hears the lowest flute note played flat`() {
+        val flute = YinPitchDetector.forFlute(sampleRate)
+        val c4HalfFlat = 254.18 // C4 fifty cents low
+        val estimate = flute.detect(sine(c4HalfFlat))
+        assertNotNull(estimate)
+        assertEquals(c4HalfFlat, estimate!!.frequency, 1.0)
+    }
+
+    @Test
+    fun `flute detector treats a very quiet signal as silence`() {
+        val flute = YinPitchDetector.forFlute(sampleRate)
+        assertNull(flute.detect(sine(440.0, amplitude = 0.0005))) // about -69 dBFS: hiss, a quiet room
+        assertNotNull(flute.detect(sine(440.0, amplitude = 0.01))) // about -43 dBFS: a soft note
+    }
 }

@@ -24,7 +24,8 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
- * Captures microphone audio with [AudioRecord] and runs [YinPitchDetector] on a sliding window.
+ * Captures microphone audio with [AudioRecord] and runs the flute-tuned [YinPitchDetector]
+ * ([YinPitchDetector.forFlute]) on a sliding window.
  *
  * - Prefers the UNPROCESSED source (no AGC / noise suppression) when the device supports it,
  *   because automatic gain and suppression distort the signal a tuner wants to analyse.
@@ -46,7 +47,7 @@ class AudioRecordTunerEngine @Inject constructor(
 
         val sampleRate = pickSampleRate()
         val record = openRecorder(sampleRate)
-        val detector = YinPitchDetector(sampleRate = sampleRate, bufferSize = WINDOW_SIZE)
+        val detector = YinPitchDetector.forFlute(sampleRate, bufferSize = WINDOW_SIZE)
         val window = FloatArray(WINDOW_SIZE)
         val chunk = FloatArray(HOP_SIZE)
 

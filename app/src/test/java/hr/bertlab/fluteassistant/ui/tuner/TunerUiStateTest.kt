@@ -5,6 +5,7 @@ import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import kotlin.math.pow
 
 class TunerUiStateTest {
 
@@ -24,5 +25,22 @@ class TunerUiStateTest {
         assertEquals(11.8, identify.gaugeCents!!, 0.1)
         assertEquals(211.8, target.gaugeCents!!, 0.1)
         assertNull(identify.copy(reading = null).gaugeCents)
+    }
+
+    @Test
+    fun `status allows a child-sized wobble`() {
+        fun at(cents: Double) = TunerUiState(reading = NoteMath.frequencyToNote(440.0 * 2.0.pow(cents / 1200.0)))
+        assertEquals(TuningStatus.IN_TUNE, at(8.0).status)
+        assertEquals(TuningStatus.IN_TUNE, at(-8.0).status)
+        assertEquals(TuningStatus.HIGH, at(12.0).status)
+        assertEquals(TuningStatus.LOW, at(-12.0).status)
+        assertEquals(TuningStatus.NONE, TunerUiState().status)
+    }
+
+    @Test
+    fun `status follows the chosen note in target mode`() {
+        val a4 = NoteMath.frequencyToNote(440.0)
+        assertEquals(TuningStatus.IN_TUNE, TunerUiState(reading = a4, targetMidi = 67, mode = TunerMode.IDENTIFY).status)
+        assertEquals(TuningStatus.HIGH, TunerUiState(reading = a4, targetMidi = 67, mode = TunerMode.TARGET).status)
     }
 }

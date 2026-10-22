@@ -1,5 +1,7 @@
 package hr.bertlab.fluteassistant.audio.tuner
 
+import hr.bertlab.fluteassistant.domain.tuner.FluteRange
+import hr.bertlab.fluteassistant.domain.tuner.NoteMath
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
@@ -132,5 +134,27 @@ class YinPitchDetector(
         val denominator = 2.0 * (2.0 * s1 - s2 - s0)
         if (denominator == 0.0) return 0.0
         return ((s2 - s0) / denominator).coerceIn(-0.5, 0.5)
+    }
+
+    companion object {
+        /**
+         * RMS below which a frame is silence: about -60 dBFS, above microphone hiss and a
+         * quiet room but well under a softly played note. Checked on a real phone; the
+         * emulator has no audio.
+         */
+        const val QUIET_ROOM_RMS = 1e-3
+
+        /**
+         * The detector the tuner uses: it searches one semitone beyond [FluteRange] on either
+         * side, so voices and mains hum below the flute cannot register as low notes, and it
+         * gates on [QUIET_ROOM_RMS].
+         */
+        fun forFlute(sampleRate: Int, bufferSize: Int = 4096): YinPitchDetector = YinPitchDetector(
+            sampleRate = sampleRate,
+            bufferSize = bufferSize,
+            minFrequency = NoteMath.midiToFrequency(FluteRange.LOWEST_MIDI - 1),
+            maxFrequency = NoteMath.midiToFrequency(FluteRange.HIGHEST_MIDI + 1),
+            silenceRms = QUIET_ROOM_RMS,
+        )
     }
 }

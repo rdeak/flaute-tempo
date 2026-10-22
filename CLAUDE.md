@@ -125,7 +125,12 @@ the flow goes null, and calls `player.stop()` from the notification's Stop actio
 (UNPROCESSED source when available, 4096-sample window advanced by 2048, conflated on
 Dispatchers.IO) and cancelling releases it; it throws `SecurityException` without RECORD_AUDIO.
 `YinPitchDetector` (pure Kotlin: YIN plus a silence gate and period refinement for high notes)
-produces the estimate. `TunerViewModel` gates on probability, median-smooths a 5-frame window and
+produces the estimate; the engine uses `YinPitchDetector.forFlute`, which searches only one
+semitone beyond `FluteRange` (so voices and mains hum below the flute cannot register as low
+notes) and gates at `QUIET_ROOM_RMS` (about -60 dBFS, a value only a real phone can confirm).
+`TunerViewModel` gates on probability, publishes a reading only once the last `LOCK_FRAMES` (3,
+about 130 ms) agree within `LOCK_CENTS` (30) so a syllable or a bump never shows a note and a
+disagreeing frame freezes the reading instead of moving it, median-smooths a 5-frame window and
 holds the last reading for about 0.9 s of silence before clearing; `NoteMath.frequencyToNote`
 turns the median into a `NoteReading`. Two modes (`TunerMode`, remembered through
 `SettingsStore.saveTunerMode`, default `IDENTIFY`): `IDENTIFY` names the nearest note and
@@ -134,7 +139,10 @@ measures against it; `TARGET` lets the child pick the note to play in a `NoteWhe
 `SettingsStore.saveTargetNote` and clamped on load) and measures against it with
 `TunerUiState.centsOffTarget` (`NoteMath.centsBetween`), so a wrong note pegs the needle
 instead of being relabelled. `TunerUiState.gaugeCents` picks by mode and is what the gauge
-and status line show. `noteLabel` follows the locale's octave convention
+and status line show; `TunerUiState.status` judges it against `IN_TUNE_CENTS` (10, a child's
+wobble, deliberately wider than a professional tuner's 5) and `SLIGHTLY_OFF_CENTS` (20), the one
+place those thresholds live (the gauge draws its zones from them). There is no tolerance
+setting on purpose: one good default beats a control. `noteLabel` follows the locale's octave convention
 (`bool/note_octaves_helmholtz`: scientific C4 in English, music-school c1 in Croatian).
 `TunerViewModel.playTargetNote` sounds the chosen note for two seconds through
 `ReferenceTonePlayer` (`ReferenceToneSynth` renders it, `AudioTrackReferenceTonePlayer` plays

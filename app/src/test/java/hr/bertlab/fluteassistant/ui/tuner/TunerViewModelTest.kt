@@ -42,6 +42,9 @@ class TunerViewModelTest {
     private fun pitched(freq: Double, probability: Double = 0.97) = PitchFrame(freq, probability, level = 0.4f)
     private val silence = PitchFrame(null, 0.0, level = 0f)
 
+    /** A held note: enough agreeing frames for the tuner to trust it. */
+    private fun steady(freq: Double) = repeat(TunerViewModel.LOCK_FRAMES) { engine.frames.tryEmit(pitched(freq)) }
+
     private fun listeningViewModel(): TunerViewModel = TunerViewModel(engine, settings, tonePlayer).apply {
         onPermissionResult(true)
         startListening()
@@ -76,16 +79,51 @@ class TunerViewModelTest {
     fun `median smoothing rejects a single outlier`() = runTest(dispatcher) {
         val vm = listeningViewModel()
         advanceUntilIdle()
-        listOf(440.0, 440.5, 880.0, 439.8, 440.2).forEach { engine.frames.tryEmit(pitched(it)) }
+        steady(440.0)
+        listOf(880.0, 439.8, 440.2, 440.1).forEach { engine.frames.tryEmit(pitched(it)) }
         advanceUntilIdle()
         assertEquals("A4", vm.state.value.reading!!.label)
+        assertEquals(0.0, vm.state.value.reading!!.cents, 1.0)
+    }
+
+    @Test
+    fun `a brief blip never shows a note`() = runTest(dispatcher) {
+        val vm = listeningViewModel()
+        advanceUntilIdle()
+        repeat(TunerViewModel.LOCK_FRAMES - 1) { engine.frames.tryEmit(pitched(440.0)) } // a bump, a syllable
+        advanceUntilIdle()
+        assertNull(vm.state.value.reading)
+    }
+
+    @Test
+    fun `frames that disagree leave the reading where it was`() = runTest(dispatcher) {
+        val vm = listeningViewModel()
+        advanceUntilIdle()
+        steady(440.0)
+        advanceUntilIdle()
+        assertEquals("A4", vm.state.value.reading!!.label)
+
+        listOf(300.0, 330.0, 360.0).forEach { engine.frames.tryEmit(pitched(it)) } // a voice gliding past
+        advanceUntilIdle()
+        assertEquals("A4", vm.state.value.reading!!.label)
+        assertEquals(0.0, vm.state.value.reading!!.cents, 0.01)
+    }
+
+    @Test
+    fun `a new steady note replaces the old one`() = runTest(dispatcher) {
+        val vm = listeningViewModel()
+        advanceUntilIdle()
+        steady(440.0)
+        steady(392.0)
+        advanceUntilIdle()
+        assertEquals("G4", vm.state.value.reading!!.label)
     }
 
     @Test
     fun `low confidence frames are ignored`() = runTest(dispatcher) {
         val vm = listeningViewModel()
         advanceUntilIdle()
-        engine.frames.tryEmit(pitched(440.0))
+        steady(440.0)
         advanceUntilIdle()
         assertEquals("A4", vm.state.value.reading!!.label)
 
@@ -98,7 +136,7 @@ class TunerViewModelTest {
     fun `reading is held briefly through silence then cleared`() = runTest(dispatcher) {
         val vm = listeningViewModel()
         advanceUntilIdle()
-        engine.frames.tryEmit(pitched(440.0))
+        steady(440.0)
         advanceUntilIdle()
 
         repeat(TunerViewModel.HOLD_FRAMES - 1) { engine.frames.tryEmit(silence) }
@@ -114,7 +152,7 @@ class TunerViewModelTest {
     fun `changing the reference pitch recalculates the reading`() = runTest(dispatcher) {
         val vm = listeningViewModel()
         advanceUntilIdle()
-        engine.frames.tryEmit(pitched(440.0))
+        steady(440.0)
         advanceUntilIdle()
 
         vm.setReferenceA4(442.0)
@@ -139,7 +177,7 @@ class TunerViewModelTest {
     fun `stop listening clears the reading`() = runTest(dispatcher) {
         val vm = listeningViewModel()
         advanceUntilIdle()
-        engine.frames.tryEmit(pitched(440.0))
+        steady(440.0)
         advanceUntilIdle()
 
         vm.stopListening()
@@ -198,7 +236,7 @@ class TunerViewModelTest {
     fun `deviation is measured from the chosen note`() = runTest(dispatcher) {
         val vm = listeningViewModel()
         advanceUntilIdle()
-        engine.frames.tryEmit(pitched(440.0))
+        steady(440.0)
         advanceUntilIdle()
 
         vm.setTargetNote(67)
@@ -210,7 +248,7 @@ class TunerViewModelTest {
     fun `reference pitch moves the deviation from the target`() = runTest(dispatcher) {
         val vm = listeningViewModel()
         advanceUntilIdle()
-        engine.frames.tryEmit(pitched(440.0))
+        steady(440.0)
         advanceUntilIdle()
 
         vm.setTargetNote(69)
@@ -244,14 +282,14 @@ class TunerViewModelTest {
         assertTrue(vm.state.value.isPlayingReference)
         assertEquals(listOf(FakeReferenceTonePlayer.Played(440.0, TunerViewModel.REFERENCE_TONE_MS, 0.7f)), tonePlayer.played)
 
-        engine.frames.tryEmit(pitched(440.0)) // the speaker, not the child: ignored
+        steady(440.0) // the speaker, not the child: ignored
         advanceTimeBy(TunerViewModel.REFERENCE_TONE_MS / 2L)
         assertNull(vm.state.value.reading)
 
         advanceTimeBy(TunerViewModel.REFERENCE_TONE_MS + 1L)
         assertFalse(vm.state.value.isPlayingReference)
         assertEquals(1, tonePlayer.stopCount) // the finished track is released, not left registered as playing
-        engine.frames.tryEmit(pitched(440.0))
+        steady(440.0)
         advanceUntilIdle()
         assertEquals("A4", vm.state.value.reading!!.label)
     }

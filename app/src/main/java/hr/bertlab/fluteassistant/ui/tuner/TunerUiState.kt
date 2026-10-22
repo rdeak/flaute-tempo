@@ -4,6 +4,7 @@ import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
 import hr.bertlab.fluteassistant.domain.tuner.NoteReading
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
+import kotlin.math.abs
 
 /** Immutable snapshot of everything the tuner screen renders. */
 data class TunerUiState(
@@ -34,4 +35,29 @@ data class TunerUiState(
             TunerMode.IDENTIFY -> reading?.cents
             TunerMode.TARGET -> centsOffTarget
         }
+
+    /** Whether [gaugeCents] counts as in tune, and if not which way to go; [TuningStatus.NONE] in silence. */
+    val status: TuningStatus
+        get() {
+            val cents = gaugeCents ?: return TuningStatus.NONE
+            return when {
+                abs(cents) <= IN_TUNE_CENTS -> TuningStatus.IN_TUNE
+                cents < 0 -> TuningStatus.LOW
+                else -> TuningStatus.HIGH
+            }
+        }
+
+    companion object {
+        /**
+         * The green zone, shared by the status line, the gauge and the note wheel. A child's
+         * held note wobbles about this much from breath alone, so a professional's 5 cents
+         * would rarely settle on "Perfect!".
+         */
+        const val IN_TUNE_CENTS = 10.0
+        /** Amber up to here, red beyond. */
+        const val SLIGHTLY_OFF_CENTS = 20.0
+    }
 }
+
+/** What the tuner tells the child: nothing heard, in tune, or which way the note must go. */
+enum class TuningStatus { NONE, IN_TUNE, LOW, HIGH }

@@ -65,9 +65,6 @@ import hr.bertlab.fluteassistant.ui.theme.SlightlyOffAmber
 import hr.bertlab.fluteassistant.ui.theme.SlightlyOffAmberText
 import kotlin.math.abs
 
-private const val IN_TUNE_CENTS = 5.0
-private const val SLIGHTLY_OFF_CENTS = 15.0
-
 /**
  * Stateful entry point: handles the RECORD_AUDIO permission and starts / stops the microphone
  * with the screen's lifecycle, then renders the stateless [TunerContent].
@@ -154,12 +151,7 @@ fun TunerContent(
             PermissionCard(onRequestPermission = onRequestPermission, onOpenSettings = onOpenSettings)
         } else {
             val cents = state.gaugeCents
-            val status = when {
-                cents == null -> TuningStatus.NONE
-                abs(cents) <= IN_TUNE_CENTS -> TuningStatus.IN_TUNE
-                cents < 0 -> TuningStatus.LOW
-                else -> TuningStatus.HIGH
-            }
+            val status = state.status
             // The gauge keeps the bright zone colours; text uses darker ones on the light
             // surface so "Perfect!" stays readable.
             val dark = isSystemInDarkTheme()
@@ -170,7 +162,7 @@ fun TunerContent(
                 TuningStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
                 TuningStatus.IN_TUNE -> inTune
                 TuningStatus.LOW, TuningStatus.HIGH ->
-                    if (abs(cents ?: 0.0) <= SLIGHTLY_OFF_CENTS) slightlyOff else farOff
+                    if (abs(cents ?: 0.0) <= TunerUiState.SLIGHTLY_OFF_CENTS) slightlyOff else farOff
             }
 
             // Same height in both modes so the gauge does not jump when switching.
@@ -242,8 +234,6 @@ fun TunerContent(
         Spacer(Modifier.height(24.dp))
     }
 }
-
-private enum class TuningStatus { NONE, IN_TUNE, LOW, HIGH }
 
 private val TunerMode.emoji: String
     get() = when (this) {

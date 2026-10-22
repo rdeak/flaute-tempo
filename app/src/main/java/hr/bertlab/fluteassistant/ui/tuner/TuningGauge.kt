@@ -25,15 +25,17 @@ private const val RANGE_CENTS = 50f
 
 /**
  * A chunky semicircular gauge from -50 to +50 cents with a spring-animated needle and no
- * numbers: green within [inTuneCents], amber up to 15 cents, red beyond. A null [cents]
- * (silence) parks the needle at the centre with reduced opacity.
+ * numbers: green within [TunerUiState.IN_TUNE_CENTS], amber up to
+ * [TunerUiState.SLIGHTLY_OFF_CENTS], red beyond, the same thresholds as the status line. A null
+ * [cents] (silence) parks the needle at the centre with reduced opacity.
  */
 @Composable
 fun TuningGauge(
     cents: Double?,
     modifier: Modifier = Modifier,
-    inTuneCents: Float = 5f,
 ) {
+    val inTuneCents = TunerUiState.IN_TUNE_CENTS.toFloat()
+    val slightlyOffCents = TunerUiState.SLIGHTLY_OFF_CENTS.toFloat()
     val needle by animateFloatAsState(
         targetValue = (cents ?: 0.0).toFloat().coerceIn(-RANGE_CENTS, RANGE_CENTS),
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
@@ -58,11 +60,11 @@ fun TuningGauge(
                 style = Stroke(strokeWidth, cap = StrokeCap.Butt),
             )
         }
-        zone(-RANGE_CENTS, -15f, OutOfTuneRed.copy(alpha = 0.45f))
-        zone(-15f, -inTuneCents, SlightlyOffAmber.copy(alpha = 0.6f))
+        zone(-RANGE_CENTS, -slightlyOffCents, OutOfTuneRed.copy(alpha = 0.45f))
+        zone(-slightlyOffCents, -inTuneCents, SlightlyOffAmber.copy(alpha = 0.6f))
         zone(-inTuneCents, inTuneCents, InTuneGreen)
-        zone(inTuneCents, 15f, SlightlyOffAmber.copy(alpha = 0.6f))
-        zone(15f, RANGE_CENTS, OutOfTuneRed.copy(alpha = 0.45f))
+        zone(inTuneCents, slightlyOffCents, SlightlyOffAmber.copy(alpha = 0.6f))
+        zone(slightlyOffCents, RANGE_CENTS, OutOfTuneRed.copy(alpha = 0.45f))
 
         // Needle and hub.
         val needleAngle = Math.toRadians(angleFor(needle).toDouble())

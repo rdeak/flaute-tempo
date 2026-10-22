@@ -19,9 +19,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.log2
 
 /**
  * Smooths raw [PitchFrame]s into a stable [TunerUiState]:
+ * - shows a reading only once a few consecutive frames agree (a held note, not room noise),
  * - keeps a short median window so a single mis-detected frame does not flick the needle,
  * - ignores low-confidence frames,
  * - holds the last reading for a few silent frames so the display does not blink between notes.
@@ -147,8 +149,12 @@ class TunerViewModel @Inject constructor(
             silentFrames = 0
             recentFrequencies.addLast(frequency)
             while (recentFrequencies.size > SMOOTHING_WINDOW) recentFrequencies.removeFirst()
-            val median = recentFrequencies.sorted()[recentFrequencies.size / 2]
-            _state.update { it.copy(reading = NoteMath.frequencyToNote(median, it.referenceA4), level = frame.level) }
+            if (isSteady()) {
+                val median = recentFrequencies.sorted()[recentFrequencies.size / 2]
+                _state.update { it.copy(reading = NoteMath.frequencyToNote(median, it.referenceA4), level = frame.level) }
+            } else {
+                _state.update { it.copy(level = frame.level) }
+            }
         } else {
             silentFrames++
             if (silentFrames >= HOLD_FRAMES) {
@@ -160,6 +166,17 @@ class TunerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * True once the last [LOCK_FRAMES] frames agree within [LOCK_CENTS]: a held note, as
+     * opposed to a syllable, a bump or a voice gliding past, whose pitch moves or stops within
+     * that time. Until then the previous reading stays rather than jumping to the stray sound.
+     */
+    private fun isSteady(): Boolean {
+        if (recentFrequencies.size < LOCK_FRAMES) return false
+        val last = recentFrequencies.takeLast(LOCK_FRAMES)
+        return 1200.0 * log2(last.max() / last.min()) <= LOCK_CENTS
+    }
+
     override fun onCleared() {
         stopTone()
         listenJob?.cancel()
@@ -167,6 +184,9 @@ class TunerViewModel @Inject constructor(
 
     companion object {
         const val SMOOTHING_WINDOW = 5
+        /** A reading needs this many consecutive frames (~130 ms) that agree within [LOCK_CENTS]. */
+        const val LOCK_FRAMES = 3
+        const val LOCK_CENTS = 30.0
         const val MIN_PROBABILITY = 0.85
         /** ~0.9 s at 43 ms per frame. */
         const val HOLD_FRAMES = 20
