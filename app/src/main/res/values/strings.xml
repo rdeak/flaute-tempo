@@ -54,8 +54,14 @@
     <string name="notification_playing_title">Metronome running</string>
     <string name="notification_stop">Stop</string>
 
-    <!-- Tuner -->
+    <!-- Tuner: two modes, shown as pills with an emoji (ui/tuner/TunerScreen.kt) -->
+    <string name="tuner_mode">Tuner mode</string>
+    <string name="mode_identify">Which note?</string>
+    <string name="mode_target">Tune to a note</string>
     <string name="play_a_note">👂 Play a note</string>
+    <string name="target_note">Note to tune, scroll to choose another</string>
+    <!-- Shown in silence; the argument is the chosen note, e.g. "A4" -->
+    <string name="play_note_prompt">👂 Play %1$s</string>
     <string name="in_tune">🎉 Perfect!</string>
     <string name="too_low">⬇️ Too low</string>
     <string name="too_high">⬆️ Too high</string>
@@ -63,6 +69,9 @@
     <string name="mic_permission_body">I need to hear your flute to help you tune. Nothing is recorded or sent anywhere.</string>
     <string name="allow_microphone">Yes, allow</string>
     <string name="open_settings">Open settings</string>
+    <!-- Octave naming for noteLabel(): false = scientific pitch notation (C4 is middle C), true = the
+         Helmholtz-style names Croatian music schools use (c1 is middle C, c2 above it). -->
+    <bool name="note_octaves_helmholtz">false</bool>
     <!-- Note names for the 12 pitch classes from C, using sharps. Localised: Croatian uses H and B. -->
     <string-array name="note_names">
         <item>C</item>

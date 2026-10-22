@@ -50,7 +50,12 @@
     <string name="notification_stop">Zaustavi</string>
 
     <!-- Tuner -->
+    <string name="tuner_mode">Način štimanja</string>
+    <string name="mode_identify">Koji je ton?</string>
+    <string name="mode_target">Ugodi ton</string>
     <string name="play_a_note">👂 Odsviraj ton</string>
+    <string name="target_note">Ton koji ugađaš, zavrti za drugi</string>
+    <string name="play_note_prompt">👂 Odsviraj %1$s</string>
     <string name="in_tune">🎉 Savršeno!</string>
     <string name="too_low">⬇️ Prenisko</string>
     <string name="too_high">⬆️ Previsoko</string>
@@ -58,6 +63,9 @@
     <string name="mic_permission_body">Trebam čuti tvoju flautu da ti pomognem ugoditi. Ništa se ne snima niti šalje.</string>
     <string name="allow_microphone">Da, dopusti</string>
     <string name="open_settings">Otvori postavke</string>
+    <!-- Croatian music schools name octaves c1, c2, c3 (jednocrtna, dvocrtna, trocrtna), with
+         the one-lined octave starting at middle C -->
+    <bool name="note_octaves_helmholtz">true</bool>
     <!-- German note names as taught in Croatia: H is B natural, B is B flat -->
     <string-array name="note_names">
         <item>C</item>

@@ -32,12 +32,28 @@ class LabelsTest {
 
     @Test
     fun note_names_follow_the_locale() {
-        // Croatian musicians use the German names: H for B and B for B flat.
+        // English: scientific pitch notation. Croatian musicians use the German names (H for
+        // B, B for B flat) and the music-school octaves (c1 is middle C).
         assertEquals("B4", noteLabel(resources(Locale.ENGLISH), 71))
-        assertEquals("H4", noteLabel(resources(Locale("hr")), 71))
         assertEquals("A♯4", noteLabel(resources(Locale.ENGLISH), 70))
-        assertEquals("B4", noteLabel(resources(Locale("hr")), 70))
-        assertEquals("C4", noteLabel(resources(Locale("hr")), 60))
+        assertEquals("C4", noteLabel(resources(Locale.ENGLISH), 60))
+        assertEquals("C7", noteLabel(resources(Locale.ENGLISH), 96))
+        assertEquals("h1", noteLabel(resources(Locale("hr")), 71))
+        assertEquals("b1", noteLabel(resources(Locale("hr")), 70))
+    }
+
+    @Test
+    fun croatian_octaves_follow_the_music_school_convention() {
+        val hr = resources(Locale("hr"))
+        assertEquals("c1", noteLabel(hr, 60))
+        assertEquals("cis1", noteLabel(hr, 61))
+        assertEquals("c3", noteLabel(hr, 84))
+        assertEquals("c4", noteLabel(hr, 96))
+        assertEquals("h", noteLabel(hr, 59))
+        assertEquals("c", noteLabel(hr, 48))
+        assertEquals("H", noteLabel(hr, 47))
+        assertEquals("C", noteLabel(hr, 36))
+        assertEquals("C1", noteLabel(hr, 24))
     }
 
     @Test

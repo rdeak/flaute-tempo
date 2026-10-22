@@ -1,7 +1,9 @@
 package hr.bertlab.fluteassistant.ui.tuner
 
+import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
 import hr.bertlab.fluteassistant.domain.tuner.NoteReading
+import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 
 /** Immutable snapshot of everything the tuner screen renders. */
 data class TunerUiState(
@@ -15,5 +17,19 @@ data class TunerUiState(
     val level: Float = 0f,
     /** Reference pitch for A4 in Hz (440 standard; many orchestras use 442). */
     val referenceA4: Double = NoteMath.DEFAULT_A4,
+    /** The note the child chose to tune, as a MIDI number inside [FluteRange]; used in [TunerMode.TARGET]. */
+    val targetMidi: Int = FluteRange.DEFAULT_TARGET,
+    val mode: TunerMode = TunerMode.IDENTIFY,
     val errorMessage: String? = null,
-)
+) {
+    /** Distance in cents from [targetMidi] to the played note (positive = sharp), or null in silence. */
+    val centsOffTarget: Double?
+        get() = reading?.let { NoteMath.centsBetween(it.frequency, targetMidi, referenceA4) }
+
+    /** What the gauge shows: cents from the nearest note when identifying, from the target when tuning to one. */
+    val gaugeCents: Double?
+        get() = when (mode) {
+            TunerMode.IDENTIFY -> reading?.cents
+            TunerMode.TARGET -> centsOffTarget
+        }
+}

@@ -6,7 +6,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
 import hr.bertlab.fluteassistant.audio.tuner.TunerEngine
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
+import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
+import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,8 +32,11 @@ class TunerViewModel @Inject constructor(
 
     // The simplified UI cannot show or change the A4 reference, so a stale stored value must
     // not silently relabel every note: start from the standard 440 Hz (the stored value is
-    // left for a future advanced mode, which would call setReferenceA4 explicitly).
-    private val _state = MutableStateFlow(TunerUiState())
+    // left for a future advanced mode, which would call setReferenceA4 explicitly). The
+    // target note and the mode, by contrast, are on screen, so the stored ones are honoured.
+    private val _state = MutableStateFlow(
+        TunerUiState(targetMidi = FluteRange.clamp(settings.loadTargetNote()), mode = settings.loadTunerMode()),
+    )
     val state: StateFlow<TunerUiState> = _state.asStateFlow()
 
     private var listenJob: Job? = null
@@ -82,6 +87,19 @@ class TunerViewModel @Inject constructor(
                 reading = s.reading?.let { NoteMath.frequencyToNote(it.frequency, clamped) },
             )
         }
+    }
+
+    /** Chooses the note the gauge measures against; clamped to the flute's range and remembered. */
+    fun setTargetNote(midi: Int) {
+        val clamped = FluteRange.clamp(midi)
+        settings.saveTargetNote(clamped)
+        _state.update { it.copy(targetMidi = clamped) }
+    }
+
+    /** Switches between naming the heard note and measuring against the chosen one; remembered. */
+    fun setMode(mode: TunerMode) {
+        settings.saveTunerMode(mode)
+        _state.update { it.copy(mode = mode) }
     }
 
     private fun onFrame(frame: PitchFrame) {

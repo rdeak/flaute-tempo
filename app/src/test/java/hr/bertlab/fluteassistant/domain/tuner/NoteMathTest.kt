@@ -79,4 +79,13 @@ class NoteMathTest {
         assertEquals(261.6256, NoteMath.midiToFrequency(60), 1e-3)
         assertEquals(442.0, NoteMath.midiToFrequency(69, a4 = 442.0), 1e-9)
     }
+
+    @Test
+    fun `cents between a frequency and a target note`() {
+        assertEquals(0.0, NoteMath.centsBetween(440.0, 69), 0.01)
+        assertEquals(100.0, NoteMath.centsBetween(466.16, 69), 0.05)
+        assertEquals(-1200.0, NoteMath.centsBetween(220.0, 69), 0.01)
+        assertEquals(900.0, NoteMath.centsBetween(440.0, 60), 0.01)
+        assertEquals(0.0, NoteMath.centsBetween(442.0, 69, a4 = 442.0), 0.01)
+    }
 }

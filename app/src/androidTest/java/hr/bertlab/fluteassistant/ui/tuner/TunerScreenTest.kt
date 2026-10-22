@@ -2,10 +2,14 @@ package hr.bertlab.fluteassistant.ui.tuner
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
+import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import hr.bertlab.fluteassistant.ui.common.LocaleProvider
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -20,12 +24,16 @@ class TunerScreenTest {
     val compose = createComposeRule()
 
     private var permissionRequests = 0
+    private var chosenNote: Int? = null
+    private var chosenMode: TunerMode? = null
 
     private fun show(state: TunerUiState, locale: Locale = Locale.ENGLISH) {
         compose.setContent {
             LocaleProvider(locale) {
                 TunerContent(
                     state = state,
+                    onTargetNoteChange = { chosenNote = it },
+                    onModeChange = { chosenMode = it },
                     onRequestPermission = { permissionRequests++ },
                     onOpenSettings = {},
                 )
@@ -33,8 +41,55 @@ class TunerScreenTest {
         }
     }
 
-    private fun listening(frequency: Double) =
-        TunerUiState(permissionGranted = true, isListening = true, reading = NoteMath.frequencyToNote(frequency))
+    /** Listening in [mode] with [targetMidi] chosen and [frequency] heard (null for silence). */
+    private fun listening(
+        frequency: Double?,
+        targetMidi: Int = FluteRange.DEFAULT_TARGET,
+        mode: TunerMode = TunerMode.TARGET,
+    ) = TunerUiState(
+        permissionGranted = true,
+        isListening = true,
+        reading = frequency?.let { NoteMath.frequencyToNote(it) },
+        targetMidi = targetMidi,
+        mode = mode,
+    )
+
+    private fun identifying(frequency: Double?) = listening(frequency, mode = TunerMode.IDENTIFY)
+
+    @Test
+    fun identify_mode_names_the_heard_note_without_the_wheel() {
+        show(identifying(443.0)) // A4 played 12 cents sharp
+        compose.onNodeWithText("A4").assertIsDisplayed()
+        compose.onNodeWithText("G♯4").assertDoesNotExist()
+        compose.onNodeWithText("⬆️ Too high").assertIsDisplayed()
+    }
+
+    @Test
+    fun identify_mode_measures_from_the_nearest_note() {
+        show(listening(440.0, targetMidi = 67, mode = TunerMode.IDENTIFY)) // the chosen G4 is ignored
+        compose.onNodeWithText("🎉 Perfect!").assertIsDisplayed()
+    }
+
+    @Test
+    fun identify_mode_silence_asks_for_any_note() {
+        show(identifying(null))
+        compose.onNodeWithText("…").assertIsDisplayed()
+        compose.onNodeWithText("👂 Play a note").assertIsDisplayed()
+    }
+
+    @Test
+    fun tapping_a_mode_pill_reports_the_mode() {
+        show(identifying(null))
+        compose.onNodeWithText("🎯 Tune to a note").performClick()
+        assertEquals(TunerMode.TARGET, chosenMode)
+    }
+
+    @Test
+    fun croatian_identify_mode_uses_the_school_names() {
+        show(identifying(493.88), Locale("hr")) // B4 is h1 in Croatia
+        compose.onNodeWithText("h1").assertIsDisplayed()
+        compose.onNodeWithText("🔍 Koji je ton?").assertIsDisplayed()
+    }
 
     @Test
     fun asks_for_the_microphone_until_permission_is_granted() {
@@ -44,37 +99,59 @@ class TunerScreenTest {
     }
 
     @Test
-    fun shows_the_note_and_too_high() {
-        show(listening(443.0)) // A4 played 12 cents sharp
-        compose.onNodeWithText("A").assertIsDisplayed()
+    fun shows_the_target_note_with_its_neighbours_and_too_high() {
+        show(listening(443.0)) // A4 chosen and played 12 cents sharp
+        compose.onNodeWithText("A4").assertIsDisplayed()
+        compose.onNodeWithText("G♯4").assertIsDisplayed()
+        compose.onNodeWithText("A♯4").assertIsDisplayed()
         compose.onNodeWithText("⬆️ Too high").assertIsDisplayed()
         compose.onNodeWithText("+12 ¢").assertDoesNotExist()
-        compose.onNodeWithText("A4").assertDoesNotExist()
     }
 
     @Test
-    fun far_off_note_shows_too_low() {
-        show(listening(430.0)) // A4, about 40 cents flat
-        compose.onNodeWithText("A").assertIsDisplayed()
-        compose.onNodeWithText("⬇️ Too low").assertIsDisplayed()
+    fun measures_against_the_chosen_note() {
+        show(listening(440.0, targetMidi = 67)) // a perfect A4, but G4 was chosen
+        compose.onNodeWithText("G4").assertIsDisplayed()
+        compose.onNodeWithText("⬆️ Too high").assertIsDisplayed()
     }
 
     @Test
-    fun in_tune_note_celebrates() {
-        show(listening(440.0))
+    fun in_tune_with_the_chosen_note_celebrates() {
+        show(listening(440.0, targetMidi = 69))
         compose.onNodeWithText("🎉 Perfect!").assertIsDisplayed()
     }
 
     @Test
-    fun silence_asks_for_a_note() {
-        show(TunerUiState(permissionGranted = true, isListening = true, reading = null))
-        compose.onNodeWithText("👂 Play a note").assertIsDisplayed()
+    fun a_note_far_from_the_target_still_says_which_way() {
+        show(listening(220.0)) // an octave below the chosen A4
+        compose.onNodeWithText("⬇️ Too low").assertIsDisplayed()
     }
 
     @Test
-    fun croatian_system_language_uses_croatian_note_names() {
-        show(listening(493.88), Locale("hr")) // B4, called H in Croatia
-        compose.onNodeWithText("H").assertIsDisplayed()
+    fun silence_names_the_note_to_play() {
+        show(listening(null))
+        compose.onNodeWithText("👂 Play A4").assertIsDisplayed()
+    }
+
+    @Test
+    fun scrolling_the_wheel_reports_the_new_note() {
+        show(listening(null))
+        compose.onNodeWithContentDescription("Note to tune, scroll to choose another")
+            .performScrollToIndex(72 - FluteRange.LOWEST_MIDI)
+        compose.waitForIdle()
+        assertEquals(72, chosenNote)
+    }
+
+    @Test
+    fun croatian_names_the_target_note_the_school_way() {
+        show(listening(493.88, targetMidi = 71), Locale("hr")) // B4, called h1 in Croatia
+        compose.onNodeWithText("h1").assertIsDisplayed()
         compose.onNodeWithText("🎉 Savršeno!").assertIsDisplayed()
+    }
+
+    @Test
+    fun croatian_silence_names_the_note_to_play() {
+        show(listening(null, targetMidi = 69), Locale("hr"))
+        compose.onNodeWithText("👂 Odsviraj a1").assertIsDisplayed()
     }
 }

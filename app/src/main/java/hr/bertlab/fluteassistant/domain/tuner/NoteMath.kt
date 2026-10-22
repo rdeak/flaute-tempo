@@ -48,6 +48,16 @@ object NoteMath {
     fun midiToFrequency(midi: Int, a4: Double = DEFAULT_A4): Double =
         a4 * 2.0.pow((midi - 69) / 12.0)
 
+    /**
+     * Signed distance in cents from the note [targetMidi] to [frequency]: positive when sharp,
+     * negative when flat, and not clamped, so a different note is hundreds of cents away.
+     */
+    fun centsBetween(frequency: Double, targetMidi: Int, a4: Double = DEFAULT_A4): Double {
+        require(frequency > 0.0) { "frequency must be positive" }
+        require(a4 > 0.0) { "reference pitch must be positive" }
+        return 1200.0 * log2(frequency / midiToFrequency(targetMidi, a4))
+    }
+
     /** "A♯4"-style label for a MIDI note number. */
     fun labelOf(midi: Int): String {
         val pitchClass = midi.mod(12)

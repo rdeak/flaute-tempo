@@ -10,7 +10,9 @@ import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.Preset
 import hr.bertlab.fluteassistant.domain.repository.PresetRepository
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
+import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
+import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import hr.bertlab.fluteassistant.playback.BackgroundPlayback
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -111,6 +113,8 @@ class FakeSettingsStore(
     var config: MetronomeConfig = MetronomeConfig(),
     var volume: Float = 0.8f,
     var referenceA4: Double = NoteMath.DEFAULT_A4,
+    var targetNote: Int = FluteRange.DEFAULT_TARGET,
+    var tunerMode: TunerMode = TunerMode.IDENTIFY,
 ) : SettingsStore {
     override fun loadMetronomeConfig() = config
     override fun saveMetronomeConfig(config: MetronomeConfig) { this.config = config }
@@ -118,6 +122,10 @@ class FakeSettingsStore(
     override fun saveVolume(volume: Float) { this.volume = volume }
     override fun loadReferenceA4() = referenceA4
     override fun saveReferenceA4(hz: Double) { referenceA4 = hz }
+    override fun loadTargetNote() = targetNote
+    override fun saveTargetNote(midi: Int) { targetNote = midi }
+    override fun loadTunerMode() = tunerMode
+    override fun saveTunerMode(mode: TunerMode) { tunerMode = mode }
 }
 
 class FakeClock(var now: Long = 0L) : MonotonicClock {

@@ -127,7 +127,15 @@ Dispatchers.IO) and cancelling releases it; it throws `SecurityException` withou
 `YinPitchDetector` (pure Kotlin: YIN plus a silence gate and period refinement for high notes)
 produces the estimate. `TunerViewModel` gates on probability, median-smooths a 5-frame window and
 holds the last reading for about 0.9 s of silence before clearing; `NoteMath.frequencyToNote`
-turns the median into a `NoteReading`.
+turns the median into a `NoteReading`. Two modes (`TunerMode`, remembered through
+`SettingsStore.saveTunerMode`, default `IDENTIFY`): `IDENTIFY` names the nearest note and
+measures against it; `TARGET` lets the child pick the note to play in a `NoteWheel`
+(`FluteRange`: c1 to c4, MIDI 60 to 96, default a1 / A4, remembered through
+`SettingsStore.saveTargetNote` and clamped on load) and measures against it with
+`TunerUiState.centsOffTarget` (`NoteMath.centsBetween`), so a wrong note pegs the needle
+instead of being relabelled. `TunerUiState.gaugeCents` picks by mode and is what the gauge
+and status line show. `noteLabel` follows the locale's octave convention
+(`bool/note_octaves_helmholtz`: scientific C4 in English, music-school c1 in Croatian).
 
 ### UI conventions
 
@@ -146,6 +154,9 @@ turns the median into a `NoteReading`.
   H / B convention). Croatian copy addresses the child in the informal singular.
 - Fixed coral / teal / yellow palette with dynamic colour off. Icons are hand-built
   `ImageVector`s in `AppIcons` so the extended Material icon set is not a dependency.
+- `ui/common/ValueWheel` is the snapping three-row drum behind both the metronome's
+  `TempoWheel` and the tuner's `NoteWheel`. Its content description stays on the `LazyColumn`
+  node: the UI tests scroll it with `performScrollToIndex`.
 
 ### Kid-friendly UI constraint
 
@@ -156,8 +167,11 @@ to beat dots, a tempo ring (drag it, or tap the number to get an in-place three-
 `MetronomeUiState.kt`: Beginner 60, Learner 80, Star 100, Master 120; emoji plus a word, never
 the number, filled only when the tempo matches exactly), one beats-in-a-bar stepper pill
 (◀ 4/4 ▶, wrapping through every `TimeSignature` in enum order; the beat dots shrink above
-six beats), one play button and a numberless volume slider; the tuner shows a big note name, a
-numberless gauge and one status line. The user rejected a wider layout (−/+ beside the ring,
+six beats), one play button and a numberless volume slider; the tuner shows either the huge name of the
+heard note or the note wheel (the note the child chose to play, on a peach band with faded
+neighbours; spec: `docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`), a
+numberless gauge, one status line and, at the bottom, the two mode pills ("Which note?" /
+"Tune to a note"). The user rejected a wider layout (−/+ beside the ring,
 a ten-button signature scroller, flags in the content area) as too packed: keep the screen
 this sparse. Tap tempo, subdivisions, click sounds, presets and the A4 reference still exist
 in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`

@@ -12,7 +12,9 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,12 +23,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,13 +42,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
+import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import hr.bertlab.fluteassistant.ui.common.AppIcons
-import hr.bertlab.fluteassistant.ui.common.noteName
+import hr.bertlab.fluteassistant.ui.common.labelRes
+import hr.bertlab.fluteassistant.ui.common.noteLabel
 import hr.bertlab.fluteassistant.ui.theme.InTuneGreen
 import hr.bertlab.fluteassistant.ui.theme.InTuneGreenText
 import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRed
@@ -95,6 +106,8 @@ fun TunerScreen(
 
     TunerContent(
         state = state,
+        onTargetNoteChange = viewModel::setTargetNote,
+        onModeChange = viewModel::setMode,
         onRequestPermission = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
         onOpenSettings = {
             context.startActivity(
@@ -109,12 +122,17 @@ fun TunerScreen(
 }
 
 /**
- * The whole tuner: a huge note name, the gauge and one friendly status line. No numbers,
- * because a child only needs to know which note it is and whether to go up or down.
+ * The whole tuner: either the name of the note being played ([TunerMode.IDENTIFY]) or the
+ * wheel with the note the child chose to play ([TunerMode.TARGET]), the gauge measuring
+ * against that note, one friendly status line, and the two mode pills at the bottom. No
+ * numbers beyond the octave in the note name: a child only needs to know whether to go up
+ * or down.
  */
 @Composable
 fun TunerContent(
     state: TunerUiState,
+    onTargetNoteChange: (Int) -> Unit,
+    onModeChange: (TunerMode) -> Unit,
     onRequestPermission: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -132,8 +150,7 @@ fun TunerContent(
         if (!state.permissionGranted) {
             PermissionCard(onRequestPermission = onRequestPermission, onOpenSettings = onOpenSettings)
         } else {
-            val reading = state.reading
-            val cents = reading?.cents
+            val cents = state.gaugeCents
             val status = when {
                 cents == null -> TuningStatus.NONE
                 abs(cents) <= IN_TUNE_CENTS -> TuningStatus.IN_TUNE
@@ -153,15 +170,31 @@ fun TunerContent(
                     if (abs(cents ?: 0.0) <= SLIGHTLY_OFF_CENTS) slightlyOff else farOff
             }
 
-            Text(
-                text = reading?.let { noteName(it.midi) } ?: "…",
-                style = MaterialTheme.typography.displayLarge,
-                color = when (status) {
-                    TuningStatus.IN_TUNE -> inTune
-                    TuningStatus.NONE -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    else -> MaterialTheme.colorScheme.onSurface
-                },
-            )
+            // Same height in both modes so the gauge does not jump when switching.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(NoteWheelHeight),
+                contentAlignment = Alignment.Center,
+            ) {
+                when (state.mode) {
+                    TunerMode.TARGET -> NoteWheel(
+                        targetMidi = state.targetMidi,
+                        onTargetChange = onTargetNoteChange,
+                        inTune = status == TuningStatus.IN_TUNE,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    TunerMode.IDENTIFY -> Text(
+                        text = state.reading?.let { noteLabel(it.midi) } ?: "…",
+                        style = MaterialTheme.typography.displayLarge,
+                        color = when (status) {
+                            TuningStatus.IN_TUNE -> inTune
+                            TuningStatus.NONE -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            else -> MaterialTheme.colorScheme.onSurface
+                        },
+                    )
+                }
+            }
 
             Spacer(Modifier.height(8.dp))
             TuningGauge(
@@ -172,12 +205,19 @@ fun TunerContent(
             )
 
             Spacer(Modifier.height(20.dp))
-            StatusLine(status = status, color = statusColor)
+            StatusLine(
+                status = status,
+                color = statusColor,
+                targetNote = noteLabel(state.targetMidi).takeIf { state.mode == TunerMode.TARGET },
+            )
 
             state.errorMessage?.let { message ->
                 Spacer(Modifier.height(16.dp))
                 Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             }
+
+            Spacer(Modifier.height(32.dp))
+            TunerModeChoice(mode = state.mode, onSelect = onModeChange)
         }
         Spacer(Modifier.height(24.dp))
     }
@@ -185,9 +225,59 @@ fun TunerContent(
 
 private enum class TuningStatus { NONE, IN_TUNE, LOW, HIGH }
 
-/** One line of feedback; it bounces in when the note comes into tune. */
+private val TunerMode.emoji: String
+    get() = when (this) {
+        TunerMode.IDENTIFY -> "🔍"
+        TunerMode.TARGET -> "🎯"
+    }
+
+/**
+ * Two pills at the bottom of the tuner, an emoji and a few words each: "Which note?" names
+ * whatever is played, "Tune to a note" measures against the note in the wheel. The chosen
+ * one is filled.
+ */
 @Composable
-private fun StatusLine(status: TuningStatus, color: Color) {
+private fun TunerModeChoice(mode: TunerMode, onSelect: (TunerMode) -> Unit) {
+    val groupLabel = stringResource(R.string.tuner_mode)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectableGroup()
+            .semantics { contentDescription = groupLabel },
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        TunerMode.entries.forEach { entry ->
+            val isSelected = entry == mode
+            Surface(
+                selected = isSelected,
+                onClick = { onSelect(entry) },
+                shape = CircleShape,
+                color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp)
+                    .semantics { role = Role.RadioButton },
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = "${entry.emoji} ${stringResource(entry.labelRes())}",
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One line of feedback; while nothing is heard it names [targetNote] when there is one, or
+ * asks for any note. It bounces in when the note comes into tune.
+ */
+@Composable
+private fun StatusLine(status: TuningStatus, color: Color, targetNote: String?) {
     val scale = remember { Animatable(1f) }
     LaunchedEffect(status == TuningStatus.IN_TUNE) {
         if (status == TuningStatus.IN_TUNE) {
@@ -196,14 +286,13 @@ private fun StatusLine(status: TuningStatus, color: Color) {
         }
     }
     Text(
-        text = stringResource(
-            when (status) {
-                TuningStatus.NONE -> R.string.play_a_note
-                TuningStatus.IN_TUNE -> R.string.in_tune
-                TuningStatus.LOW -> R.string.too_low
-                TuningStatus.HIGH -> R.string.too_high
-            },
-        ),
+        text = when (status) {
+            TuningStatus.NONE ->
+                if (targetNote != null) stringResource(R.string.play_note_prompt, targetNote) else stringResource(R.string.play_a_note)
+            TuningStatus.IN_TUNE -> stringResource(R.string.in_tune)
+            TuningStatus.LOW -> stringResource(R.string.too_low)
+            TuningStatus.HIGH -> stringResource(R.string.too_high)
+        },
         style = MaterialTheme.typography.titleLarge,
         color = color,
         modifier = Modifier.graphicsLayer {

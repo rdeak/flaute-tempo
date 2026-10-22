@@ -8,6 +8,8 @@ import hr.bertlab.fluteassistant.domain.model.SoundProfile
 import hr.bertlab.fluteassistant.domain.model.Subdivision
 import hr.bertlab.fluteassistant.domain.model.TimeSignature
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
+import hr.bertlab.fluteassistant.domain.tuner.FluteRange
+import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -42,6 +44,15 @@ class SharedPreferencesSettingsStore @Inject constructor(
 
     override fun saveReferenceA4(hz: Double) = prefs.edit { putFloat(KEY_A4, hz.toFloat()) }
 
+    override fun loadTargetNote(): Int = prefs.getInt(KEY_TARGET_NOTE, FluteRange.DEFAULT_TARGET)
+
+    override fun saveTargetNote(midi: Int) = prefs.edit { putInt(KEY_TARGET_NOTE, midi) }
+
+    override fun loadTunerMode(): TunerMode =
+        enumOrDefault(prefs.getString(KEY_TUNER_MODE, null), TunerMode.IDENTIFY)
+
+    override fun saveTunerMode(mode: TunerMode) = prefs.edit { putString(KEY_TUNER_MODE, mode.name) }
+
     private inline fun <reified T : Enum<T>> enumOrDefault(name: String?, default: T): T =
         enumValues<T>().firstOrNull { it.name == name } ?: default
 
@@ -53,6 +64,8 @@ class SharedPreferencesSettingsStore @Inject constructor(
         const val KEY_SOUND = "sound"
         const val KEY_VOLUME = "volume"
         const val KEY_A4 = "reference_a4"
+        const val KEY_TARGET_NOTE = "target_note"
+        const val KEY_TUNER_MODE = "tuner_mode"
         const val DEFAULT_VOLUME = 0.8f
     }
 }

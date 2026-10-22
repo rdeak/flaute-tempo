@@ -2,7 +2,9 @@ package hr.bertlab.fluteassistant.ui.tuner
 
 import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
 import hr.bertlab.fluteassistant.fakes.FakeSettingsStore
+import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
+import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import hr.bertlab.fluteassistant.fakes.FakeTunerEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -168,5 +170,63 @@ class TunerViewModelTest {
         advanceUntilIdle()
         assertFalse(vm.state.value.isListening)
         assertFalse(vm.state.value.permissionGranted)
+    }
+
+    @Test
+    fun `stored target note is restored and clamped`() {
+        settings.targetNote = 62
+        assertEquals(62, TunerViewModel(engine, settings).state.value.targetMidi)
+        settings.targetNote = 10
+        assertEquals(FluteRange.LOWEST_MIDI, TunerViewModel(engine, settings).state.value.targetMidi)
+    }
+
+    @Test
+    fun `choosing a target note is saved and clamped`() {
+        val vm = TunerViewModel(engine, settings)
+        vm.setTargetNote(72)
+        assertEquals(72, vm.state.value.targetMidi)
+        assertEquals(72, settings.targetNote)
+        vm.setTargetNote(999)
+        assertEquals(FluteRange.HIGHEST_MIDI, vm.state.value.targetMidi)
+        assertEquals(FluteRange.HIGHEST_MIDI, settings.targetNote)
+    }
+
+    @Test
+    fun `deviation is measured from the chosen note`() = runTest(dispatcher) {
+        val vm = listeningViewModel()
+        advanceUntilIdle()
+        engine.frames.tryEmit(pitched(440.0))
+        advanceUntilIdle()
+
+        vm.setTargetNote(67)
+        assertEquals(200.0, vm.state.value.centsOffTarget!!, 0.05)
+        assertEquals("A4", vm.state.value.reading!!.label)
+    }
+
+    @Test
+    fun `reference pitch moves the deviation from the target`() = runTest(dispatcher) {
+        val vm = listeningViewModel()
+        advanceUntilIdle()
+        engine.frames.tryEmit(pitched(440.0))
+        advanceUntilIdle()
+
+        vm.setTargetNote(69)
+        vm.setReferenceA4(442.0)
+        assertEquals(-7.85, vm.state.value.centsOffTarget!!, 0.05)
+    }
+
+    @Test
+    fun `stored tuner mode is restored`() {
+        assertEquals(TunerMode.IDENTIFY, TunerViewModel(engine, settings).state.value.mode)
+        settings.tunerMode = TunerMode.TARGET
+        assertEquals(TunerMode.TARGET, TunerViewModel(engine, settings).state.value.mode)
+    }
+
+    @Test
+    fun `choosing a mode is saved`() {
+        val vm = TunerViewModel(engine, settings)
+        vm.setMode(TunerMode.TARGET)
+        assertEquals(TunerMode.TARGET, vm.state.value.mode)
+        assertEquals(TunerMode.TARGET, settings.tunerMode)
     }
 }

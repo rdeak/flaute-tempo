@@ -9,6 +9,7 @@ import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.SoundProfile
 import hr.bertlab.fluteassistant.domain.model.Subdivision
+import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 
 /*
  * Display names live in string resources so the app can be localised (English by default,
@@ -31,6 +32,12 @@ fun SoundProfile.labelRes(): Int = when (this) {
     SoundProfile.BELL -> R.string.sound_bell
 }
 
+@StringRes
+fun TunerMode.labelRes(): Int = when (this) {
+    TunerMode.IDENTIFY -> R.string.mode_identify
+    TunerMode.TARGET -> R.string.mode_target
+}
+
 /** One line for preset lists and the playback notification, e.g. "120 BPM · 4/4 · Quarter · Woodblock". */
 fun MetronomeConfig.summary(resources: Resources): String = resources.getString(
     R.string.config_summary,
@@ -45,13 +52,22 @@ fun MetronomeConfig.summary(resources: Resources): String = resources.getString(
 fun MetronomeConfig.summary(): String = summary(LocalResources.current)
 
 /**
- * Note name with octave for a MIDI number in the user's language: "A♯4" in English, "B4" in
- * Croatian, where the German names (H for B, B for B flat) are what musicians learn.
+ * Note name with octave for a MIDI number in the user's language. English uses scientific
+ * pitch notation ("A♯4", middle C is C4). Croatian uses the German names (H for B, B for
+ * B flat) and the octave names its music schools teach: middle C starts the one-lined
+ * octave "c1", then "c2", "c3"; below it the small octave is lowercase with no number ("h"),
+ * the great octave uppercase ("C") and the contra octave "C1".
  */
 fun noteLabel(resources: Resources, midi: Int): String {
-    val pitchClass = Math.floorMod(midi, 12)
-    val octave = Math.floorDiv(midi, 12) - 1
-    return resources.getStringArray(R.array.note_names)[pitchClass] + octave
+    val name = resources.getStringArray(R.array.note_names)[Math.floorMod(midi, 12)]
+    val octave = Math.floorDiv(midi, 12) - 1 // scientific: C4 = 60
+    if (!resources.getBoolean(R.bool.note_octaves_helmholtz)) return name + octave
+    return when {
+        octave >= 4 -> name.lowercase() + (octave - 3)
+        octave == 3 -> name.lowercase()
+        octave == 2 -> name
+        else -> name + (2 - octave)
+    }
 }
 
 @Composable
