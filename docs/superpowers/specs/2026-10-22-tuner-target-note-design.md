@@ -180,3 +180,40 @@ fingering that produces it.
 - Strings `hear_note`, `listen_status`, `fingering_for`.
 - Tests: `FluteFingeringsTest`, `ReferenceToneSynthTest`, two `TunerViewModelTest` cases,
   three `TunerScreenTest` cases.
+
+## Revision 4: name the heard note, and a log a session can be read back from
+
+The user reported that the tuner did not recognise a beginner's note played from the drawn
+fingering, and that in "Tune to a note" nothing says which note was actually heard. An
+analysis against real transverse-flute recordings (University of Iowa samples, with breath
+noise added) showed the detector finds the note but the ViewModel's confidence gate
+(`MIN_PROBABILITY` 0.85 on top of YIN's 0.2 threshold) discards a breathy tone below about
+9 dB signal-to-noise; that gate is deliberately left unchanged until a phone log confirms it.
+The user chose, from three options, to keep the wheel and put the heard note in the status
+line, plus structured logging so the next problem can be diagnosed from one logcat capture.
+
+### What the child sees
+
+In "Tune to a note", when the heard note is not the chosen one the status line says which
+note it was, in the direction's colour: "⬆️ Too high, that's h1" / "⬇️ Too low, that's g1"
+("⬆️ Previsoko, to je h1"). The octave above or below the chosen note is a beginner's
+overblown or underblown note, cured by air speed rather than fingers, so it gets its own
+line: "⬆️ An octave too high: gentler air" / "⬇️ An octave too low: faster air" ("⬆️ Oktavu
+previsoko: nježniji zrak" / "⬇️ Oktavu prenisko: brži zrak"). The chosen note itself, however
+sharp or flat, keeps "Too high" / "Too low"; "Which note?" mode is unchanged. The wheel is
+unchanged: a heard-note marker on it is the possible next step.
+
+### Code changes
+
+- `TunerUiState.mismatch` (`TargetMismatch`: NONE, OCTAVE_UP, OCTAVE_DOWN, OTHER_NOTE) from
+  the reading's nearest note versus the target, in target mode only.
+- `StatusLine` takes `mismatch` and the heard note's label; strings `too_low_heard`,
+  `too_high_heard`, `octave_too_low`, `octave_too_high`.
+- `core/log`: `Logger` interface, `LogLine` formatter, `AndroidLogger`, `LogTags`; `LogModule`
+  provides it. `TunerViewModel` logs per-frame decisions (`FrameDecision`, verbose), a
+  `tuner.summary` every `SUMMARY_FRAMES` frames, `tuner.reading` on note changes, choices and
+  failures; `AudioRecordTunerEngine` logs `mic.open` / `mic.close`; the metronome player, the
+  reference tone player and the playback service starter log through the same facility.
+  Conventions and adb commands are in CLAUDE.md ("Logging and observability").
+- Tests: `LogLineTest`, `TunerUiStateMismatchTest`, `TunerViewModelLoggingTest` (JVM, with
+  `FakeLogger`); four `TunerScreenTest` cases (instrumented).

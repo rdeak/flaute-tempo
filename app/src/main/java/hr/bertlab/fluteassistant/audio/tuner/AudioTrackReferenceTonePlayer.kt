@@ -4,7 +4,8 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
-import android.util.Log
+import hr.bertlab.fluteassistant.core.log.LogTags
+import hr.bertlab.fluteassistant.core.log.Logger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -15,7 +16,7 @@ import javax.inject.Singleton
  * wired or Bluetooth headphones).
  */
 @Singleton
-class AudioTrackReferenceTonePlayer @Inject constructor() : ReferenceTonePlayer {
+class AudioTrackReferenceTonePlayer @Inject constructor(private val logger: Logger) : ReferenceTonePlayer {
 
     private var track: AudioTrack? = null
 
@@ -43,17 +44,17 @@ class AudioTrackReferenceTonePlayer @Inject constructor() : ReferenceTonePlayer 
                 .setBufferSizeInBytes(samples.size * Float.SIZE_BYTES)
                 .build()
         }.getOrElse { e ->
-            Log.w(TAG, "Reference tone track could not be built", e)
+            logger.w(LogTags.TUNER, "reference.error", "reason" to "build_failed", "message" to e.message, error = e)
             return
         }
         if (newTrack.state == AudioTrack.STATE_UNINITIALIZED) {
-            Log.w(TAG, "Reference tone track failed to initialise")
+            logger.w(LogTags.TUNER, "reference.error", "reason" to "track_uninitialised", "rate" to sampleRate)
             newTrack.release()
             return
         }
         val written = newTrack.write(samples, 0, samples.size, AudioTrack.WRITE_BLOCKING)
         if (written < samples.size) {
-            Log.w(TAG, "Reference tone write failed: $written")
+            logger.w(LogTags.TUNER, "reference.error", "reason" to "write_failed", "code" to written)
             newTrack.release()
             return
         }
@@ -71,7 +72,6 @@ class AudioTrackReferenceTonePlayer @Inject constructor() : ReferenceTonePlayer 
     }
 
     private companion object {
-        const val TAG = "ReferenceTone"
         /** Comfortable level at full volume; the metronome clicks sit around here too. */
         const val PEAK = 0.6f
     }

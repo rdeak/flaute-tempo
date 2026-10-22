@@ -123,9 +123,10 @@ fun TunerScreen(
 /**
  * The whole tuner: either the name of the note being played ([TunerMode.IDENTIFY]) or the
  * wheel with the note the child chose to play ([TunerMode.TARGET], with a speaker button to
- * hear it), that note's fingering, the gauge measuring against it, one friendly status line,
- * and the two mode pills at the bottom. No numbers beyond the octave in the note name: a
- * child only needs to know whether to go up or down.
+ * hear it), that note's fingering, the gauge measuring against it, one friendly status line
+ * (which names the heard note when it is not the chosen one), and the two mode pills at the
+ * bottom. No numbers beyond the octave in the note name: a child only needs to know whether
+ * to go up or down.
  */
 @Composable
 fun TunerContent(
@@ -220,6 +221,8 @@ fun TunerContent(
                 status = status,
                 color = statusColor,
                 targetNote = noteLabel(state.targetMidi).takeIf { state.mode == TunerMode.TARGET },
+                mismatch = state.mismatch,
+                heardNote = state.reading?.let { noteLabel(it.midi) },
                 playing = state.isPlayingReference,
             )
 
@@ -284,11 +287,20 @@ private fun TunerModeChoice(mode: TunerMode, onSelect: (TunerMode) -> Unit) {
 
 /**
  * One line of feedback; while nothing is heard it names [targetNote] when there is one, or
- * asks for any note, and while the reference note is [playing] it says to listen. It bounces
- * in when the note comes into tune.
+ * asks for any note, and while the reference note is [playing] it says to listen. When the
+ * child plays a different note from the chosen one ([mismatch]) the line says which note it
+ * was ([heardNote]), and for the octave above or below it says what to change, since on a
+ * flute that is the air and not the fingers. It bounces in when the note comes into tune.
  */
 @Composable
-private fun StatusLine(status: TuningStatus, color: Color, targetNote: String?, playing: Boolean) {
+private fun StatusLine(
+    status: TuningStatus,
+    color: Color,
+    targetNote: String?,
+    mismatch: TargetMismatch,
+    heardNote: String?,
+    playing: Boolean,
+) {
     val scale = remember { Animatable(1f) }
     LaunchedEffect(status == TuningStatus.IN_TUNE) {
         if (status == TuningStatus.IN_TUNE) {
@@ -304,8 +316,16 @@ private fun StatusLine(status: TuningStatus, color: Color, targetNote: String?, 
                 else -> stringResource(R.string.play_a_note)
             }
             TuningStatus.IN_TUNE -> stringResource(R.string.in_tune)
-            TuningStatus.LOW -> stringResource(R.string.too_low)
-            TuningStatus.HIGH -> stringResource(R.string.too_high)
+            TuningStatus.LOW -> when (mismatch) {
+                TargetMismatch.OCTAVE_DOWN -> stringResource(R.string.octave_too_low)
+                TargetMismatch.OTHER_NOTE -> stringResource(R.string.too_low_heard, heardNote.orEmpty())
+                else -> stringResource(R.string.too_low)
+            }
+            TuningStatus.HIGH -> when (mismatch) {
+                TargetMismatch.OCTAVE_UP -> stringResource(R.string.octave_too_high)
+                TargetMismatch.OTHER_NOTE -> stringResource(R.string.too_high_heard, heardNote.orEmpty())
+                else -> stringResource(R.string.too_high)
+            }
         },
         style = MaterialTheme.typography.titleLarge,
         color = color,

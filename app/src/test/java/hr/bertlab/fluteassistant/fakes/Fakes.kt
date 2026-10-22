@@ -7,6 +7,7 @@ import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
 import hr.bertlab.fluteassistant.audio.tuner.ReferenceTonePlayer
 import hr.bertlab.fluteassistant.audio.tuner.TunerEngine
 import hr.bertlab.fluteassistant.core.MonotonicClock
+import hr.bertlab.fluteassistant.core.log.Logger
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.Preset
 import hr.bertlab.fluteassistant.domain.notes.StaffNotes
@@ -151,4 +152,28 @@ class FakeSettingsStore(
 
 class FakeClock(var now: Long = 0L) : MonotonicClock {
     override fun nowMillis(): Long = now
+}
+
+/** Records every event with its raw field values; verbose events only while [verbose] is on. */
+class FakeLogger(var verbose: Boolean = false) : Logger {
+    data class Event(val level: Char, val tag: String, val event: String, val fields: Map<String, Any?>, val error: Throwable? = null) {
+        operator fun get(key: String): Any? = fields[key]
+    }
+
+    val events = mutableListOf<Event>()
+
+    fun events(name: String): List<Event> = events.filter { it.event == name }
+
+    override fun isVerbose(tag: String): Boolean = verbose
+    override fun v(tag: String, event: String, vararg fields: Pair<String, Any?>) {
+        if (verbose) events += Event('v', tag, event, mapOf(*fields))
+    }
+    override fun d(tag: String, event: String, vararg fields: Pair<String, Any?>) { events += Event('d', tag, event, mapOf(*fields)) }
+    override fun i(tag: String, event: String, vararg fields: Pair<String, Any?>) { events += Event('i', tag, event, mapOf(*fields)) }
+    override fun w(tag: String, event: String, vararg fields: Pair<String, Any?>, error: Throwable?) {
+        events += Event('w', tag, event, mapOf(*fields), error)
+    }
+    override fun e(tag: String, event: String, vararg fields: Pair<String, Any?>, error: Throwable?) {
+        events += Event('e', tag, event, mapOf(*fields), error)
+    }
 }

@@ -10,6 +10,8 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import hr.bertlab.fluteassistant.core.log.LogTags
+import hr.bertlab.fluteassistant.core.log.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -32,10 +34,13 @@ import kotlin.math.sqrt
  * - Analysis window: 4096 samples, advanced by 2048 per frame (~43 ms at 48 kHz).
  * - Runs on [Dispatchers.IO] (the reads block) and conflates, so a slow collector always
  *   sees the newest frame; the microphone is released when the collector cancels.
+ * - Logs `mic.open` (source, rate, buffer) and `mic.close` under [LogTags.TUNER]; failures
+ *   propagate to the collector, which logs them.
  */
 @Singleton
 class AudioRecordTunerEngine @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val logger: Logger,
 ) : TunerEngine {
 
     override fun pitchFrames(): Flow<PitchFrame> = flow {
@@ -50,6 +55,13 @@ class AudioRecordTunerEngine @Inject constructor(
         val detector = YinPitchDetector.forFlute(sampleRate, bufferSize = WINDOW_SIZE)
         val window = FloatArray(WINDOW_SIZE)
         val chunk = FloatArray(HOP_SIZE)
+        var frames = 0
+        logger.i(
+            LogTags.TUNER, "mic.open",
+            "source" to sourceName(record.audioSource), "unprocessedSupported" to unprocessedSupported(),
+            "rate" to record.sampleRate, "bufferFrames" to record.bufferSizeInFrames,
+            "window" to WINDOW_SIZE, "hop" to HOP_SIZE,
+        )
 
         try {
             record.startRecording()
@@ -63,6 +75,7 @@ class AudioRecordTunerEngine @Inject constructor(
                 System.arraycopy(chunk, 0, window, WINDOW_SIZE - read, read)
 
                 val estimate = detector.detect(window)
+                frames++
                 emit(
                     PitchFrame(
                         frequency = estimate?.frequency,
@@ -74,6 +87,7 @@ class AudioRecordTunerEngine @Inject constructor(
         } finally {
             runCatching { record.stop() }
             record.release()
+            logger.i(LogTags.TUNER, "mic.close", "frames" to frames)
         }
     }.conflate().flowOn(Dispatchers.IO) // blocking reads belong on IO; the UI only wants the newest frame
 
@@ -106,11 +120,18 @@ class AudioRecordTunerEngine @Inject constructor(
         return record
     }
 
-    private fun preferredSource(): Int {
+    private fun preferredSource(): Int =
+        if (unprocessedSupported()) MediaRecorder.AudioSource.UNPROCESSED else MediaRecorder.AudioSource.MIC
+
+    private fun unprocessedSupported(): Boolean {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-        val unprocessed = audioManager
-            ?.getProperty(AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED) == "true"
-        return if (unprocessed) MediaRecorder.AudioSource.UNPROCESSED else MediaRecorder.AudioSource.MIC
+        return audioManager?.getProperty(AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED) == "true"
+    }
+
+    private fun sourceName(source: Int): String = when (source) {
+        MediaRecorder.AudioSource.UNPROCESSED -> "UNPROCESSED"
+        MediaRecorder.AudioSource.MIC -> "MIC"
+        else -> source.toString()
     }
 
     private fun levelOf(window: FloatArray): Float {

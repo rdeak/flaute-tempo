@@ -130,7 +130,11 @@ Dispatchers.IO) and cancelling releases it; it throws `SecurityException` withou
 produces the estimate; the engine uses `YinPitchDetector.forFlute`, which searches only one
 semitone beyond `FluteRange` (so voices and mains hum below the flute cannot register as low
 notes) and gates at `QUIET_ROOM_RMS` (about -60 dBFS, a value only a real phone can confirm).
-`TunerViewModel` gates on probability, publishes a reading only once the last `LOCK_FRAMES` (3,
+`TunerViewModel` gates on probability (`MIN_PROBABILITY` 0.85 on top of YIN's own 0.2
+threshold: two stacked confidence gates whose combined cliff sits at about 9 dB breath-noise
+signal-to-noise, right where a beginner's airy tone lives; the KDoc on `MIN_PROBABILITY`
+explains how to read `tuner.summary` to confirm it on a phone and what the evidence-backed
+relaxation is), publishes a reading only once the last `LOCK_FRAMES` (3,
 about 130 ms) agree within `LOCK_CENTS` (30) so a syllable or a bump never shows a note and a
 disagreeing frame freezes the reading instead of moving it, median-smooths a 5-frame window and
 holds the last reading for about 0.9 s of silence before clearing; `NoteMath.frequencyToNote`
@@ -235,6 +239,32 @@ and plays the reference tone at a fixed `REFERENCE_TONE_VOLUME`, so a stale stor
 silently affect playback. Do not reintroduce numbers or jargon
 (BPM, Hz, cents, Italian markings) or extra controls on the main screens; an "advanced mode"
 is the intended home for those features.
+
+## Logging and observability
+
+`core/log/Logger` (Hilt-provided, `AndroidLogger` in production, `FakeLogger` in tests) is the
+one way to log. Every line is a dotted event name plus `key=value` fields built by `LogLine`
+(two decimals for floating point, `none` for null, quoted text), under one tag per subsystem
+(`LogTags`: `FA.Tuner`, `FA.Metronome`, `FA.Playback`), so lines are greppable and a script
+can split them on spaces. Levels: `v` per-frame detail, off unless switched on per tag at
+runtime; `d` periodic summaries and state changes, on in debug builds; `i` lifecycle; `w`/`e`
+failures with the exception. Guard costly `v` calls with `logger.isVerbose(tag)`. Never log
+through `android.util.Log` directly, never log user-identifying data, and keep event names
+stable: they are the interface a logcat session is read with.
+
+Tuner events: `mic.open` (source, rate, buffer), `mic.close`, `tuner.permission`,
+`tuner.frame` (verbose: f, p, level, `FrameDecision`), `tuner.summary` every
+`TunerViewModel.SUMMARY_FRAMES` frames (counts per decision, pMin/pMax/pMean against `gate`,
+levelMean, reading, target, mode), `tuner.reading` when the shown note changes,
+`tuner.target`, `tuner.mode`, `tuner.reference`, `tuner.error`, `reference.error`. Metronome:
+`metronome.start` / `stop` / `ended` / `focus_lost` / `noisy` / `track_open` / `track_closed`
+(underruns) / `error`; playback: `playback.error`.
+
+```sh
+adb logcat -s FA.Tuner FA.Metronome FA.Playback         # everything structured, debug build
+adb shell setprop log.tag.FA.Tuner VERBOSE               # per-frame tuner lines (any build)
+adb logcat -v time -s FA.Tuner | grep tuner.summary     # one line a second: did frames pass the gate?
+```
 
 ## Testing conventions
 

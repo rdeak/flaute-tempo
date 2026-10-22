@@ -1,6 +1,7 @@
 package hr.bertlab.fluteassistant.ui.tuner
 
 import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
+import hr.bertlab.fluteassistant.fakes.FakeLogger
 import hr.bertlab.fluteassistant.fakes.FakeReferenceTonePlayer
 import hr.bertlab.fluteassistant.fakes.FakeSettingsStore
 import hr.bertlab.fluteassistant.domain.tuner.FluteRange
@@ -32,6 +33,7 @@ class TunerViewModelTest {
     private val engine = FakeTunerEngine()
     private val settings = FakeSettingsStore()
     private val tonePlayer = FakeReferenceTonePlayer()
+    private val logger = FakeLogger()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -45,14 +47,14 @@ class TunerViewModelTest {
     /** A held note: enough agreeing frames for the tuner to trust it. */
     private fun steady(freq: Double) = repeat(TunerViewModel.LOCK_FRAMES) { engine.frames.tryEmit(pitched(freq)) }
 
-    private fun listeningViewModel(): TunerViewModel = TunerViewModel(engine, settings, tonePlayer).apply {
+    private fun listeningViewModel(): TunerViewModel = TunerViewModel(engine, settings, tonePlayer, logger).apply {
         onPermissionResult(true)
         startListening()
     }
 
     @Test
     fun `does not listen without permission`() = runTest(dispatcher) {
-        val vm = TunerViewModel(engine, settings, tonePlayer)
+        val vm = TunerViewModel(engine, settings, tonePlayer, logger)
         vm.startListening()
         advanceUntilIdle()
         assertFalse(vm.state.value.isListening)
@@ -169,7 +171,7 @@ class TunerViewModelTest {
         // The simplified UI cannot show or change A4, so a stale 442 or 466 must not silently
         // relabel every note; only an explicit setReferenceA4 (future advanced mode) changes it.
         settings.referenceA4 = 442.0
-        val vm = TunerViewModel(engine, settings, tonePlayer)
+        val vm = TunerViewModel(engine, settings, tonePlayer, logger)
         assertEquals(NoteMath.DEFAULT_A4, vm.state.value.referenceA4, 0.0)
     }
 
@@ -197,7 +199,7 @@ class TunerViewModelTest {
 
     @Test
     fun `remembers that the permission prompt was shown`() = runTest(dispatcher) {
-        val vm = TunerViewModel(engine, settings, tonePlayer)
+        val vm = TunerViewModel(engine, settings, tonePlayer, logger)
         assertFalse(vm.state.value.permissionRequested)
         vm.onPermissionRequested()
         assertTrue(vm.state.value.permissionRequested)
@@ -216,14 +218,14 @@ class TunerViewModelTest {
     @Test
     fun `stored target note is restored and clamped`() {
         settings.targetNote = 62
-        assertEquals(62, TunerViewModel(engine, settings, tonePlayer).state.value.targetMidi)
+        assertEquals(62, TunerViewModel(engine, settings, tonePlayer, logger).state.value.targetMidi)
         settings.targetNote = 10
-        assertEquals(FluteRange.LOWEST_MIDI, TunerViewModel(engine, settings, tonePlayer).state.value.targetMidi)
+        assertEquals(FluteRange.LOWEST_MIDI, TunerViewModel(engine, settings, tonePlayer, logger).state.value.targetMidi)
     }
 
     @Test
     fun `choosing a target note is saved and clamped`() {
-        val vm = TunerViewModel(engine, settings, tonePlayer)
+        val vm = TunerViewModel(engine, settings, tonePlayer, logger)
         vm.setTargetNote(72)
         assertEquals(72, vm.state.value.targetMidi)
         assertEquals(72, settings.targetNote)
@@ -258,14 +260,14 @@ class TunerViewModelTest {
 
     @Test
     fun `stored tuner mode is restored`() {
-        assertEquals(TunerMode.IDENTIFY, TunerViewModel(engine, settings, tonePlayer).state.value.mode)
+        assertEquals(TunerMode.IDENTIFY, TunerViewModel(engine, settings, tonePlayer, logger).state.value.mode)
         settings.tunerMode = TunerMode.TARGET
-        assertEquals(TunerMode.TARGET, TunerViewModel(engine, settings, tonePlayer).state.value.mode)
+        assertEquals(TunerMode.TARGET, TunerViewModel(engine, settings, tonePlayer, logger).state.value.mode)
     }
 
     @Test
     fun `choosing a mode is saved`() {
-        val vm = TunerViewModel(engine, settings, tonePlayer)
+        val vm = TunerViewModel(engine, settings, tonePlayer, logger)
         vm.setMode(TunerMode.TARGET)
         assertEquals(TunerMode.TARGET, vm.state.value.mode)
         assertEquals(TunerMode.TARGET, settings.tunerMode)

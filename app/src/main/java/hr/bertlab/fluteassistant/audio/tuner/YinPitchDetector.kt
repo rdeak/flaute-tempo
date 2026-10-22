@@ -23,6 +23,13 @@ data class PitchEstimate(val frequency: Double, val probability: Double)
  *    high notes where one period spans only ~20 samples.
  *
  * Pure Kotlin, no Android dependencies, so it is unit-tested on the JVM.
+ *
+ * [threshold] is the first of two confidence gates: a frame is returned only when the
+ * normalised difference dips under it (0.2 means probability >= 0.8), and `TunerViewModel`
+ * then applies `MIN_PROBABILITY` on top. Lower makes the detector stricter against breathy
+ * input; higher risks the dip at half the period being accepted, an octave-up error on a low
+ * note with a strong second harmonic. Change the two together and judge them on noisy real
+ * recordings, not clean ones (see `MIN_PROBABILITY`).
  */
 class YinPitchDetector(
     private val sampleRate: Int,

@@ -62,6 +62,10 @@
     <string name="in_tune">🎉 Savršeno!</string>
     <string name="too_low">⬇️ Prenisko</string>
     <string name="too_high">⬆️ Previsoko</string>
+    <string name="too_low_heard">⬇️ Prenisko, to je %1$s</string>
+    <string name="too_high_heard">⬆️ Previsoko, to je %1$s</string>
+    <string name="octave_too_low">⬇️ Oktavu prenisko: brži zrak</string>
+    <string name="octave_too_high">⬆️ Oktavu previsoko: nježniji zrak</string>
     <string name="mic_permission_title">Smijem li koristiti mikrofon?</string>
     <string name="mic_permission_body">Trebam čuti tvoju flautu da ti pomognem ugoditi. Ništa se ne snima niti šalje.</string>
     <string name="allow_microphone">Da, dopusti</string>

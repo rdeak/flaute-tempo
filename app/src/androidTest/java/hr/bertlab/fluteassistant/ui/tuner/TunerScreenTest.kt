@@ -114,7 +114,7 @@ class TunerScreenTest {
     fun measures_against_the_chosen_note() {
         show(listening(440.0, targetMidi = 67)) // a perfect A4, but G4 was chosen
         compose.onNodeWithText("G4").assertIsDisplayed()
-        compose.onNodeWithText("⬆️ Too high").assertIsDisplayed()
+        compose.onNodeWithText("⬆️ Too high, that's A4").assertIsDisplayed()
     }
 
     @Test
@@ -124,9 +124,33 @@ class TunerScreenTest {
     }
 
     @Test
-    fun a_note_far_from_the_target_still_says_which_way() {
-        show(listening(220.0)) // an octave below the chosen A4
-        compose.onNodeWithText("⬇️ Too low").assertIsDisplayed()
+    fun a_lower_note_than_the_chosen_one_is_named_with_the_direction() {
+        show(listening(329.63)) // E4 played, A4 chosen
+        compose.onNodeWithText("⬇️ Too low, that's E4").assertIsDisplayed()
+    }
+
+    @Test
+    fun a_higher_note_than_the_chosen_one_is_named_with_the_direction() {
+        show(listening(493.88)) // B4 played, A4 chosen
+        compose.onNodeWithText("⬆️ Too high, that's B4").assertIsDisplayed()
+    }
+
+    @Test
+    fun the_octave_above_the_chosen_note_asks_for_gentler_air() {
+        show(listening(880.0)) // A5 played, A4 chosen: overblown
+        compose.onNodeWithText("⬆️ An octave too high: gentler air").assertIsDisplayed()
+    }
+
+    @Test
+    fun the_octave_below_the_chosen_note_asks_for_faster_air() {
+        show(listening(261.63, targetMidi = 72)) // C4 played, C5 chosen: underblown
+        compose.onNodeWithText("⬇️ An octave too low: faster air").assertIsDisplayed()
+    }
+
+    @Test
+    fun a_different_note_is_named_in_croatian_with_its_croatian_name() {
+        show(listening(493.88), locale = Locale.forLanguageTag("hr")) // B4 is h1
+        compose.onNodeWithText("⬆️ Previsoko, to je h1").assertIsDisplayed()
     }
 
     @Test

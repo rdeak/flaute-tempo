@@ -44,3 +44,27 @@ class TunerUiStateTest {
         assertEquals(TuningStatus.HIGH, TunerUiState(reading = a4, targetMidi = 67, mode = TunerMode.TARGET).status)
     }
 }
+
+class TunerUiStateMismatchTest {
+    private val a4 = NoteMath.frequencyToNote(440.0)
+
+    @Test
+    fun `silence and identify mode report no mismatch`() {
+        assertEquals(TargetMismatch.NONE, TunerUiState(reading = null, targetMidi = 69, mode = TunerMode.TARGET).mismatch)
+        assertEquals(TargetMismatch.NONE, TunerUiState(reading = a4, targetMidi = 60, mode = TunerMode.IDENTIFY).mismatch)
+    }
+
+    @Test
+    fun `the chosen note played sharp or flat is still the same note`() {
+        val sharp = NoteMath.frequencyToNote(452.0) // about 47 cents above A4
+        assertEquals(TargetMismatch.NONE, TunerUiState(reading = sharp, targetMidi = 69, mode = TunerMode.TARGET).mismatch)
+    }
+
+    @Test
+    fun `the octave above or below the chosen note is told apart from any other note`() {
+        assertEquals(TargetMismatch.OCTAVE_UP, TunerUiState(reading = a4, targetMidi = 57, mode = TunerMode.TARGET).mismatch)
+        assertEquals(TargetMismatch.OCTAVE_DOWN, TunerUiState(reading = a4, targetMidi = 81, mode = TunerMode.TARGET).mismatch)
+        assertEquals(TargetMismatch.OTHER_NOTE, TunerUiState(reading = a4, targetMidi = 71, mode = TunerMode.TARGET).mismatch)
+        assertEquals(TargetMismatch.OTHER_NOTE, TunerUiState(reading = a4, targetMidi = 70, mode = TunerMode.TARGET).mismatch)
+    }
+}

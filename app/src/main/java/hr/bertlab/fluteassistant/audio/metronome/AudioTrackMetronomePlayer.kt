@@ -14,9 +14,10 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
-import android.util.Log
 import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
+import hr.bertlab.fluteassistant.core.log.LogTags
+import hr.bertlab.fluteassistant.core.log.Logger
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
@@ -49,10 +50,15 @@ import kotlin.math.max
  * blocks the caller (the thread winds down on its own and a successor joins it before
  * opening a new track, so only one AudioTrack exists at a time). [sessionEnded] reports every
  * end of playback, including stops the engine initiates itself.
+ *
+ * Logs under [LogTags.METRONOME]: `metronome.start` / `metronome.stop` per session, why a
+ * session ended on its own (`metronome.focus_lost`, `metronome.noisy`, `metronome.ended`),
+ * the track's geometry and underrun count, and every failure as `metronome.error`.
  */
 @Singleton
 class AudioTrackMetronomePlayer @Inject constructor(
     @ApplicationContext private val context: Context,
+    private val logger: Logger,
 ) : MetronomePlayer {
 
     private val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -86,14 +92,20 @@ class AudioTrackMetronomePlayer @Inject constructor(
 
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
         when (change) {
-            AudioManager.AUDIOFOCUS_LOSS, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> stop()
+            AudioManager.AUDIOFOCUS_LOSS, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                logger.i(LogTags.METRONOME, "metronome.focus_lost", "change" to change)
+                stop()
+            }
             else -> Unit // ducking requests are ignored: a short click is not worth ducking
         }
     }
 
     private val noisyReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) stop()
+            if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                logger.i(LogTags.METRONOME, "metronome.noisy")
+                stop()
+            }
         }
     }
 
@@ -109,12 +121,17 @@ class AudioTrackMetronomePlayer @Inject constructor(
         }
 
         if (!requestAudioFocus()) {
-            Log.w(TAG, "Audio focus refused; not starting")
+            logger.w(LogTags.METRONOME, "metronome.error", "reason" to "focus_refused")
             return MetronomePlayer.NO_SESSION
         }
         registerNoisyReceiver()
 
         val session = ++sessionCounter
+        logger.i(
+            LogTags.METRONOME, "metronome.start",
+            "session" to session, "bpm" to config.bpm, "signature" to config.timeSignature,
+            "subdivision" to config.subdivision, "sound" to config.sound, "volume" to this.volume,
+        )
         thread = RenderThread(session, predecessor = thread).also { it.start() }
         _playback.value = PlaybackState(session, config, this.volume)
         return session
@@ -133,6 +150,7 @@ class AudioTrackMetronomePlayer @Inject constructor(
     @Synchronized
     override fun stop() {
         val current = thread ?: return
+        logger.i(LogTags.METRONOME, "metronome.stop", "session" to current.sessionId)
         current.running = false // the thread exits after its current block; no join on the caller
         thread = null
         releaseSystemResources()
@@ -144,6 +162,7 @@ class AudioTrackMetronomePlayer @Inject constructor(
     @Synchronized
     private fun onThreadExited(exited: RenderThread) {
         if (thread === exited) {
+            logger.i(LogTags.METRONOME, "metronome.ended", "session" to exited.sessionId)
             thread = null
             releaseSystemResources()
             _playback.value = null
@@ -224,9 +243,13 @@ class AudioTrackMetronomePlayer @Inject constructor(
 
                 track = buildTrack(sampleRate, bufferBytes) // may throw on unsupported formats
                 if (track.state != AudioTrack.STATE_INITIALIZED) {
-                    Log.w(TAG, "AudioTrack failed to initialise")
+                    logger.w(LogTags.METRONOME, "metronome.error", "reason" to "track_uninitialised", "rate" to sampleRate)
                     return
                 }
+                logger.d(
+                    LogTags.METRONOME, "metronome.track_open",
+                    "session" to sessionId, "rate" to sampleRate, "blockFrames" to blockFrames, "bufferFrames" to bufferFrames,
+                )
 
                 val renderer = MetronomeRenderer(sampleRate).apply {
                     volume = this@AudioTrackMetronomePlayer.volume
@@ -241,7 +264,7 @@ class AudioTrackMetronomePlayer @Inject constructor(
                     val events = renderer.render(block, config.get())
                     val written = track.write(block, 0, block.size, AudioTrack.WRITE_BLOCKING)
                     if (written < 0) {
-                        Log.w(TAG, "AudioTrack write failed: $written")
+                        logger.w(LogTags.METRONOME, "metronome.error", "reason" to "write_failed", "code" to written)
                         break
                     }
                     if (written == 0) {
@@ -253,9 +276,10 @@ class AudioTrackMetronomePlayer @Inject constructor(
             } catch (e: RuntimeException) {
                 // UnsupportedOperationException / IllegalArgumentException from the builder,
                 // IllegalStateException from play(): report and stop instead of killing the process.
-                Log.w(TAG, "Metronome audio stopped: ${e.message}")
+                logger.w(LogTags.METRONOME, "metronome.error", "reason" to "exception", "message" to e.message, error = e)
             } finally {
                 track?.let { t ->
+                    logger.d(LogTags.METRONOME, "metronome.track_closed", "session" to sessionId, "underruns" to t.underrunCount)
                     runCatching { t.pause(); t.flush(); t.stop() }
                     t.release()
                 }
@@ -306,7 +330,6 @@ class AudioTrackMetronomePlayer @Inject constructor(
     }
 
     private companion object {
-        const val TAG = "MetronomePlayer"
         const val DEFAULT_SAMPLE_RATE = 48_000
         const val BYTES_PER_FRAME = 4 // mono float
         const val NANOS_PER_SECOND = 1_000_000_000L

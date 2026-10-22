@@ -70,6 +70,10 @@
     <string name="in_tune">🎉 Perfect!</string>
     <string name="too_low">⬇️ Too low</string>
     <string name="too_high">⬆️ Too high</string>
+    <string name="too_low_heard">⬇️ Too low, that\'s %1$s</string>
+    <string name="too_high_heard">⬆️ Too high, that\'s %1$s</string>
+    <string name="octave_too_low">⬇️ An octave too low: faster air</string>
+    <string name="octave_too_high">⬆️ An octave too high: gentler air</string>
     <string name="mic_permission_title">Can I use the microphone?</string>
     <string name="mic_permission_body">I need to hear your flute to help you tune. Nothing is recorded or sent anywhere.</string>
     <string name="allow_microphone">Yes, allow</string>

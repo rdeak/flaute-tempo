@@ -6,6 +6,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
 import hr.bertlab.fluteassistant.audio.tuner.ReferenceTonePlayer
 import hr.bertlab.fluteassistant.audio.tuner.TunerEngine
+import hr.bertlab.fluteassistant.core.log.LogTags
+import hr.bertlab.fluteassistant.core.log.Logger
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
 import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
@@ -20,6 +22,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.log2
+import kotlin.math.max
+import kotlin.math.min
 
 /**
  * Smooths raw [PitchFrame]s into a stable [TunerUiState]:
@@ -27,12 +31,18 @@ import kotlin.math.log2
  * - keeps a short median window so a single mis-detected frame does not flick the needle,
  * - ignores low-confidence frames,
  * - holds the last reading for a few silent frames so the display does not blink between notes.
+ *
+ * It also writes the tuner's structured log under [LogTags.TUNER]: what became of every frame
+ * ([FrameDecision], verbose), a `tuner.summary` every [SUMMARY_FRAMES] frames, `tuner.reading`
+ * when the shown note changes, and the child's choices, so a session on a real phone can be
+ * read back without a debugger.
  */
 @HiltViewModel
 class TunerViewModel @Inject constructor(
     private val engine: TunerEngine,
     private val settings: SettingsStore,
     private val tonePlayer: ReferenceTonePlayer,
+    private val logger: Logger,
 ) : ViewModel() {
 
     // The simplified UI cannot show or change the A4 reference, so a stale stored value must
@@ -48,12 +58,15 @@ class TunerViewModel @Inject constructor(
     private var playJob: Job? = null
     private val recentFrequencies = ArrayDeque<Double>()
     private var silentFrames = 0
+    private val summary = FrameSummary()
+    private var loggedReadingMidi: Int? = null
 
     fun onPermissionRequested() {
         _state.update { it.copy(permissionRequested = true) }
     }
 
     fun onPermissionResult(granted: Boolean) {
+        if (granted != _state.value.permissionGranted) logger.i(LogTags.TUNER, "tuner.permission", "granted" to granted)
         _state.update { it.copy(permissionGranted = granted) }
         if (!granted) stopListening()
     }
@@ -69,6 +82,7 @@ class TunerViewModel @Inject constructor(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                logger.w(LogTags.TUNER, "tuner.error", "message" to e.message, error = e)
                 _state.update {
                     it.copy(isListening = false, reading = null, errorMessage = e.message ?: "Microphone unavailable")
                 }
@@ -83,6 +97,8 @@ class TunerViewModel @Inject constructor(
         recentFrequencies.clear()
         silentFrames = 0
         _state.update { it.copy(isListening = false, reading = null, level = 0f) }
+        if (summary.frames > 0) logSummary() // the last partial second, before the child left
+        logReadingIfChanged()
     }
 
     fun setReferenceA4(hz: Double) {
@@ -100,6 +116,7 @@ class TunerViewModel @Inject constructor(
     fun setTargetNote(midi: Int) {
         val clamped = FluteRange.clamp(midi)
         settings.saveTargetNote(clamped)
+        logger.d(LogTags.TUNER, "tuner.target", "midi" to clamped)
         _state.update { it.copy(targetMidi = clamped) }
     }
 
@@ -110,6 +127,7 @@ class TunerViewModel @Inject constructor(
     fun playTargetNote() {
         playJob?.cancel()
         val current = _state.value
+        logger.d(LogTags.TUNER, "tuner.reference", "midi" to current.targetMidi, "ms" to REFERENCE_TONE_MS, "volume" to REFERENCE_TONE_VOLUME)
         tonePlayer.play(
             NoteMath.midiToFrequency(current.targetMidi, current.referenceA4),
             REFERENCE_TONE_MS,
@@ -136,34 +154,76 @@ class TunerViewModel @Inject constructor(
     /** Switches between naming the heard note and measuring against the chosen one; remembered. */
     fun setMode(mode: TunerMode) {
         settings.saveTunerMode(mode)
+        logger.d(LogTags.TUNER, "tuner.mode", "mode" to mode)
         _state.update { it.copy(mode = mode) }
     }
 
     private fun onFrame(frame: PitchFrame) {
+        val decision = process(frame)
+        if (logger.isVerbose(LogTags.TUNER)) {
+            logger.v(
+                LogTags.TUNER, "tuner.frame",
+                "f" to frame.frequency, "p" to frame.probability, "level" to frame.level, "decision" to decision,
+            )
+        }
+        summary.add(frame, decision)
+        if (summary.frames >= SUMMARY_FRAMES) logSummary()
+        logReadingIfChanged()
+    }
+
+    /** Folds one frame into the state and says what became of it. */
+    private fun process(frame: PitchFrame): FrameDecision {
         if (_state.value.isPlayingReference) {
             _state.update { it.copy(level = frame.level) }
-            return
+            return FrameDecision.IGNORED
         }
-        val frequency = frame.frequency
-        if (frequency != null && frame.probability >= MIN_PROBABILITY) {
-            silentFrames = 0
-            recentFrequencies.addLast(frequency)
-            while (recentFrequencies.size > SMOOTHING_WINDOW) recentFrequencies.removeFirst()
-            if (isSteady()) {
-                val median = recentFrequencies.sorted()[recentFrequencies.size / 2]
-                _state.update { it.copy(reading = NoteMath.frequencyToNote(median, it.referenceA4), level = frame.level) }
-            } else {
-                _state.update { it.copy(level = frame.level) }
-            }
+        val frequency = frame.frequency ?: return onUnpitchedFrame(frame, FrameDecision.SILENT)
+        if (frame.probability < MIN_PROBABILITY) return onUnpitchedFrame(frame, FrameDecision.LOW_PROBABILITY)
+
+        silentFrames = 0
+        recentFrequencies.addLast(frequency)
+        while (recentFrequencies.size > SMOOTHING_WINDOW) recentFrequencies.removeFirst()
+        if (!isSteady()) {
+            _state.update { it.copy(level = frame.level) }
+            return FrameDecision.UNSTEADY
+        }
+        val median = recentFrequencies.sorted()[recentFrequencies.size / 2]
+        _state.update { it.copy(reading = NoteMath.frequencyToNote(median, it.referenceA4), level = frame.level) }
+        return FrameDecision.SHOWN
+    }
+
+    /** Silence or a frame too uncertain to trust: hold the reading for a while, then clear it. */
+    private fun onUnpitchedFrame(frame: PitchFrame, decision: FrameDecision): FrameDecision {
+        silentFrames++
+        if (silentFrames >= HOLD_FRAMES) {
+            recentFrequencies.clear()
+            _state.update { it.copy(reading = null, level = frame.level) }
         } else {
-            silentFrames++
-            if (silentFrames >= HOLD_FRAMES) {
-                recentFrequencies.clear()
-                _state.update { it.copy(reading = null, level = frame.level) }
-            } else {
-                _state.update { it.copy(level = frame.level) }
-            }
+            _state.update { it.copy(level = frame.level) }
         }
+        return decision
+    }
+
+    private fun logSummary() {
+        val s = _state.value
+        logger.d(
+            LogTags.TUNER, "tuner.summary",
+            *summary.fields(), "gate" to MIN_PROBABILITY,
+            "reading" to s.reading?.midi, "cents" to s.reading?.cents, "target" to s.targetMidi, "mode" to s.mode,
+        )
+        summary.reset()
+    }
+
+    /** `tuner.reading` when the shown note changes or clears; a wobble within the note is not logged. */
+    private fun logReadingIfChanged() {
+        val s = _state.value
+        val midi = s.reading?.midi
+        if (midi == loggedReadingMidi) return
+        loggedReadingMidi = midi
+        logger.d(
+            LogTags.TUNER, "tuner.reading",
+            "midi" to midi, "cents" to s.reading?.cents, "f" to s.reading?.frequency, "target" to s.targetMidi, "mode" to s.mode,
+        )
     }
 
     /**
@@ -184,9 +244,24 @@ class TunerViewModel @Inject constructor(
 
     companion object {
         const val SMOOTHING_WINDOW = 5
+        /** A `tuner.summary` log line every this many frames, about once a second. */
+        const val SUMMARY_FRAMES = 25
         /** A reading needs this many consecutive frames (~130 ms) that agree within [LOCK_CENTS]. */
         const val LOCK_FRAMES = 3
         const val LOCK_CENTS = 30.0
+        /**
+         * The second of two confidence gates. [YinPitchDetector] already returns a frame only
+         * when its aperiodicity dips under its own threshold (0.2, so probability >= 0.8); this
+         * gate then needs 0.85, i.e. aperiodicity under 0.15. Breath noise raises a beginner's
+         * aperiodicity into exactly that 0.15 to 0.20 band, and on real transverse-flute
+         * recordings with breath noise added the detector found the note in nearly every frame
+         * below about 9 dB signal-to-noise while this gate discarded all of them, so the screen
+         * showed nothing. Left at 0.85 until a phone capture confirms it: read `tuner.summary`
+         * (`pitched` high, `shown` 0, `pMax` under `gate`) in the log. The evidence-backed
+         * candidate is YIN 0.3 with this gate at 0.70, which showed every note of a soft
+         * low-register recording down to 5 dB without new octave errors (see the tuner
+         * target-note spec, revision 4).
+         */
         const val MIN_PROBABILITY = 0.85
         /** ~0.9 s at 43 ms per frame. */
         const val HOLD_FRAMES = 20
@@ -196,5 +271,56 @@ class TunerViewModel @Inject constructor(
         const val REFERENCE_TONE_MS = 2000
         /** How loud, in 0..1. Fixed: the app has no volume control, the phone's buttons do that. */
         const val REFERENCE_TONE_VOLUME = 0.8f
+    }
+}
+
+/** What the tuner did with one microphone frame; logged per frame when verbose and counted in the summary. */
+enum class FrameDecision { IGNORED, SILENT, LOW_PROBABILITY, UNSTEADY, SHOWN }
+
+/** Counts per [FrameDecision] and probability / level statistics since the last summary. */
+private class FrameSummary {
+    var frames = 0
+        private set
+    private val counts = IntArray(FrameDecision.entries.size)
+    private var pitched = 0
+    private var pMin = 1.0
+    private var pMax = 0.0
+    private var pSum = 0.0
+    private var levelSum = 0.0
+
+    fun add(frame: PitchFrame, decision: FrameDecision) {
+        frames++
+        counts[decision.ordinal]++
+        levelSum += frame.level
+        if (frame.frequency != null) {
+            pitched++
+            pMin = min(pMin, frame.probability)
+            pMax = max(pMax, frame.probability)
+            pSum += frame.probability
+        }
+    }
+
+    fun fields(): Array<Pair<String, Any?>> = arrayOf(
+        "frames" to frames,
+        "shown" to counts[FrameDecision.SHOWN.ordinal],
+        "unsteady" to counts[FrameDecision.UNSTEADY.ordinal],
+        "lowProb" to counts[FrameDecision.LOW_PROBABILITY.ordinal],
+        "silent" to counts[FrameDecision.SILENT.ordinal],
+        "ignored" to counts[FrameDecision.IGNORED.ordinal],
+        "pitched" to pitched,
+        "pMin" to pMin.takeIf { pitched > 0 },
+        "pMax" to pMax.takeIf { pitched > 0 },
+        "pMean" to (pSum / pitched).takeIf { pitched > 0 },
+        "levelMean" to (levelSum / frames).takeIf { frames > 0 },
+    )
+
+    fun reset() {
+        frames = 0
+        counts.fill(0)
+        pitched = 0
+        pMin = 1.0
+        pMax = 0.0
+        pSum = 0.0
+        levelSum = 0.0
     }
 }

@@ -47,6 +47,23 @@ data class TunerUiState(
             }
         }
 
+    /**
+     * In [TunerMode.TARGET], how the heard note relates to the chosen one: the octave above
+     * or below (a beginner's overblown or underblown note, cured by air speed rather than
+     * fingers) is told apart from any other note. [TargetMismatch.NONE] when it is the chosen
+     * note however sharp or flat, in silence, and when identifying.
+     */
+    val mismatch: TargetMismatch
+        get() {
+            val heard = reading?.takeIf { mode == TunerMode.TARGET } ?: return TargetMismatch.NONE
+            return when (heard.midi - targetMidi) {
+                0 -> TargetMismatch.NONE
+                12 -> TargetMismatch.OCTAVE_UP
+                -12 -> TargetMismatch.OCTAVE_DOWN
+                else -> TargetMismatch.OTHER_NOTE
+            }
+        }
+
     companion object {
         /**
          * The green zone, shared by the status line, the gauge and the note wheel. A child's
@@ -61,3 +78,6 @@ data class TunerUiState(
 
 /** What the tuner tells the child: nothing heard, in tune, or which way the note must go. */
 enum class TuningStatus { NONE, IN_TUNE, LOW, HIGH }
+
+/** Whether the heard note in target mode is the chosen one, its octave, or another note altogether. */
+enum class TargetMismatch { NONE, OCTAVE_UP, OCTAVE_DOWN, OTHER_NOTE }
