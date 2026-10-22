@@ -1,0 +1,59 @@
+<resources>
+    <string name="app_name">FluteTempo</string>
+    <string name="tab_metronome">Metronome</string>
+    <string name="tab_tuner">Tuner</string>
+
+    <!-- Metronome -->
+    <string name="bpm">BPM</string>
+    <string name="tap">TAP</string>
+    <plurals name="tap_hint">
+        <item quantity="one">%1$d tap</item>
+        <item quantity="other">%1$d taps</item>
+    </plurals>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="decrease_tempo">Decrease tempo</string>
+    <string name="increase_tempo">Increase tempo</string>
+    <string name="tempo_dial">Tempo dial, drag around the ring to change the tempo</string>
+    <string name="time_signature">Time signature</string>
+    <string name="subdivision">Subdivision</string>
+    <string name="sound">Sound</string>
+    <string name="volume">Volume</string>
+
+    <!-- Presets -->
+    <string name="presets">Presets</string>
+    <string name="current_settings">Current: %1$s</string>
+    <string name="preset_name">Preset name</string>
+    <string name="preset_name_hint">Song 1 - Live</string>
+    <string name="save">Save</string>
+    <string name="no_presets">No presets yet. Name the current settings above and tap Save.</string>
+    <string name="delete_preset">Delete %1$s</string>
+    <string name="delete_preset_title">Delete preset?</string>
+    <string name="delete_preset_body">“%1$s” will be removed permanently.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- One-shot messages -->
+    <string name="msg_audio_unavailable">Audio output is unavailable right now (another app may hold it).</string>
+    <string name="msg_save_failed">Could not save the preset.</string>
+    <string name="msg_delete_failed">Could not delete the preset.</string>
+
+    <!-- Playback notification -->
+    <string name="notification_channel_playback">Metronome playback</string>
+    <string name="notification_channel_playback_description">Shown while the metronome is running so it can be stopped from anywhere.</string>
+    <string name="notification_playing_title">Metronome running</string>
+
+    <!-- Tuner -->
+    <string name="reference_pitch">A4 = %1$d Hz</string>
+    <string name="lower_reference">Lower reference pitch</string>
+    <string name="raise_reference">Raise reference pitch</string>
+    <string name="play_a_note">Play a note</string>
+    <string name="listening">Listening…</string>
+    <string name="in_tune">In tune</string>
+    <string name="too_low">Too low ♭</string>
+    <string name="too_high">Too high ♯</string>
+    <string name="mic_permission_title">Microphone access needed</string>
+    <string name="mic_permission_body">The tuner listens to your instrument through the microphone. Audio is analysed on the device and never stored or sent anywhere.</string>
+    <string name="allow_microphone">Allow microphone</string>
+    <string name="open_settings">Open settings</string>
+</resources>
