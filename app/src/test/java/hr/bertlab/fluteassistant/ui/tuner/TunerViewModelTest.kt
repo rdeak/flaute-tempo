@@ -273,14 +273,17 @@ class TunerViewModelTest {
 
     @Test
     fun `playing the target note sounds it and pauses the readings`() = runTest(dispatcher) {
-        settings.volume = 0.7f
+        settings.volume = 0.7f // left over from an old build; nothing can change it now, so it is ignored
         val vm = listeningViewModel()
         advanceUntilIdle()
         vm.setTargetNote(69)
 
         vm.playTargetNote()
         assertTrue(vm.state.value.isPlayingReference)
-        assertEquals(listOf(FakeReferenceTonePlayer.Played(440.0, TunerViewModel.REFERENCE_TONE_MS, 0.7f)), tonePlayer.played)
+        assertEquals(
+            listOf(FakeReferenceTonePlayer.Played(440.0, TunerViewModel.REFERENCE_TONE_MS, TunerViewModel.REFERENCE_TONE_VOLUME)),
+            tonePlayer.played,
+        )
 
         steady(440.0) // the speaker, not the child: ignored
         advanceTimeBy(TunerViewModel.REFERENCE_TONE_MS / 2L)

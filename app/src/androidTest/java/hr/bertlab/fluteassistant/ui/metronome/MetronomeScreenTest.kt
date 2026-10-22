@@ -36,7 +36,6 @@ class MetronomeScreenTest {
     private var toggles = 0
     private var chosenBpm: Int? = null
     private var chosenSignature: TimeSignature? = null
-    private var chosenVolume: Float? = null
 
     private fun show(initial: MetronomeUiState, locale: Locale = Locale.ENGLISH) {
         state = mutableStateOf(initial)
@@ -50,7 +49,6 @@ class MetronomeScreenTest {
                         state.value = state.value.copy(config = state.value.config.withBpm(bpm))
                     },
                     onTimeSignatureChange = { chosenSignature = it },
-                    onVolumeChange = { chosenVolume = it },
                 )
             }
         }

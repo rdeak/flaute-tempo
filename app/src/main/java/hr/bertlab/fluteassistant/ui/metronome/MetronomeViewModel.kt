@@ -63,10 +63,11 @@ class MetronomeViewModel @Inject constructor(
             activeSession = running.sessionId
             return MetronomeUiState(config = running.config, volume = running.volume, isPlaying = true)
         }
-        // The simplified UI offers no subdivision or sound choice, so a value stored before
-        // that change (or by a future advanced mode) must not keep clicking with no way off.
+        // The simplified UI offers no subdivision, sound or volume choice, so a value stored
+        // before that change (or by a future advanced mode) must not keep clicking with no way
+        // off, or stay silent with no way back up: the volume is the default, not the stored one.
         val config = settings.loadMetronomeConfig().copy(subdivision = Subdivision.NONE, sound = SoundProfile.WOODBLOCK)
-        return MetronomeUiState(config = config, volume = settings.loadVolume())
+        return MetronomeUiState(config = config)
     }
 
     init {

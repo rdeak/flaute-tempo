@@ -82,6 +82,10 @@ gets one click at the chosen tempo, as the engine already does for 6/8.
 
 ### Volume
 
+> Removed again later the same day: the phone's volume buttons already do this and the screen
+> is sparser without it. `MetronomeViewModel.setVolume` and the stored value stay for an
+> advanced mode, but neither screen reads the stored value any more.
+
 Under the play button: a small speaker icon, a Material slider, a loud speaker icon. No
 label, no number; the accessibility name is "Volume" / "Glasnoća". Moving it calls the
 existing `MetronomeViewModel.setVolume`, which already persists and forwards to the

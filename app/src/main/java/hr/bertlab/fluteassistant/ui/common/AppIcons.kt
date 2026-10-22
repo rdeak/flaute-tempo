@@ -25,9 +25,7 @@ object AppIcons {
     }
     val PlayArrow: ImageVector by lazy { filled("play_arrow", "M8,5v14l11,-7z") }
     val Stop: ImageVector by lazy { filled("stop", "M6,6h12v12H6z") }
-    /** A speaker with no sound waves: the quiet end of the volume slider. */
-    val VolumeMute: ImageVector by lazy { filled("volume_mute", "M7,9v6h4l5,5V4l-5,5H7z") }
-    /** A speaker with two sound waves: the loud end of the volume slider. */
+    /** A speaker with two sound waves: the tuner's button that sounds the chosen note. */
     val VolumeUp: ImageVector by lazy {
         filled(
             "volume_up",

@@ -12,7 +12,6 @@
     <string name="time_signature">Beats in a bar</string>
     <string name="previous_time_signature">Previous beats in a bar</string>
     <string name="next_time_signature">Next beats in a bar</string>
-    <string name="volume">Volume</string>
 
     <!-- In-app language switch (the language names themselves are endonyms in ui/common/AppLanguage.kt) -->
     <string name="language">Language</string>

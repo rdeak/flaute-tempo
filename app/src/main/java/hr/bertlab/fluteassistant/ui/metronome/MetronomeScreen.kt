@@ -30,7 +30,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -88,15 +87,14 @@ fun MetronomeScreen(
         onTogglePlayback = viewModel::togglePlayback,
         onBpmChange = viewModel::setBpm,
         onTimeSignatureChange = viewModel::setTimeSignature,
-        onVolumeChange = viewModel::setVolume,
         modifier = modifier,
     )
 }
 
 /**
  * The whole metronome, top to bottom: beat dots, the tempo ring (tap the number for a
- * wheel), the level pills, the beats-in-a-bar stepper, the play button and the volume
- * slider. Nothing else: a child should never have to read.
+ * wheel), the level pills, the beats-in-a-bar stepper and the play button. Nothing else:
+ * a child should never have to read. Loudness is left to the phone's volume buttons.
  */
 @Composable
 fun MetronomeContent(
@@ -104,7 +102,6 @@ fun MetronomeContent(
     onTogglePlayback: () -> Unit,
     onBpmChange: (Int) -> Unit,
     onTimeSignatureChange: (TimeSignature) -> Unit,
-    onVolumeChange: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // One flash animation shared by the dots and the ring: snaps to 1 on each beat, fades to 0.
@@ -176,9 +173,6 @@ fun MetronomeContent(
 
         Spacer(Modifier.height(20.dp))
         PlayButton(isPlaying = state.isPlaying, onClick = onTogglePlayback)
-
-        Spacer(Modifier.height(20.dp))
-        VolumeRow(volume = state.volume, onVolumeChange = onVolumeChange)
 
         Spacer(Modifier.height(24.dp))
     }
@@ -305,28 +299,5 @@ private fun TimeSignatureStepper(selected: TimeSignature, onSelect: (TimeSignatu
 private fun StepButton(icon: ImageVector, description: String, onClick: () -> Unit) {
     IconButton(onClick = onClick, modifier = Modifier.size(64.dp)) {
         Icon(icon, contentDescription = description, modifier = Modifier.size(36.dp))
-    }
-}
-
-/** A quiet speaker, a slider and a loud speaker. No number: the icons say what it does. */
-@Composable
-private fun VolumeRow(volume: Float, onVolumeChange: (Float) -> Unit) {
-    val label = stringResource(R.string.volume)
-    val iconTint = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(AppIcons.VolumeMute, contentDescription = null, tint = iconTint, modifier = Modifier.size(24.dp))
-        Slider(
-            value = volume,
-            onValueChange = onVolumeChange,
-            valueRange = 0f..1f,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { contentDescription = label },
-        )
-        Icon(AppIcons.VolumeUp, contentDescription = null, tint = iconTint, modifier = Modifier.size(30.dp))
     }
 }

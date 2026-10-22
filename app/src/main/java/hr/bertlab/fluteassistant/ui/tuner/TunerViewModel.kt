@@ -104,7 +104,7 @@ class TunerViewModel @Inject constructor(
     }
 
     /**
-     * Sounds the chosen note for [REFERENCE_TONE_MS] at the app's volume. Readings pause meanwhile
+     * Sounds the chosen note for [REFERENCE_TONE_MS] at [REFERENCE_TONE_VOLUME]. Readings pause meanwhile
      * (the microphone would otherwise measure the speaker) and start afresh when it ends.
      */
     fun playTargetNote() {
@@ -113,7 +113,7 @@ class TunerViewModel @Inject constructor(
         tonePlayer.play(
             NoteMath.midiToFrequency(current.targetMidi, current.referenceA4),
             REFERENCE_TONE_MS,
-            settings.loadVolume(),
+            REFERENCE_TONE_VOLUME,
         )
         recentFrequencies.clear()
         _state.update { it.copy(isPlayingReference = true, reading = null) }
@@ -194,5 +194,7 @@ class TunerViewModel @Inject constructor(
         const val MAX_A4 = 466.0
         /** How long the reference note sounds. */
         const val REFERENCE_TONE_MS = 2000
+        /** How loud, in 0..1. Fixed: the app has no volume control, the phone's buttons do that. */
+        const val REFERENCE_TONE_VOLUME = 0.8f
     }
 }

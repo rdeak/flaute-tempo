@@ -14,7 +14,7 @@ enum class MetronomeMessage { AUDIO_UNAVAILABLE, SAVE_FAILED, DELETE_FAILED }
 data class MetronomeUiState(
     val config: MetronomeConfig = MetronomeConfig(),
     val isPlaying: Boolean = false,
-    /** Master volume in [0, 1]. Not part of presets. */
+    /** Master volume in [0, 1]. Not part of presets and not on screen (the phone's buttons set loudness). */
     val volume: Float = 0.8f,
     /** Index of the beat currently sounding, or -1 while stopped. */
     val currentBeat: Int = -1,

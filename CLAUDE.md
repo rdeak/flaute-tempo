@@ -180,17 +180,18 @@ to beat dots, a tempo ring (drag it, or tap the number to get an in-place three-
 `MetronomeUiState.kt`: Beginner 60, Learner 80, Star 100, Master 120; emoji plus a word, never
 the number, filled only when the tempo matches exactly), one beats-in-a-bar stepper pill
 (◀ 4/4 ▶, wrapping through every `TimeSignature` in enum order; the beat dots shrink above
-six beats), one play button and a numberless volume slider; the tuner shows either the huge name of the
+six beats) and one play button (no volume control: the phone's buttons set loudness); the tuner shows either the huge name of the
 heard note or the note wheel (the note the child chose to play, on a peach band with faded
 neighbours and a speaker button that sounds it; spec:
 `docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`), the fingering diagram
 for that note, a numberless gauge, one status line and, at the bottom, the two mode pills
 ("Which note?" / "Tune to a note"). The user rejected a wider layout (−/+ beside the ring,
 a ten-button signature scroller, flags in the content area) as too packed: keep the screen
-this sparse. Tap tempo, subdivisions, click sounds, presets and the A4 reference still exist
-in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`
-resets subdivision and sound to their defaults and `TunerViewModel` starts from 440 Hz so a
-stale stored value cannot silently affect playback. Do not reintroduce numbers or jargon
+this sparse. Tap tempo, subdivisions, click sounds, volume, presets and the A4 reference still
+exist in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`
+resets subdivision, sound and volume to their defaults and `TunerViewModel` starts from 440 Hz
+and plays the reference tone at a fixed `REFERENCE_TONE_VOLUME`, so a stale stored value cannot
+silently affect playback. Do not reintroduce numbers or jargon
 (BPM, Hz, cents, Italian markings) or extra controls on the main screens; an "advanced mode"
 is the intended home for those features.
 

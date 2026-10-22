@@ -290,7 +290,8 @@ class MetronomeViewModelTest {
         val vm = createViewModel()
         assertEquals(96, vm.state.value.config.bpm)
         assertEquals(TimeSignature.THREE_FOUR, vm.state.value.config.timeSignature)
-        assertEquals(0.3f, vm.state.value.volume)
+        // No volume control on screen: a stored value (maybe 0) must not stick with no way back.
+        assertEquals(MetronomeUiState().volume, vm.state.value.volume)
 
         vm.setBpm(140)
         vm.setSubdivision(Subdivision.SHUFFLE)
