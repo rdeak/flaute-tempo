@@ -17,6 +17,12 @@
     <string name="feel_fast">Brzo</string>
     <string name="feel_super_fast">Super brzo</string>
 
+    <string name="skill_level">Tvoja razina</string>
+    <string name="level_beginner">Početnik</string>
+    <string name="level_learner">Učenik</string>
+    <string name="level_star">Zvijezda</string>
+    <string name="level_master">Majstor</string>
+
     <string name="subdivision_quarter">Četvrtinke</string>
     <string name="subdivision_eighth">Osminke</string>
     <string name="subdivision_sixteenth">Šesnaestinke</string>

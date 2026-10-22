@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import hr.bertlab.fluteassistant.R
@@ -101,8 +102,9 @@ fun MetronomeScreen(
 }
 
 /**
- * The whole metronome, top to bottom: beat dots, the tempo ring, − / + buttons, the play
- * button and the beats-in-a-bar choice. Nothing else: a child should never have to read.
+ * The whole metronome, top to bottom: beat dots, the tempo ring, − / + buttons, the level
+ * pills, the play button and the beats-in-a-bar choice. Nothing else: a child should never
+ * have to read.
  */
 @Composable
 fun MetronomeContent(
@@ -158,6 +160,9 @@ fun MetronomeContent(
             HoldToRepeatButton(AppIcons.Remove, stringResource(R.string.decrease_tempo)) { onAdjustBpm(-1) }
             HoldToRepeatButton(AppIcons.Add, stringResource(R.string.increase_tempo)) { onAdjustBpm(+1) }
         }
+
+        Spacer(Modifier.height(16.dp))
+        SkillLevelChoice(bpm = state.config.bpm, onSelect = { onBpmChange(it.bpm) })
 
         Spacer(Modifier.height(20.dp))
         PlayButton(isPlaying = state.isPlaying, onClick = onTogglePlayback)
@@ -238,6 +243,53 @@ private fun PlayButton(isPlaying: Boolean, onClick: () -> Unit) {
             text = stringResource(if (isPlaying) R.string.stop else R.string.play),
             style = MaterialTheme.typography.titleLarge,
         )
+    }
+}
+
+/**
+ * One tall pill per [SkillLevel], an emoji over a word and no number: a tap jumps straight to
+ * that practice tempo. The pill whose tempo is exactly the current one is filled, so a child
+ * sees where they are on the ladder; nudge in between with − / + and none is filled.
+ */
+@Composable
+private fun SkillLevelChoice(bpm: Int, onSelect: (SkillLevel) -> Unit) {
+    val groupLabel = stringResource(R.string.skill_level)
+    val current = skillLevelFor(bpm)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectableGroup()
+            .semantics { contentDescription = groupLabel },
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        SkillLevel.entries.forEach { level ->
+            val isSelected = level == current
+            Surface(
+                selected = isSelected,
+                onClick = { onSelect(level) },
+                shape = MaterialTheme.shapes.large,
+                color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(76.dp)
+                    .semantics { role = Role.RadioButton },
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(level.emoji, style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = stringResource(level.labelRes),
+                        style = MaterialTheme.typography.labelLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
     }
 }
 

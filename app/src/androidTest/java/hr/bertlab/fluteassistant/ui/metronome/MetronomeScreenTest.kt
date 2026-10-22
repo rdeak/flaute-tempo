@@ -4,7 +4,8 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.isSelected
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -30,6 +31,7 @@ class MetronomeScreenTest {
 
     private lateinit var state: MutableState<MetronomeUiState>
     private var toggles = 0
+    private var chosenBpm: Int? = null
     private val adjustments = mutableListOf<Int>()
     private var chosenSignature: TimeSignature? = null
 
@@ -40,7 +42,7 @@ class MetronomeScreenTest {
                 MetronomeContent(
                     state = state.value,
                     onTogglePlayback = { toggles++ },
-                    onBpmChange = {},
+                    onBpmChange = { chosenBpm = it },
                     onAdjustBpm = { adjustments += it },
                     onTimeSignatureChange = { chosenSignature = it },
                 )
@@ -78,10 +80,29 @@ class MetronomeScreenTest {
         show(MetronomeUiState(config = MetronomeConfig(timeSignature = TimeSignature.SIX_EIGHT)))
         compose.onNodeWithText("6/8").assertDoesNotExist()
         compose.onNodeWithText("4/4").assertIsDisplayed()
-        compose.onAllNodes(isSelected()).assertCountEquals(0)
+        listOf("2/4", "3/4", "4/4").forEach { compose.onNodeWithText(it).assertIsNotSelected() }
 
         compose.onNodeWithText("3/4").performClick()
         assertEquals(TimeSignature.THREE_FOUR, chosenSignature)
+    }
+
+    @Test
+    fun skill_level_chip_sets_its_tempo_in_one_tap() {
+        show(MetronomeUiState())
+        compose.onNodeWithText("Star").performClick()
+        assertEquals(100, chosenBpm)
+        compose.onNodeWithText("Beginner").performClick()
+        assertEquals(60, chosenBpm)
+    }
+
+    @Test
+    fun the_level_matching_the_tempo_is_highlighted_and_an_in_between_tempo_highlights_none() {
+        show(MetronomeUiState(config = MetronomeConfig(bpm = 120)))
+        compose.onNodeWithText("Master").assertIsSelected()
+        compose.onNodeWithText("Star").assertIsNotSelected()
+
+        compose.runOnIdle { state.value = state.value.copy(config = MetronomeConfig(bpm = 121)) }
+        listOf("Beginner", "Learner", "Star", "Master").forEach { compose.onNodeWithText(it).assertIsNotSelected() }
     }
 
     @Test
@@ -106,6 +127,8 @@ class MetronomeScreenTest {
         show(MetronomeUiState(), Locale("hr"))
         compose.onNodeWithText("Idemo!").assertIsDisplayed()
         compose.onNodeWithContentDescription("Dobe u taktu").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Tvoja razina").assertIsDisplayed()
+        compose.onNodeWithText("Početnik").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Povećaj tempo").assertCountEquals(1)
     }
 }

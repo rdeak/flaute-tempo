@@ -45,3 +45,19 @@ fun tempoFeel(bpm: Int): TempoFeel = when {
     bpm < 160 -> TempoFeel.FAST
     else -> TempoFeel.SUPER_FAST
 }
+
+/**
+ * Practice tempos a primary-school flute student grows through, so a child can jump straight
+ * to "where I should be" instead of counting up with − / +. Labelled with an emoji and a word,
+ * never the number; the ring shows that. The ladder is a teaching convention, not engine data,
+ * which is why it lives here beside [TempoFeel].
+ */
+enum class SkillLevel(val bpm: Int, val emoji: String, @StringRes val labelRes: Int) {
+    BEGINNER(60, "\uD83C\uDF31", R.string.level_beginner), // seedling
+    LEARNER(80, "\uD83C\uDF3F", R.string.level_learner), // herb
+    STAR(100, "\u2B50", R.string.level_star), // star
+    MASTER(120, "\uD83C\uDFC6", R.string.level_master), // trophy
+}
+
+/** The level whose tempo is exactly [bpm], or null when the child has nudged in between. */
+fun skillLevelFor(bpm: Int): SkillLevel? = SkillLevel.entries.firstOrNull { it.bpm == bpm }

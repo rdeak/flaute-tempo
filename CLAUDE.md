@@ -140,7 +140,9 @@ turns the median into a `NoteReading`.
 ### Kid-friendly UI constraint
 
 The UI was deliberately reduced (spec: `docs/superpowers/specs/2026-10-22-kid-friendly-ui-design.md`)
-to beat dots, a tempo ring, hold-to-repeat minus/plus, one play button and 2/4 3/4 4/4; the
+to beat dots, a tempo ring, hold-to-repeat minus/plus, four "level" pills (`SkillLevel` in
+`MetronomeUiState.kt`: Beginner 60, Learner 80, Star 100, Master 120; emoji plus a word, never
+the number, filled only when the tempo matches exactly), one play button and 2/4 3/4 4/4; the
 tuner shows a big note name, a numberless gauge and one status line. Tap tempo, subdivisions,
 click sounds, volume, presets and the A4 reference still exist in the engine, data layer and
 ViewModels but are not exposed: `MetronomeViewModel.initialState()` resets subdivision and sound

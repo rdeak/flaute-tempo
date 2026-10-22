@@ -18,6 +18,13 @@
     <string name="feel_fast">Fast</string>
     <string name="feel_super_fast">Super fast</string>
 
+    <!-- Skill levels: one-tap practice tempos (ui/metronome/MetronomeUiState.kt) -->
+    <string name="skill_level">Your level</string>
+    <string name="level_beginner">Beginner</string>
+    <string name="level_learner">Learner</string>
+    <string name="level_star">Star</string>
+    <string name="level_master">Master</string>
+
     <!-- Subdivisions and click sounds (the domain enums map to these in ui/common/Labels.kt) -->
     <string name="subdivision_quarter">Quarter</string>
     <string name="subdivision_eighth">8ths</string>
