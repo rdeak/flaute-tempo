@@ -2,8 +2,9 @@
 
 Last updated: 22 October 2026
 
-Flute Assistant (the "app") is a metronome and chromatic tuner for Android, published by
-bertlab. This policy explains what the app does with information on your device.
+Flute Assistant (the "app") is a metronome and tuner for Android made for children learning
+the flute, published by bertlab. This policy explains what the app does with information on
+your device.
 
 ## Summary
 
@@ -20,11 +21,10 @@ not use the microphone.
 
 ## Data stored on your device
 
-Your metronome settings (tempo, meter, subdivision, sound, volume), tuner reference pitch and
-saved presets are stored locally in the app's private storage so they are there the next time
-you open the app. They never leave the device. Uninstalling the app deletes them. If you use
-Android's device backup, this data may be included in your own backup managed by Google or
-your device maker, under their terms.
+Your metronome settings (tempo and beats in a bar) are stored locally in the app's private
+storage so they are there the next time you open the app. They never leave the device.
+Uninstalling the app deletes them. If you use Android's device backup, this data may be
+included in your own backup managed by Google or your device maker, under their terms.
 
 ## Notifications
 
@@ -34,8 +34,9 @@ later. No notification content is shared with anyone.
 
 ## Children
 
-The app is not directed at children under 13 and does not knowingly collect information from
-anyone.
+The app is designed for children of primary-school age and is suitable for all ages. It does
+not collect any information from anyone, including children under 13, and has no ads, no
+in-app purchases, no accounts and no way to contact other people.
 
 ## Changes
 

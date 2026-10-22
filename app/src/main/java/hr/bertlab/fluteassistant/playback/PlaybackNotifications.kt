@@ -45,7 +45,7 @@ internal class PlaybackNotifications(private val context: Context) {
             .setContentTitle(context.getString(R.string.notification_playing_title))
             .setContentText(config?.summary(context.resources).orEmpty())
             .setContentIntent(openApp)
-            .addAction(R.drawable.ic_stat_stop, context.getString(R.string.stop), stop)
+            .addAction(R.drawable.ic_stat_stop, context.getString(R.string.notification_stop), stop)
             .setOngoing(true)
             .setSilent(true)
             .setOnlyAlertOnce(true)

@@ -37,10 +37,11 @@ private const val START_ANGLE = 135f
 private const val SWEEP_ANGLE = 270f
 
 /**
- * A rotary tempo dial. Dragging anywhere on the ring rotates it; one degree of rotation is
- * one BPM, so the knob tracks the finger. The filled arc shows where the tempo sits in the
- * supported range, and the whole dial glows with [flash] (read in the draw phase only) on
- * every beat. Exposes slider semantics so assistive technology can adjust the tempo too.
+ * A chunky tempo ring. Dragging anywhere on it rotates it; one degree of rotation is one
+ * BPM, so the knob tracks the finger. The filled arc shows where the tempo sits in the
+ * supported range, the number sits in the middle with a "how fast does it feel" line under
+ * it, and the whole ring glows with [flash] (read in the draw phase only) on every beat.
+ * Exposes slider semantics so assistive technology can adjust the tempo too.
  */
 @Composable
 fun TempoDial(
@@ -60,7 +61,6 @@ fun TempoDial(
     val trackColor = MaterialTheme.colorScheme.surfaceVariant
     val progressColor = MaterialTheme.colorScheme.primary
     val knobCenterColor = MaterialTheme.colorScheme.onPrimary
-    val tickColor = MaterialTheme.colorScheme.outlineVariant
     val dialDescription = stringResource(R.string.tempo_dial)
 
     Box(
@@ -106,13 +106,13 @@ fun TempoDial(
                     )
                 },
         ) {
-            val strokeWidth = 18.dp.toPx()
+            val strokeWidth = 22.dp.toPx()
             val radius = size.minDimension / 2f - strokeWidth
             val topLeft = Offset(center.x - radius, center.y - radius)
             val arcSize = Size(radius * 2, radius * 2)
             val fraction = (bpm - minBpm).toFloat() / (maxBpm - minBpm)
 
-            // Beat glow behind the numbers.
+            // Beat glow behind the number.
             val glow = flash()
             if (glow > 0f) {
                 drawCircle(flashColor.copy(alpha = 0.35f * glow), radius = radius - strokeWidth, center = center)
@@ -128,21 +128,6 @@ fun TempoDial(
                 topLeft = topLeft, size = arcSize, style = Stroke(strokeWidth, cap = StrokeCap.Round),
             )
 
-            // Tick marks every 10 BPM, longer every 50.
-            val tickOuter = radius - strokeWidth * 1.1f
-            for (value in minBpm..maxBpm step 10) {
-                val angle = Math.toRadians((START_ANGLE + SWEEP_ANGLE * (value - minBpm) / (maxBpm - minBpm)).toDouble())
-                val length = if (value % 50 == 0) 10.dp.toPx() else 5.dp.toPx()
-                val direction = Offset(cos(angle).toFloat(), sin(angle).toFloat())
-                drawLine(
-                    color = tickColor,
-                    start = center + direction * tickOuter,
-                    end = center + direction * (tickOuter - length),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round,
-                )
-            }
-
             // Knob at the end of the progress arc.
             val knobAngle = Math.toRadians((START_ANGLE + SWEEP_ANGLE * fraction).toDouble())
             val knobCenter = center + Offset(cos(knobAngle).toFloat(), sin(knobAngle).toFloat()) * radius
@@ -152,13 +137,9 @@ fun TempoDial(
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = bpm.toString(), style = MaterialTheme.typography.displayLarge)
+            val feel = tempoFeel(bpm)
             Text(
-                text = stringResource(R.string.bpm),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = tempoMarking(bpm),
+                text = "${feel.emoji} ${stringResource(feel.labelRes)}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
             )

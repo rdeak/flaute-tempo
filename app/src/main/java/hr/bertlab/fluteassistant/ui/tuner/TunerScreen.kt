@@ -7,9 +7,12 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,19 +21,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -38,16 +43,18 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
-import hr.bertlab.fluteassistant.ui.common.noteLabel
 import hr.bertlab.fluteassistant.ui.common.AppIcons
+import hr.bertlab.fluteassistant.ui.common.noteName
 import hr.bertlab.fluteassistant.ui.theme.InTuneGreen
+import hr.bertlab.fluteassistant.ui.theme.InTuneGreenText
 import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRed
+import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRedText
 import hr.bertlab.fluteassistant.ui.theme.SlightlyOffAmber
-import java.util.Locale
+import hr.bertlab.fluteassistant.ui.theme.SlightlyOffAmberText
 import kotlin.math.abs
-import kotlin.math.roundToInt
 
 private const val IN_TUNE_CENTS = 5.0
+private const val SLIGHTLY_OFF_CENTS = 15.0
 
 /**
  * Stateful entry point: handles the RECORD_AUDIO permission and starts / stops the microphone
@@ -97,42 +104,30 @@ fun TunerScreen(
                 ),
             )
         },
-        onReferenceChange = viewModel::setReferenceA4,
         modifier = modifier,
     )
 }
 
+/**
+ * The whole tuner: a huge note name, the gauge and one friendly status line. No numbers,
+ * because a child only needs to know which note it is and whether to go up or down.
+ */
 @Composable
 fun TunerContent(
     state: TunerUiState,
     onRequestPermission: () -> Unit,
     onOpenSettings: () -> Unit,
-    onReferenceChange: (Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        // Header with reference pitch control
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.tab_tuner),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f),
-            )
-            ReferencePitchControl(referenceA4 = state.referenceA4, onChange = onReferenceChange)
-        }
-
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
 
         if (!state.permissionGranted) {
             PermissionCard(onRequestPermission = onRequestPermission, onOpenSettings = onOpenSettings)
@@ -145,34 +140,28 @@ fun TunerContent(
                 cents < 0 -> TuningStatus.LOW
                 else -> TuningStatus.HIGH
             }
+            // The gauge keeps the bright zone colours; text uses darker ones on the light
+            // surface so "Perfect!" stays readable.
+            val dark = isSystemInDarkTheme()
+            val inTune = if (dark) InTuneGreen else InTuneGreenText
+            val slightlyOff = if (dark) SlightlyOffAmber else SlightlyOffAmberText
+            val farOff = if (dark) OutOfTuneRed else OutOfTuneRedText
             val statusColor = when (status) {
                 TuningStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
-                TuningStatus.IN_TUNE -> InTuneGreen
+                TuningStatus.IN_TUNE -> inTune
                 TuningStatus.LOW, TuningStatus.HIGH ->
-                    if (abs(cents ?: 0.0) <= 15) SlightlyOffAmber else OutOfTuneRed
+                    if (abs(cents ?: 0.0) <= SLIGHTLY_OFF_CENTS) slightlyOff else farOff
             }
 
-            // Note name
             Text(
-                text = reading?.let { noteLabel(it.midi) } ?: "—",
+                text = reading?.let { noteName(it.midi) } ?: "…",
                 style = MaterialTheme.typography.displayLarge,
-                color = if (status == TuningStatus.IN_TUNE) InTuneGreen else MaterialTheme.colorScheme.onSurface,
+                color = when (status) {
+                    TuningStatus.IN_TUNE -> inTune
+                    TuningStatus.NONE -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(
-                    text = reading?.let { String.format(Locale.US, "%.1f Hz", it.frequency) }
-                        ?: stringResource(R.string.play_a_note),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (cents != null) {
-                    Text(
-                        text = String.format(Locale.US, "%+.0f ¢", cents),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = statusColor,
-                    )
-                }
-            }
 
             Spacer(Modifier.height(8.dp))
             TuningGauge(
@@ -182,39 +171,8 @@ fun TunerContent(
                     .aspectRatio(1.9f),
             )
 
-            // Neighbouring notes as orientation
-            if (reading != null) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(noteLabel(reading.midi - 1), style = MaterialTheme.typography.labelLarge)
-                    Text(noteLabel(reading.midi + 1), style = MaterialTheme.typography.labelLarge)
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = when (status) {
-                    TuningStatus.NONE -> stringResource(if (state.isListening) R.string.listening else R.string.play_a_note)
-                    TuningStatus.IN_TUNE -> stringResource(R.string.in_tune)
-                    TuningStatus.LOW -> stringResource(R.string.too_low)
-                    TuningStatus.HIGH -> stringResource(R.string.too_high)
-                },
-                style = MaterialTheme.typography.titleMedium,
-                color = statusColor,
-            )
-
-            // Input level
-            Spacer(Modifier.height(24.dp))
-            LinearProgressIndicator(
-                progress = { state.level },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(6.dp),
-            )
+            Spacer(Modifier.height(20.dp))
+            StatusLine(status = status, color = statusColor)
 
             state.errorMessage?.let { message ->
                 Spacer(Modifier.height(16.dp))
@@ -227,49 +185,74 @@ fun TunerContent(
 
 private enum class TuningStatus { NONE, IN_TUNE, LOW, HIGH }
 
+/** One line of feedback; it bounces in when the note comes into tune. */
 @Composable
-private fun ReferencePitchControl(referenceA4: Double, onChange: (Double) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { onChange(referenceA4 - 1) }) {
-            Icon(AppIcons.Remove, contentDescription = stringResource(R.string.lower_reference))
-        }
-        Text(
-            text = stringResource(R.string.reference_pitch, referenceA4.roundToInt()),
-            style = MaterialTheme.typography.labelLarge,
-        )
-        IconButton(onClick = { onChange(referenceA4 + 1) }) {
-            Icon(AppIcons.Add, contentDescription = stringResource(R.string.raise_reference))
+private fun StatusLine(status: TuningStatus, color: Color) {
+    val scale = remember { Animatable(1f) }
+    LaunchedEffect(status == TuningStatus.IN_TUNE) {
+        if (status == TuningStatus.IN_TUNE) {
+            scale.snapTo(1.3f)
+            scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow))
         }
     }
+    Text(
+        text = stringResource(
+            when (status) {
+                TuningStatus.NONE -> R.string.play_a_note
+                TuningStatus.IN_TUNE -> R.string.in_tune
+                TuningStatus.LOW -> R.string.too_low
+                TuningStatus.HIGH -> R.string.too_high
+            },
+        ),
+        style = MaterialTheme.typography.titleLarge,
+        color = color,
+        modifier = Modifier.graphicsLayer {
+            scaleX = scale.value
+            scaleY = scale.value
+        },
+    )
 }
 
 @Composable
 private fun PermissionCard(onRequestPermission: () -> Unit, onOpenSettings: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        shape = MaterialTheme.shapes.large,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Icon(
                 AppIcons.Mic,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(64.dp),
             )
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.mic_permission_title), style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.mic_permission_title),
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.mic_permission_body),
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onRequestPermission) { Text(stringResource(R.string.allow_microphone)) }
-                TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.open_settings)) }
+            Spacer(Modifier.height(20.dp))
+            Button(
+                onClick = onRequestPermission,
+                shape = CircleShape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+            ) {
+                Text(stringResource(R.string.allow_microphone), style = MaterialTheme.typography.titleMedium)
             }
+            TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.open_settings)) }
         }
     }
 }

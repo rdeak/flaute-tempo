@@ -28,36 +28,53 @@ class TunerScreenTest {
                     state = state,
                     onRequestPermission = { permissionRequests++ },
                     onOpenSettings = {},
-                    onReferenceChange = {},
                 )
             }
         }
     }
 
+    private fun listening(frequency: Double) =
+        TunerUiState(permissionGranted = true, isListening = true, reading = NoteMath.frequencyToNote(frequency))
+
     @Test
     fun asks_for_the_microphone_until_permission_is_granted() {
         show(TunerUiState(permissionGranted = false))
-        compose.onNodeWithText("Allow microphone").performClick()
+        compose.onNodeWithText("Yes, allow").performClick()
         assertEquals(1, permissionRequests)
     }
 
     @Test
-    fun shows_the_note_its_deviation_and_the_neighbouring_notes() {
-        val reading = NoteMath.frequencyToNote(443.0) // A4 played 12 cents sharp
-        show(TunerUiState(permissionGranted = true, isListening = true, reading = reading))
-        compose.onNodeWithText("A4").assertIsDisplayed()
-        compose.onNodeWithText("+12 ¢").assertIsDisplayed()
-        compose.onNodeWithText("G♯4").assertIsDisplayed()
-        compose.onNodeWithText("A♯4").assertIsDisplayed()
+    fun shows_the_note_and_too_high() {
+        show(listening(443.0)) // A4 played 12 cents sharp
+        compose.onNodeWithText("A").assertIsDisplayed()
+        compose.onNodeWithText("⬆️ Too high").assertIsDisplayed()
+        compose.onNodeWithText("+12 ¢").assertDoesNotExist()
+        compose.onNodeWithText("A4").assertDoesNotExist()
+    }
+
+    @Test
+    fun far_off_note_shows_too_low() {
+        show(listening(430.0)) // A4, about 40 cents flat
+        compose.onNodeWithText("A").assertIsDisplayed()
+        compose.onNodeWithText("⬇️ Too low").assertIsDisplayed()
+    }
+
+    @Test
+    fun in_tune_note_celebrates() {
+        show(listening(440.0))
+        compose.onNodeWithText("🎉 Perfect!").assertIsDisplayed()
+    }
+
+    @Test
+    fun silence_asks_for_a_note() {
+        show(TunerUiState(permissionGranted = true, isListening = true, reading = null))
+        compose.onNodeWithText("👂 Play a note").assertIsDisplayed()
     }
 
     @Test
     fun croatian_system_language_uses_croatian_note_names() {
-        val reading = NoteMath.frequencyToNote(493.88) // B4, called H4 in Croatia
-        show(TunerUiState(permissionGranted = true, isListening = true, reading = reading), Locale("hr"))
-        compose.onNodeWithText("H4").assertIsDisplayed()
-        compose.onNodeWithText("B4").assertIsDisplayed() // the neighbour below (B flat) is "B"
-        compose.onNodeWithText("C5").assertIsDisplayed()
-        compose.onNodeWithText("Ugođeno").assertIsDisplayed()
+        show(listening(493.88), Locale("hr")) // B4, called H in Croatia
+        compose.onNodeWithText("H").assertIsDisplayed()
+        compose.onNodeWithText("🎉 Savršeno!").assertIsDisplayed()
     }
 }

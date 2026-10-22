@@ -4,21 +4,19 @@
     <string name="tab_tuner">Tuner</string>
 
     <!-- Metronome -->
-    <string name="bpm">BPM</string>
-    <string name="tap">TAP</string>
-    <plurals name="tap_hint">
-        <item quantity="one">%1$d tap</item>
-        <item quantity="other">%1$d taps</item>
-    </plurals>
-    <string name="start">Start</string>
+    <string name="play">Let\'s play!</string>
     <string name="stop">Stop</string>
     <string name="decrease_tempo">Decrease tempo</string>
     <string name="increase_tempo">Increase tempo</string>
-    <string name="tempo_dial">Tempo dial, drag around the ring to change the tempo</string>
-    <string name="time_signature">Time signature</string>
-    <string name="subdivision">Subdivision</string>
-    <string name="sound">Sound</string>
-    <string name="volume">Volume</string>
+    <string name="tempo_dial">Tempo ring, drag around it to change the speed</string>
+    <string name="time_signature">Beats in a bar</string>
+
+    <!-- How the tempo feels, shown under the number with an emoji (ui/metronome/MetronomeUiState.kt) -->
+    <string name="feel_very_slow">Very slow</string>
+    <string name="feel_slow">Slow</string>
+    <string name="feel_medium">Medium</string>
+    <string name="feel_fast">Fast</string>
+    <string name="feel_super_fast">Super fast</string>
 
     <!-- Subdivisions and click sounds (the domain enums map to these in ui/common/Labels.kt) -->
     <string name="subdivision_quarter">Quarter</string>
@@ -32,41 +30,25 @@
     <!-- BPM, meter, subdivision, sound -->
     <string name="config_summary">%1$d BPM · %2$s · %3$s · %4$s</string>
 
-    <!-- Presets -->
-    <string name="presets">Presets</string>
-    <string name="current_settings">Current: %1$s</string>
-    <string name="preset_name">Preset name</string>
-    <string name="preset_name_hint">Song 1 - Live</string>
-    <string name="save">Save</string>
-    <string name="no_presets">No presets yet. Name the current settings above and tap Save.</string>
-    <string name="delete_preset">Delete %1$s</string>
-    <string name="delete_preset_title">Delete preset?</string>
-    <string name="delete_preset_body">“%1$s” will be removed permanently.</string>
-    <string name="delete">Delete</string>
-    <string name="cancel">Cancel</string>
-
     <!-- One-shot messages -->
-    <string name="msg_audio_unavailable">Audio output is unavailable right now (another app may hold it).</string>
-    <string name="msg_save_failed">Could not save the preset.</string>
-    <string name="msg_delete_failed">Could not delete the preset.</string>
+    <string name="msg_audio_unavailable">Oops, the sound is busy right now. Try again in a moment.</string>
+    <string name="msg_save_failed">Oops, that could not be saved.</string>
+    <string name="msg_delete_failed">Oops, that could not be deleted.</string>
 
     <!-- Playback notification -->
     <string name="notification_channel_playback">Metronome playback</string>
     <string name="notification_channel_playback_description">Shown while the metronome is running so it can be stopped from anywhere.</string>
     <string name="notification_playing_title">Metronome running</string>
+    <string name="notification_stop">Stop</string>
 
     <!-- Tuner -->
-    <string name="reference_pitch">A4 = %1$d Hz</string>
-    <string name="lower_reference">Lower reference pitch</string>
-    <string name="raise_reference">Raise reference pitch</string>
-    <string name="play_a_note">Play a note</string>
-    <string name="listening">Listening…</string>
-    <string name="in_tune">In tune</string>
-    <string name="too_low">Too low ♭</string>
-    <string name="too_high">Too high ♯</string>
-    <string name="mic_permission_title">Microphone access needed</string>
-    <string name="mic_permission_body">The tuner listens to your instrument through the microphone. Audio is analysed on the device and never stored or sent anywhere.</string>
-    <string name="allow_microphone">Allow microphone</string>
+    <string name="play_a_note">👂 Play a note</string>
+    <string name="in_tune">🎉 Perfect!</string>
+    <string name="too_low">⬇️ Too low</string>
+    <string name="too_high">⬆️ Too high</string>
+    <string name="mic_permission_title">Can I use the microphone?</string>
+    <string name="mic_permission_body">I need to hear your flute to help you tune. Nothing is recorded or sent anywhere.</string>
+    <string name="allow_microphone">Yes, allow</string>
     <string name="open_settings">Open settings</string>
     <!-- Note names for the 12 pitch classes from C, using sharps. Localised: Croatian uses H and B. -->
     <string-array name="note_names">

@@ -32,14 +32,14 @@ fun BeatIndicator(
     val idleColor = MaterialTheme.colorScheme.surfaceVariant
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         timeSignature.accents.forEachIndexed { index, strength ->
             val diameter = when (strength) {
-                BeatStrength.STRONG -> 28.dp
-                BeatStrength.MEDIUM -> 24.dp
-                else -> 18.dp
+                BeatStrength.STRONG -> 36.dp
+                BeatStrength.MEDIUM -> 30.dp
+                else -> 24.dp
             }
             val active = index == currentBeat
             Box(

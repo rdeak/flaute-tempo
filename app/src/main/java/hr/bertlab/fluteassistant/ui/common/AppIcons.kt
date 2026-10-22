@@ -18,31 +18,11 @@ object AppIcons {
     val Remove: ImageVector by lazy { filled("remove", "M19,13H5v-2h14v2z") }
     val PlayArrow: ImageVector by lazy { filled("play_arrow", "M8,5v14l11,-7z") }
     val Stop: ImageVector by lazy { filled("stop", "M6,6h12v12H6z") }
-    val Delete: ImageVector by lazy {
-        filled("delete", "M6,19c0,1.1 0.9,2 2,2h8c1.1,0 2,-0.9 2,-2V7H6v12zM19,4h-3.5l-1,-1h-5l-1,1H5v2h14V4z")
-    }
-    val Save: ImageVector by lazy {
-        filled(
-            "save",
-            "M17,3L5,3c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2L21,7l-4,-4zM12,19c-1.66,0 -3,-1.34 " +
-                "-3,-3s1.34,-3 3,-3 3,1.34 3,3 -1.34,3 -3,3zM15,9L5,9L5,5h10v4z",
-        )
-    }
-    val Bookmark: ImageVector by lazy {
-        filled("bookmark", "M17,3H7c-1.1,0 -1.99,0.9 -1.99,2L5,21l7,-3 7,3V5c0,-1.1 -0.9,-2 -2,-2z")
-    }
     val Mic: ImageVector by lazy {
         filled(
             "mic",
             "M12,14c1.66,0 2.99,-1.34 2.99,-3L15,5c0,-1.66 -1.34,-3 -3,-3S9,3.34 9,5v6c0,1.66 1.34,3 3,3zM17.3,11c0,3 " +
                 "-2.54,5.1 -5.3,5.1S6.7,14 6.7,11L5,11c0,3.41 2.72,6.23 6,6.72L11,21h2v-3.28c3.28,-0.48 6,-3.3 6,-6.72h-1.7z",
-        )
-    }
-    val VolumeUp: ImageVector by lazy {
-        filled(
-            "volume_up",
-            "M3,9v6h4l5,5V4L7,9H3zm13.5,3c0,-1.77 -1.02,-3.29 -2.5,-4.03v8.05c1.48,-0.73 2.5,-2.25 2.5,-4.02zM14,3.23v2.06" +
-                "c2.89,0.86 5,3.54 5,6.71s-2.11,5.85 -5,6.71v2.06c4.01,-0.91 7,-4.49 7,-8.77s-2.99,-7.86 -7,-8.77z",
         )
     }
 

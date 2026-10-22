@@ -57,3 +57,11 @@ fun noteLabel(resources: Resources, midi: Int): String {
 @Composable
 @ReadOnlyComposable
 fun noteLabel(midi: Int): String = noteLabel(LocalResources.current, midi)
+
+/** Note name without the octave, e.g. "A♯" (or "B" in Croatian), for the big tuner display. */
+fun noteName(resources: Resources, midi: Int): String =
+    resources.getStringArray(R.array.note_names)[Math.floorMod(midi, 12)]
+
+@Composable
+@ReadOnlyComposable
+fun noteName(midi: Int): String = noteName(LocalResources.current, midi)

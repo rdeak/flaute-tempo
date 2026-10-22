@@ -1,16 +1,17 @@
 # Play Console answers for Flute Assistant
 
-Facts the answers rest on: the app runs entirely on the device. The microphone is used only
-while the Tuner tab is open; audio is analysed in memory for pitch and never stored, logged or
-transmitted. There is no account, no network access, no analytics, no ads, no SDK that
-collects data. Presets and settings are stored locally on the device.
+Facts the answers rest on: the app is made for primary-school children learning the flute and
+runs entirely on the device. The microphone is used only while the Tuner tab is open; audio is
+analysed in memory for pitch and never stored, logged or transmitted. There is no account, no
+network access, no analytics, no ads, no SDK that collects data. Settings are stored locally on
+the device.
 
 ## Store listing
 
 | Field | Value |
 |---|---|
 | App name | Flute Assistant |
-| Short description | Metronome and chromatic tuner for flute practice. |
+| Short description | A simple, friendly metronome and tuner for young flute players. |
 | Full description | See below |
 | App icon | `play-listing/icon-512.png` (512x512) |
 | Feature graphic | `play-listing/feature-graphic-1024x500.png` |
@@ -22,12 +23,12 @@ collects data. Presets and settings are stored locally on the device.
 
 Full description draft:
 
-> A focused practice companion for flutists. The metronome runs from 30 to 300 BPM with tap
-> tempo, 2/4, 3/4, 4/4, 5/4 and 6/8 meters, eighth, sixteenth, triplet and shuffle subdivisions,
-> three click sounds and a beat flasher synced to the audio. Save your favourite settings as
-> presets. The chromatic tuner shows the note and cents on a needle gauge with an adjustable
-> A4 reference (415 to 466 Hz). The metronome keeps running while you read sheet music in
-> another app, with a notification to stop it. No account, no ads, no data leaves your device.
+> Made for children in primary school who are learning the flute. Two big, friendly screens
+> and nothing to read: a metronome with a tempo ring, one play button, bouncing beat dots and
+> 2/4, 3/4 or 4/4; and a tuner that shows the note in big letters and says "Perfect!", "Too
+> low" or "Too high". The metronome keeps running while you read sheet music in another app,
+> with a notification to stop it. In English and Croatian. No account, no ads, no data leaves
+> your device.
 
 ## App content
 
@@ -46,9 +47,12 @@ question (violence, sexuality, language, controlled substances, gambling, user i
 location sharing, purchases). Expected rating: Everyone / PEGI 3.
 
 ### Target audience and content
-Target age group: **18 and over** (13+ is also defensible). The app is not designed for
-children, so the Families policy does not apply. Could it unintentionally appeal to children?
-**No.**
+Target age groups: **6-8 and 9-12** (add 13-15 and 16-17 if you also want to reach older
+students; adding 18+ makes it a "mixed audience" app). The app is designed for children, so
+the **Families policy applies**: it already has no ads, no data collection, no social features
+and no links out of the app, which is what the policy checks. Complete the Families
+self-certification in the Target audience section and keep the privacy policy linked. The
+optional "Teacher Approved" badge can be applied for after launch.
 
 ### News app
 **No.**

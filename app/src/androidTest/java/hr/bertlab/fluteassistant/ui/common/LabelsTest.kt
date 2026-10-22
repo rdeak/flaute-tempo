@@ -41,6 +41,14 @@ class LabelsTest {
     }
 
     @Test
+    fun note_names_without_octave_follow_the_locale() {
+        assertEquals("B", noteName(resources(Locale.ENGLISH), 71))
+        assertEquals("H", noteName(resources(Locale("hr")), 71))
+        assertEquals("A♯", noteName(resources(Locale.ENGLISH), 70))
+        assertEquals("B", noteName(resources(Locale("hr")), 70))
+    }
+
+    @Test
     fun other_system_languages_fall_back_to_english() {
         assertEquals("Triplets", resources(Locale.GERMAN).getString(Subdivision.TRIPLET.labelRes()))
         assertEquals("Bell", resources(Locale.FRENCH).getString(SoundProfile.BELL.labelRes()))

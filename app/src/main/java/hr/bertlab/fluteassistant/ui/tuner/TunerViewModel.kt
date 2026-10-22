@@ -28,7 +28,10 @@ class TunerViewModel @Inject constructor(
     private val settings: SettingsStore,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(TunerUiState(referenceA4 = settings.loadReferenceA4()))
+    // The simplified UI cannot show or change the A4 reference, so a stale stored value must
+    // not silently relabel every note: start from the standard 440 Hz (the stored value is
+    // left for a future advanced mode, which would call setReferenceA4 explicitly).
+    private val _state = MutableStateFlow(TunerUiState())
     val state: StateFlow<TunerUiState> = _state.asStateFlow()
 
     private var listenJob: Job? = null

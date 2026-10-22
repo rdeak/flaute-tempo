@@ -372,11 +372,22 @@ class MetronomeViewModelTest {
     }
 
     @Test
-    fun `tempo marking follows the bpm`() {
-        assertEquals("Largo", tempoMarking(50))
-        assertEquals("Andante", tempoMarking(80))
-        assertEquals("Allegro", tempoMarking(130))
-        assertEquals("Prestissimo", tempoMarking(220))
-        assertNull(runCatching { tempoMarking(-1) }.exceptionOrNull())
+    fun `hidden options are reset on load`() = runTest(dispatcher) {
+        settings.config = MetronomeConfig(bpm = 96, subdivision = Subdivision.TRIPLET, sound = SoundProfile.BELL)
+        val vm = createViewModel()
+        assertEquals(96, vm.state.value.config.bpm)
+        assertEquals(Subdivision.NONE, vm.state.value.config.subdivision)
+        assertEquals(SoundProfile.WOODBLOCK, vm.state.value.config.sound)
+    }
+
+    @Test
+    fun `tempo feel follows the bpm`() {
+        assertEquals(TempoFeel.VERY_SLOW, tempoFeel(50))
+        assertEquals(TempoFeel.SLOW, tempoFeel(60))
+        assertEquals(TempoFeel.MEDIUM, tempoFeel(90))
+        assertEquals(TempoFeel.FAST, tempoFeel(120))
+        assertEquals(TempoFeel.SUPER_FAST, tempoFeel(160))
+        assertEquals("\uD83D\uDC22", TempoFeel.SLOW.emoji) // turtle
+        assertNull(runCatching { tempoFeel(-1) }.exceptionOrNull())
     }
 }

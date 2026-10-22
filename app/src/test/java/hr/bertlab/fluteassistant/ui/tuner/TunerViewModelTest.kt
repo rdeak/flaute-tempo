@@ -2,6 +2,7 @@ package hr.bertlab.fluteassistant.ui.tuner
 
 import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
 import hr.bertlab.fluteassistant.fakes.FakeSettingsStore
+import hr.bertlab.fluteassistant.domain.tuner.NoteMath
 import hr.bertlab.fluteassistant.fakes.FakeTunerEngine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -121,10 +122,12 @@ class TunerViewModelTest {
     }
 
     @Test
-    fun `reference pitch is restored from settings`() {
+    fun `stored reference pitch is reset to standard on load`() {
+        // The simplified UI cannot show or change A4, so a stale 442 or 466 must not silently
+        // relabel every note; only an explicit setReferenceA4 (future advanced mode) changes it.
         settings.referenceA4 = 442.0
         val vm = TunerViewModel(engine, settings)
-        assertEquals(442.0, vm.state.value.referenceA4, 0.0)
+        assertEquals(NoteMath.DEFAULT_A4, vm.state.value.referenceA4, 0.0)
     }
 
     @Test

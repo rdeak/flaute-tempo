@@ -9,9 +9,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,48 +23,53 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.model.BeatStrength
-import hr.bertlab.fluteassistant.domain.model.SoundProfile
-import hr.bertlab.fluteassistant.domain.model.Subdivision
 import hr.bertlab.fluteassistant.domain.model.TimeSignature
 import hr.bertlab.fluteassistant.ui.common.AppIcons
-import hr.bertlab.fluteassistant.ui.common.labelRes
-import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 private const val FLASH_DURATION_MS = 180
+
+/**
+ * Holding − or + starts stepping after this delay, then once per [HOLD_REPEAT_MS]. Inside a
+ * scrolling column Compose reports the press about 100 ms late (the tap timeout, so a scroll
+ * can still claim the gesture), so the first step lands roughly half a second after touch.
+ */
+private const val HOLD_DELAY_MS = 400L
+private const val HOLD_REPEAT_MS = 80L
+
+/** The time signatures a young student meets; the others stay in the engine but are not offered. */
+private val OfferedTimeSignatures = listOf(TimeSignature.TWO_FOUR, TimeSignature.THREE_FOUR, TimeSignature.FOUR_FOUR)
 
 /** Stateful entry point: wires the ViewModel to the stateless [MetronomeContent]. */
 @Composable
@@ -71,8 +78,6 @@ fun MetronomeScreen(
     viewModel: MetronomeViewModel,
     modifier: Modifier = Modifier,
 ) {
-    var showPresets by rememberSaveable { mutableStateOf(false) }
-
     // Android 13+ only shows the background-playback notification with permission. Ask once,
     // on the first start, when the notification becomes relevant; playback works either way.
     val context = LocalContext.current
@@ -90,45 +95,25 @@ fun MetronomeScreen(
         onTogglePlayback = viewModel::togglePlayback,
         onBpmChange = viewModel::setBpm,
         onAdjustBpm = viewModel::adjustBpm,
-        onTapTempo = viewModel::tapTempo,
         onTimeSignatureChange = viewModel::setTimeSignature,
-        onSubdivisionChange = viewModel::setSubdivision,
-        onSoundChange = viewModel::setSound,
-        onVolumeChange = viewModel::setVolume,
-        onOpenPresets = { showPresets = true },
         modifier = modifier,
     )
-
-    if (showPresets) {
-        PresetsSheet(
-            presets = state.presets,
-            current = state.config,
-            onSave = viewModel::savePreset,
-            onLoad = { preset ->
-                viewModel.loadPreset(preset)
-                showPresets = false
-            },
-            onDelete = viewModel::deletePreset,
-            onDismiss = { showPresets = false },
-        )
-    }
 }
 
+/**
+ * The whole metronome, top to bottom: beat dots, the tempo ring, − / + buttons, the play
+ * button and the beats-in-a-bar choice. Nothing else: a child should never have to read.
+ */
 @Composable
 fun MetronomeContent(
     state: MetronomeUiState,
     onTogglePlayback: () -> Unit,
     onBpmChange: (Int) -> Unit,
     onAdjustBpm: (Int) -> Unit,
-    onTapTempo: () -> Unit,
     onTimeSignatureChange: (TimeSignature) -> Unit,
-    onSubdivisionChange: (Subdivision) -> Unit,
-    onSoundChange: (SoundProfile) -> Unit,
-    onVolumeChange: (Float) -> Unit,
-    onOpenPresets: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // One flash animation shared by the LEDs and the dial: snaps to 1 on each beat, fades to 0.
+    // One flash animation shared by the dots and the ring: snaps to 1 on each beat, fades to 0.
     // It is handed down as a lambda so only the draw phase re-reads it (no per-frame recomposition).
     val flash = remember { Animatable(0f) }
     val flashValue: () -> Float = remember(flash) { { flash.value } }
@@ -148,27 +133,10 @@ fun MetronomeContent(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.tab_metronome),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f),
-            )
-            IconButton(onClick = onOpenPresets) {
-                Icon(AppIcons.Bookmark, contentDescription = stringResource(R.string.presets))
-            }
-        }
-
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(20.dp))
         BeatIndicator(
             timeSignature = state.config.timeSignature,
             currentBeat = state.currentBeat,
@@ -176,135 +144,26 @@ fun MetronomeContent(
             flashColor = flashColor,
         )
 
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(20.dp))
         TempoDial(
             bpm = state.config.bpm,
             onBpmChange = onBpmChange,
             flash = flashValue,
             flashColor = flashColor,
-            modifier = Modifier.size(280.dp),
+            modifier = Modifier.size(250.dp),
         )
 
-        // Coarse / fine tempo buttons
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TempoStepButton(label = "−5", description = stringResource(R.string.decrease_tempo)) { onAdjustBpm(-5) }
-            TempoStepButton(icon = AppIcons.Remove, description = stringResource(R.string.decrease_tempo)) { onAdjustBpm(-1) }
-            TempoStepButton(icon = AppIcons.Add, description = stringResource(R.string.increase_tempo)) { onAdjustBpm(+1) }
-            TempoStepButton(label = "+5", description = stringResource(R.string.increase_tempo)) { onAdjustBpm(+5) }
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(28.dp)) {
+            HoldToRepeatButton(AppIcons.Remove, stringResource(R.string.decrease_tempo)) { onAdjustBpm(-1) }
+            HoldToRepeatButton(AppIcons.Add, stringResource(R.string.increase_tempo)) { onAdjustBpm(+1) }
         }
 
-        // Transport
         Spacer(Modifier.height(20.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            FilledTonalButton(
-                onClick = onTapTempo,
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(72.dp),
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(stringResource(R.string.tap), style = MaterialTheme.typography.titleLarge)
-                    if (state.tapCount > 0) {
-                        Text(
-                            text = pluralStringResource(R.plurals.tap_hint, state.tapCount, state.tapCount),
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                }
-            }
-            Button(
-                onClick = onTogglePlayback,
-                shape = RoundedCornerShape(24.dp),
-                colors = if (state.isPlaying) {
-                    ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer,
-                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                    )
-                } else {
-                    ButtonDefaults.buttonColors()
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(72.dp),
-            ) {
-                Icon(
-                    imageVector = if (state.isPlaying) AppIcons.Stop else AppIcons.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(32.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = stringResource(if (state.isPlaying) R.string.stop else R.string.start),
-                    style = MaterialTheme.typography.titleLarge,
-                )
-            }
-        }
+        PlayButton(isPlaying = state.isPlaying, onClick = onTogglePlayback)
 
-        // Time signature
-        SectionLabel(stringResource(R.string.time_signature))
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            TimeSignature.entries.forEachIndexed { index, signature ->
-                SegmentedButton(
-                    selected = signature == state.config.timeSignature,
-                    onClick = { onTimeSignatureChange(signature) },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = TimeSignature.entries.size),
-                    icon = {},
-                ) {
-                    Text(signature.label)
-                }
-            }
-        }
-
-        // Subdivision
-        SectionLabel(stringResource(R.string.subdivision))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Subdivision.entries.forEach { subdivision ->
-                FilterChip(
-                    selected = subdivision == state.config.subdivision,
-                    onClick = { onSubdivisionChange(subdivision) },
-                    label = { Text(stringResource(subdivision.labelRes())) },
-                )
-            }
-        }
-
-        // Sound
-        SectionLabel(stringResource(R.string.sound))
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            SoundProfile.entries.forEachIndexed { index, sound ->
-                SegmentedButton(
-                    selected = sound == state.config.sound,
-                    onClick = { onSoundChange(sound) },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = SoundProfile.entries.size),
-                ) {
-                    Text(stringResource(sound.labelRes()))
-                }
-            }
-        }
-
-        // Volume
-        val volumeLabel = stringResource(R.string.volume)
-        SectionLabel(volumeLabel)
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Icon(AppIcons.VolumeUp, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Slider(
-                value = state.volume,
-                onValueChange = onVolumeChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 12.dp)
-                    .semantics { contentDescription = volumeLabel },
-            )
-            Text(
-                text = "${(state.volume * 100).roundToInt()}%",
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.width(44.dp),
-            )
-        }
+        Spacer(Modifier.height(24.dp))
+        TimeSignatureChoice(selected = state.config.timeSignature, onSelect = onTimeSignatureChange)
 
         Spacer(Modifier.height(24.dp))
     }
@@ -315,35 +174,99 @@ private fun needsNotificationPermission(context: Context): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED
 
+/** A big round button: a tap is one [onStep]; holding it keeps stepping. */
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun HoldToRepeatButton(
+    icon: ImageVector,
+    description: String,
+    onStep: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val currentOnStep by rememberUpdatedState(onStep)
+    // True once the hold has started stepping, so the click on release does not add a step.
+    var repeating by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pressed) {
+        if (!pressed) {
+            repeating = false
+            return@LaunchedEffect
+        }
+        delay(HOLD_DELAY_MS)
+        repeating = true
+        while (true) {
+            currentOnStep()
+            delay(HOLD_REPEAT_MS)
+        }
+    }
+
+    FilledTonalIconButton(
+        onClick = { if (!repeating) onStep() },
+        interactionSource = interactionSource,
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 20.dp, bottom = 8.dp),
-    )
+            .size(72.dp)
+            .semantics { contentDescription = description },
+    ) {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(36.dp))
+    }
 }
 
 @Composable
-private fun TempoStepButton(
-    description: String,
-    label: String? = null,
-    icon: ImageVector? = null,
-    onClick: () -> Unit,
-) {
-    FilledTonalIconButton(
+private fun PlayButton(isPlaying: Boolean, onClick: () -> Unit) {
+    Button(
         onClick = onClick,
-        modifier = Modifier
-            .size(56.dp)
-            .semantics { contentDescription = description },
-    ) {
-        if (icon != null) {
-            Icon(icon, contentDescription = null)
+        shape = CircleShape,
+        colors = if (isPlaying) {
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            )
         } else {
-            Text(label.orEmpty(), style = MaterialTheme.typography.titleMedium)
+            ButtonDefaults.buttonColors()
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(80.dp),
+    ) {
+        Icon(
+            imageVector = if (isPlaying) AppIcons.Stop else AppIcons.PlayArrow,
+            contentDescription = null,
+            modifier = Modifier.size(40.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = stringResource(if (isPlaying) R.string.stop else R.string.play),
+            style = MaterialTheme.typography.titleLarge,
+        )
+    }
+}
+
+/** Three round toggles labelled the way the time signature is written in sheet music. */
+@Composable
+private fun TimeSignatureChoice(selected: TimeSignature, onSelect: (TimeSignature) -> Unit) {
+    val groupLabel = stringResource(R.string.time_signature)
+    Row(
+        modifier = Modifier
+            .selectableGroup()
+            .semantics { contentDescription = groupLabel },
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+    ) {
+        OfferedTimeSignatures.forEach { signature ->
+            val isSelected = signature == selected
+            Surface(
+                selected = isSelected,
+                onClick = { onSelect(signature) },
+                shape = CircleShape,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(68.dp)
+                    .semantics { role = Role.RadioButton },
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(signature.label, style = MaterialTheme.typography.titleMedium)
+                }
+            }
         }
     }
 }
