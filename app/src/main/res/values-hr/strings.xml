@@ -2,6 +2,7 @@
     <string name="app_name">Flute Assistant</string>
     <string name="tab_metronome">Metronom</string>
     <string name="tab_tuner">Štimer</string>
+    <string name="tab_notes">Note</string>
 
     <!-- Metronome -->
     <string name="play">Idemo!</string>
@@ -65,6 +66,33 @@
     <string name="mic_permission_body">Trebam čuti tvoju flautu da ti pomognem ugoditi. Ništa se ne snima niti šalje.</string>
     <string name="allow_microphone">Da, dopusti</string>
     <string name="open_settings">Otvori postavke</string>
+    <!-- Note reading game -->
+    <string name="notes_correct">🎉 Tako je!</string>
+    <string name="notes_wrong">🙈 Nije tu, probaj opet</string>
+    <string name="staff_description">Crtovlje, dodirni gdje ide nota</string>
+    <string name="staff_position">Mjesto %1$d u crtovlju</string>
+    <plurals name="round_progress">
+        <item quantity="one">Napredak, %1$d od %2$d note</item>
+        <item quantity="few">Napredak, %1$d od %2$d note</item>
+        <item quantity="other">Napredak, %1$d od %2$d nota</item>
+    </plurals>
+    <string name="streak_badge">🔥 %1$d</string>
+    <string name="streak_description">Niz od %1$d</string>
+    <string name="round_amazing">🏆 Nevjerojatno!</string>
+    <string name="round_great">🌟 Odlično!</string>
+    <string name="round_good">👍 Dobro!</string>
+    <string name="round_keep_going">💪 Vježbaj dalje!</string>
+    <string name="round_score">%1$d / %2$d</string>
+    <string name="round_score_caption">točno iz prve</string>
+    <string name="round_best_streak">🔥 Najdulji niz: %1$d</string>
+    <string name="round_accuracy">🎯 Točnost: %1$d %%</string>
+    <string name="round_time">⏱️ Vrijeme: %1$s</string>
+    <string name="play_again">Igraj opet</string>
+    <string name="choose_notes">Odaberi note</string>
+    <string name="choose_notes_done">Gotovo</string>
+    <string name="choose_notes_title">Koje note?</string>
+    <string name="practice_notes">Note za vježbanje</string>
+    <string name="note_sound">Poslušaj ton</string>
     <!-- Croatian music schools name octaves c1, c2, c3 (jednocrtna, dvocrtna, trocrtna), with
          the one-lined octave starting at middle C -->
     <bool name="note_octaves_helmholtz">true</bool>

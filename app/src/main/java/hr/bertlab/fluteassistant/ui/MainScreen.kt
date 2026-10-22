@@ -39,36 +39,43 @@ import hr.bertlab.fluteassistant.ui.common.LanguageSwitch
 import hr.bertlab.fluteassistant.ui.metronome.MetronomeMessage
 import hr.bertlab.fluteassistant.ui.metronome.MetronomeScreen
 import hr.bertlab.fluteassistant.ui.metronome.MetronomeViewModel
+import hr.bertlab.fluteassistant.ui.notes.NotesScreen
+import hr.bertlab.fluteassistant.ui.notes.NotesViewModel
 import hr.bertlab.fluteassistant.ui.tuner.TunerScreen
 import hr.bertlab.fluteassistant.ui.tuner.TunerViewModel
 import java.util.Locale
 
-/** The two top-level destinations shown in the bottom navigation bar. */
+/** The three top-level destinations shown in the bottom navigation bar. */
 enum class AppTab(@StringRes val labelRes: Int) {
     METRONOME(R.string.tab_metronome),
-    TUNER(R.string.tab_tuner);
+    TUNER(R.string.tab_tuner),
+    NOTES(R.string.tab_notes);
 
     val icon: ImageVector
         get() = when (this) {
             METRONOME -> AppIcons.Metronome
             TUNER -> AppIcons.TuningFork
+            NOTES -> AppIcons.MusicNote
         }
 }
 
 /**
  * Root of the UI: a [Scaffold] with the language switch in the top corner and a bottom
- * [NavigationBar] that switches between the metronome and the tuner. Both ViewModels are
- * scoped to the Activity, so settings and playback survive switching tabs, rotation and the
- * re-creation that a language change triggers.
+ * [NavigationBar] that switches between the metronome, the tuner and the note reading game.
+ * All three ViewModels are scoped to the Activity, so settings and playback survive switching
+ * tabs, rotation and the re-creation that a language change triggers. The game's round is the
+ * exception: leaving its tab resets the score, so the child always comes back to a fresh start.
  */
 @Composable
 fun MainScreen(
     metronomeViewModel: MetronomeViewModel = hiltViewModel(),
     tunerViewModel: TunerViewModel = hiltViewModel(),
+    notesViewModel: NotesViewModel = hiltViewModel(),
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.METRONOME) }
     val metronomeState by metronomeViewModel.state.collectAsStateWithLifecycle()
     val tunerState by tunerViewModel.state.collectAsStateWithLifecycle()
+    val notesState by notesViewModel.state.collectAsStateWithLifecycle()
 
     KeepScreenOn(enabled = metronomeState.isPlaying || tunerState.isListening)
 
@@ -99,7 +106,10 @@ fun MainScreen(
                 AppTab.entries.forEach { tab ->
                     NavigationBarItem(
                         selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
+                        onClick = {
+                            if (selectedTab == AppTab.NOTES && tab != AppTab.NOTES) notesViewModel.resetRound()
+                            selectedTab = tab
+                        },
                         icon = { Icon(tab.icon, contentDescription = null) },
                         label = { Text(stringResource(tab.labelRes)) },
                     )
@@ -115,6 +125,7 @@ fun MainScreen(
             when (selectedTab) {
                 AppTab.METRONOME -> MetronomeScreen(state = metronomeState, viewModel = metronomeViewModel)
                 AppTab.TUNER -> TunerScreen(state = tunerState, viewModel = tunerViewModel)
+                AppTab.NOTES -> NotesScreen(state = notesState, viewModel = notesViewModel)
             }
         }
     }

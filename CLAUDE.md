@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Flute Assistant: a single-module Android app (metronome + chromatic tuner) for primary-school
-children learning the flute. Package and applicationId are `hr.bertlab.fluteassistant`; the
+Flute Assistant: a single-module Android app (metronome, chromatic tuner and a note reading
+game) for primary-school children learning the flute. Package and applicationId are `hr.bertlab.fluteassistant`; the
 project folder keeps the old name FluteTempo. Kotlin, Jetpack Compose + Material 3, Hilt, Room,
 coroutines/Flow. Shipped languages: English (default resources) and Croatian (`values-hr`).
 
@@ -28,6 +28,7 @@ configuration cache is on.
 ./gradlew lintRelease
 ./gradlew :app:connectedDebugAndroidTest                  # Compose UI + resource tests (app/src/androidTest)
 ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=hr.bertlab.fluteassistant.ui.tuner.TunerScreenTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=hr.bertlab.fluteassistant.ui.notes.NotesScreenTest
 ./gradlew testDebugUnitTest lintRelease bundleRelease     # pre-upload check (docs/release/README.md)
 ```
 
@@ -87,7 +88,8 @@ in `di/` binding each interface to its Android implementation:
 
 - `domain/` is pure Kotlin: `MetronomeConfig` (bpm, `TimeSignature` with per-beat accents,
   `Subdivision` offsets, `SoundProfile`), `NoteMath` (frequency to MIDI/cents),
-  `TapTempoCalculator`, the `PresetRepository` and `SettingsStore` interfaces, preset use cases.
+  `TapTempoCalculator`, `StaffNotes` (the note reading game's fifteen notes and their staff
+  places), the `PresetRepository` and `SettingsStore` interfaces, preset use cases.
 - `data/` implements them: Room (`PresetEntity`, `PresetDao`, enum `Converters` that fall back
   to defaults on unknown names) and `SharedPreferencesSettingsStore` for last-used settings.
 - `audio/` holds the metronome and tuner engines; `core/MonotonicClock` is a fake-able clock.
@@ -150,17 +152,50 @@ it) and ignores microphone frames meanwhile. `FluteFingerings.keysFor(midi)` is 
 Boehm chart (Woodwind Fingering Guide basic fingerings; no entry for MIDI 94 and 95) that
 `FingeringDiagram` draws.
 
+### Note reading path
+
+`StaffNotes` (`domain/notes/`) is the pool: the naturals c1 to c3 (MIDI 60 to 84), fifteen
+notes whose index in `ALL` is their place on the treble staff (0 = the ledger line below,
+`LINE_POSITIONS` 2, 4, 6, 8, 10 are the lines, 14 = the second ledger line above);
+`ledgerLinesFor` and `sanitize` (unknown or empty stored sets fall back to `DEFAULT_PRACTICE`,
+c1 to g1) live there too. `NotesViewModel` (Activity-scoped; spec:
+`docs/superpowers/specs/2026-10-22-note-reading-game-design.md`) runs one round of
+`NotesUiState.ROUND_LENGTH` (10) notes: `onNoteTapped(midi)` judges a tap (ignored while
+`solved` or `roundOver`), a right tap sets `solved`, appends to `results` (true = first tap),
+plays the note through the tuner's `ReferenceTonePlayer` at `REFERENCE_TONE_VOLUME` and after
+`FEEDBACK_MS` (1200) draws the next note (never the same twice in a row unless only one is
+chosen) or ends the round; a wrong tap joins `wrongTaps` and zeroes the streak. `taps` counts
+every tap so `accuracyPercent` (right taps over all taps) differs from `score`; `roundMillis`
+is the time from the round's first tap to the tenth note found (`MonotonicClock`, so tests use
+`FakeClock`), shown in the summary as m:ss by `formatRoundTime`. The chosen
+notes persist through `SettingsStore.savePracticeNotes` (`practice_notes`, a string set), the last one cannot be switched off, and any change to them starts a fresh round; the sound of
+a found note can be switched off (`toggleSound`, `SettingsStore.saveNoteSound`, a pill under
+the picker's grid); `resetRound()` (also behind `playAgain`) throws the round away and is
+called by the tab bar when the tab is left, and `stopSound()` when the screen is disposed, so
+the tuner's microphone does not hear the tone. A `Random` is passed through an internal
+secondary constructor for deterministic tests. `NoteStaff` draws the staff on a Canvas
+(it takes all the height left in the column and sizes the places from it; it shows the staff
+and its two neighbouring spaces, d1 to g2, plus the ledger-line places c1, a2, h2, c3 only as
+far as a chosen note needs them, `StaffNotes.visiblePositions`; a hand-built stroked clef
+path in staff spaces; small faint circles in one column at 60 % of the width, after the user
+rejected a two-column split) under a column of fifteen full-width tap strips whose accessibility names
+are "Staff position N" counted from the bottom, never the note, so a screen reader does not
+give the answer away. The name above the staff is 64 sp (not the tuner's 84) to make room.
+
 ### UI conventions
 
-- One Activity. `MainScreen` hosts a top app bar (app name plus the `LanguageSwitch`: two flag
+- One Activity, which sets `volumeControlStream` to the media stream so the volume keys adjust
+  the app's sound even while nothing is playing. `MainScreen` hosts a top app bar (app name plus the `LanguageSwitch`: two flag
   buttons over `ui/common/AppLanguage`; selecting one calls
   `AppCompatDelegate.setApplicationLocales`, which re-creates the Activity) and a bottom bar
-  switching between the two tabs. Both ViewModels are Activity-scoped so state and playback
-  survive tab switches, rotation and that re-creation.
-- Each screen is split into a stateful `MetronomeScreen` / `TunerScreen` (ViewModel, permissions,
-  lifecycle) and a stateless `MetronomeContent` / `TunerContent` taking state plus callbacks. The
-  `*Content` composables are what the Compose UI tests render, wrapped in the test-only
-  `LocaleProvider` to pin the language.
+  switching between the three tabs (`AppTab`: metronome, tuner, notes). All ViewModels are
+  Activity-scoped so state and playback survive tab switches, rotation and that re-creation;
+  the one exception is the game's round, which the tab bar resets (`NotesViewModel.resetRound`)
+  when the notes tab is left, so the child always comes back to a zero score.
+- Each screen is split into a stateful `MetronomeScreen` / `TunerScreen` / `NotesScreen`
+  (ViewModel, permissions, lifecycle) and a stateless `MetronomeContent` / `TunerContent` /
+  `NotesContent` taking state plus callbacks. The `*Content` composables are what the Compose
+  UI tests render, wrapped in the test-only `LocaleProvider` to pin the language.
 - Every user-visible string is a resource in both `values/strings.xml` and
   `values-hr/strings.xml`. Domain enums stay language-free; `ui/common/Labels.kt` maps them to
   string resources and builds note names from the `note_names` array (Croatian uses the German
@@ -185,7 +220,13 @@ heard note or the note wheel (the note the child chose to play, on a peach band 
 neighbours and a speaker button that sounds it; spec:
 `docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`), the fingering diagram
 for that note, a numberless gauge, one status line and, at the bottom, the two mode pills
-("Which note?" / "Tune to a note"). The user rejected a wider layout (−/+ beside the ring,
+("Which note?" / "Tune to a note"); the notes tab shows one row with the huge note name (the whole
+question; the score once the round is over) and a small round checklist button at its end
+that swaps the staff for a grid of fifteen note pills plus the sound toggle in place (no
+dialog; the button becomes a tick to close), the staff, one feedback line, then ten round
+dots at the bottom (score and accuracy without a number, plus a "🔥 3" streak badge from
+two in a row), and the numbers (score out of 10, best streak, accuracy) only in the
+end-of-round summary. The user rejected a wider layout (−/+ beside the ring,
 a ten-button signature scroller, flags in the content area) as too packed: keep the screen
 this sparse. Tap tempo, subdivisions, click sounds, volume, presets and the A4 reference still
 exist in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`
@@ -199,8 +240,8 @@ is the intended home for those features.
 
 Unit tests use hand-written fakes from `app/src/test/.../fakes/Fakes.kt` (`FakeMetronomePlayer`,
 `FakeTunerEngine`, `FakeSettingsStore`, `FakePresetRepository`, `FakeClock`,
-`FakeBackgroundPlayback`); there is no mocking library. ViewModel tests run under
+`FakeBackgroundPlayback`, `FakeReferenceTonePlayer`); there is no mocking library. ViewModel tests run under
 `StandardTestDispatcher` with `Dispatchers.setMain` and drive time with `advanceTimeBy` /
-`advanceUntilIdle`. Instrumented tests cover the `*Content` composables and locale-dependent
-resources (`LabelsTest`). The `config_summary`, `subdivision_*` and `sound_*` strings must stay
+`advanceUntilIdle`. Instrumented tests cover the `*Content` composables (`MetronomeScreenTest`, `TunerScreenTest`,
+`NotesScreenTest`) and locale-dependent resources (`LabelsTest`). The `config_summary`, `subdivision_*` and `sound_*` strings must stay
 even though the screens no longer show them: the playback notification and `LabelsTest` use them.

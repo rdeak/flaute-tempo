@@ -9,6 +9,7 @@ import hr.bertlab.fluteassistant.audio.tuner.TunerEngine
 import hr.bertlab.fluteassistant.core.MonotonicClock
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.Preset
+import hr.bertlab.fluteassistant.domain.notes.StaffNotes
 import hr.bertlab.fluteassistant.domain.repository.PresetRepository
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
 import hr.bertlab.fluteassistant.domain.tuner.FluteRange
@@ -129,6 +130,8 @@ class FakeSettingsStore(
     var referenceA4: Double = NoteMath.DEFAULT_A4,
     var targetNote: Int = FluteRange.DEFAULT_TARGET,
     var tunerMode: TunerMode = TunerMode.IDENTIFY,
+    var practiceNotes: Set<Int> = StaffNotes.DEFAULT_PRACTICE,
+    var noteSound: Boolean = true,
 ) : SettingsStore {
     override fun loadMetronomeConfig() = config
     override fun saveMetronomeConfig(config: MetronomeConfig) { this.config = config }
@@ -140,6 +143,10 @@ class FakeSettingsStore(
     override fun saveTargetNote(midi: Int) { targetNote = midi }
     override fun loadTunerMode() = tunerMode
     override fun saveTunerMode(mode: TunerMode) { tunerMode = mode }
+    override fun loadPracticeNotes() = practiceNotes
+    override fun savePracticeNotes(notes: Set<Int>) { practiceNotes = notes }
+    override fun loadNoteSound() = noteSound
+    override fun saveNoteSound(enabled: Boolean) { noteSound = enabled }
 }
 
 class FakeClock(var now: Long = 0L) : MonotonicClock {

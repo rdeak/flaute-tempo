@@ -2,6 +2,7 @@
     <string name="app_name">Flute Assistant</string>
     <string name="tab_metronome">Metronome</string>
     <string name="tab_tuner">Tuner</string>
+    <string name="tab_notes">Notes</string>
 
     <!-- Metronome -->
     <string name="play">Let\'s play!</string>
@@ -73,6 +74,37 @@
     <string name="mic_permission_body">I need to hear your flute to help you tune. Nothing is recorded or sent anywhere.</string>
     <string name="allow_microphone">Yes, allow</string>
     <string name="open_settings">Open settings</string>
+    <!-- Note reading game (ui/notes): the staff, feedback, the round and the note picker -->
+    <string name="notes_correct">🎉 That\'s it!</string>
+    <string name="notes_wrong">🙈 Not there, try again</string>
+    <string name="staff_description">Staff, tap where the note goes</string>
+    <!-- Accessibility name of one tappable place, counted from the bottom; never the note's name -->
+    <string name="staff_position">Staff position %1$d</string>
+    <plurals name="round_progress">
+        <item quantity="one">Round progress, %1$d of %2$d note</item>
+        <item quantity="other">Round progress, %1$d of %2$d notes</item>
+    </plurals>
+    <string name="streak_badge">🔥 %1$d</string>
+    <string name="streak_description">Streak of %1$d</string>
+    <string name="round_amazing">🏆 Amazing!</string>
+    <string name="round_great">🌟 Great job!</string>
+    <string name="round_good">👍 Good work!</string>
+    <string name="round_keep_going">💪 Keep practising!</string>
+    <!-- Score out of the round length -->
+    <string name="round_score">%1$d / %2$d</string>
+    <string name="round_score_caption">right first time</string>
+    <string name="round_best_streak">🔥 Best streak: %1$d</string>
+    <string name="round_accuracy">🎯 Accuracy: %1$d %%</string>
+    <!-- The argument is minutes:seconds, e.g. "1:23" -->
+    <string name="round_time">⏱️ Time: %1$s</string>
+    <string name="play_again">Play again</string>
+    <!-- The round button beside the note name (accessibility names), and the row's title while choosing -->
+    <string name="choose_notes">Choose notes</string>
+    <string name="choose_notes_done">Done</string>
+    <string name="choose_notes_title">Which notes?</string>
+    <string name="practice_notes">Notes to practise</string>
+    <!-- Toggle beside the note picker: sound the note when it is found (the emoji is added in code by state) -->
+    <string name="note_sound">Hear the note</string>
     <!-- Octave naming for noteLabel(): false = scientific pitch notation (C4 is middle C), true = the
          Helmholtz-style names Croatian music schools use (c1 is middle C, c2 above it). -->
     <bool name="note_octaves_helmholtz">false</bool>

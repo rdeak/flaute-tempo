@@ -1,5 +1,6 @@
 package hr.bertlab.fluteassistant
 
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +20,10 @@ import hr.bertlab.fluteassistant.ui.theme.FluteAssistantTheme
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Everything the app plays (clicks, the reference note, the game's note) is media, so
+        // the volume keys must adjust the media stream even while nothing is sounding; without
+        // this they adjust the ringer and seem to do nothing to the app.
+        volumeControlStream = AudioManager.STREAM_MUSIC
         enableEdgeToEdge()
         setContent {
             FluteAssistantTheme {

@@ -41,6 +41,22 @@ object AppIcons {
         )
     }
 
+    /** A list with two ticks: the game's button that opens the note picker. */
+    val Checklist: ImageVector by lazy {
+        filled(
+            "checklist",
+            "M22,7h-9v2h9V7zM22,15h-9v2h9V15zM5.54,11L2,7.46l1.41,-1.41l2.12,2.12l4.24,-4.24l1.41,1.41L5.54,11z" +
+                "M5.54,19L2,15.46l1.41,-1.41l2.12,2.12l4.24,-4.24l1.41,1.41L5.54,19z",
+        )
+    }
+    /** A tick: closes the note picker. */
+    val Check: ImageVector by lazy { filled("check", "M9,16.17L4.83,12l-1.42,1.41L9,19 21,7l-1.41,-1.41z") }
+
+    /** An eighth note: the note reading tab. */
+    val MusicNote: ImageVector by lazy {
+        filled("music_note", "M12,3v10.55c-0.59,-0.34 -1.27,-0.55 -2,-0.55 -2.21,0 -4,1.79 -4,4s1.79,4 4,4 4,-1.79 4,-4V7h4V3h-6z")
+    }
+
     /** Pyramid-shaped metronome body with a pendulum. */
     val Metronome: ImageVector by lazy {
         stroked("metronome", "M8.5,3 L15.5,3 L19.5,21 L4.5,21 Z", "M12,20 L16.5,7.5", "M6.5,16 L17.5,16")

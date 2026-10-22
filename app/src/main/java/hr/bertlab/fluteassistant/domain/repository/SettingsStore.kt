@@ -5,7 +5,8 @@ import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 
 /**
  * Small key-value persistence for "where the user left off": the last metronome settings,
- * the volume, the tuner's reference pitch and the note it tunes to. Synchronous by design
+ * the volume, the tuner's reference pitch and the note it tunes to, the notes the reading
+ * game asks. Synchronous by design
  * (tiny values, read once at ViewModel creation).
  */
 interface SettingsStore {
@@ -20,4 +21,10 @@ interface SettingsStore {
     fun saveTargetNote(midi: Int)
     fun loadTunerMode(): TunerMode
     fun saveTunerMode(mode: TunerMode)
+    /** The notes the reading game asks, as MIDI numbers (see StaffNotes); not sanitised here. */
+    fun loadPracticeNotes(): Set<Int>
+    fun savePracticeNotes(notes: Set<Int>)
+    /** Whether the reading game sounds the note when it is found; true by default. */
+    fun loadNoteSound(): Boolean
+    fun saveNoteSound(enabled: Boolean)
 }

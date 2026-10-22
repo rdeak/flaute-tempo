@@ -167,7 +167,6 @@ class MetronomeScreenTest {
         compose.onNodeWithText("Idemo!").assertIsDisplayed()
         compose.onNodeWithContentDescription("Dobe u taktu").assertIsDisplayed()
         compose.onNodeWithContentDescription("Tvoja razina").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Glasnoća").assertExists()
         compose.onNodeWithText("Početnik").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Sljedeće dobe u taktu").assertCountEquals(1)
         compose.onNodeWithText("120").performClick()

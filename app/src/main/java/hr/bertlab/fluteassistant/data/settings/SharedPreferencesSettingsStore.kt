@@ -7,6 +7,7 @@ import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.SoundProfile
 import hr.bertlab.fluteassistant.domain.model.Subdivision
 import hr.bertlab.fluteassistant.domain.model.TimeSignature
+import hr.bertlab.fluteassistant.domain.notes.StaffNotes
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
 import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
@@ -53,6 +54,19 @@ class SharedPreferencesSettingsStore @Inject constructor(
 
     override fun saveTunerMode(mode: TunerMode) = prefs.edit { putString(KEY_TUNER_MODE, mode.name) }
 
+    // Stored as decimal strings in a string set; copied out, since the set SharedPreferences
+    // returns must not be touched, and anything that is not a number is dropped.
+    override fun loadPracticeNotes(): Set<Int> =
+        prefs.getStringSet(KEY_PRACTICE_NOTES, null)?.mapNotNull { it.toIntOrNull() }?.toSet()
+            ?: StaffNotes.DEFAULT_PRACTICE
+
+    override fun savePracticeNotes(notes: Set<Int>) =
+        prefs.edit { putStringSet(KEY_PRACTICE_NOTES, notes.map(Int::toString).toSet()) }
+
+    override fun loadNoteSound(): Boolean = prefs.getBoolean(KEY_NOTE_SOUND, true)
+
+    override fun saveNoteSound(enabled: Boolean) = prefs.edit { putBoolean(KEY_NOTE_SOUND, enabled) }
+
     private inline fun <reified T : Enum<T>> enumOrDefault(name: String?, default: T): T =
         enumValues<T>().firstOrNull { it.name == name } ?: default
 
@@ -66,6 +80,8 @@ class SharedPreferencesSettingsStore @Inject constructor(
         const val KEY_A4 = "reference_a4"
         const val KEY_TARGET_NOTE = "target_note"
         const val KEY_TUNER_MODE = "tuner_mode"
+        const val KEY_PRACTICE_NOTES = "practice_notes"
+        const val KEY_NOTE_SOUND = "note_sound"
         const val DEFAULT_VOLUME = 0.8f
     }
 }
