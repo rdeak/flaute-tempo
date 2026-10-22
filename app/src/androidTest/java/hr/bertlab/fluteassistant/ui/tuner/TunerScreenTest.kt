@@ -26,6 +26,7 @@ class TunerScreenTest {
     private var permissionRequests = 0
     private var chosenNote: Int? = null
     private var chosenMode: TunerMode? = null
+    private var playRequests = 0
 
     private fun show(state: TunerUiState, locale: Locale = Locale.ENGLISH) {
         compose.setContent {
@@ -34,6 +35,7 @@ class TunerScreenTest {
                     state = state,
                     onTargetNoteChange = { chosenNote = it },
                     onModeChange = { chosenMode = it },
+                    onPlayNote = { playRequests++ },
                     onRequestPermission = { permissionRequests++ },
                     onOpenSettings = {},
                 )
@@ -153,5 +155,26 @@ class TunerScreenTest {
     fun croatian_silence_names_the_note_to_play() {
         show(listening(null, targetMidi = 69), Locale("hr"))
         compose.onNodeWithText("👂 Odsviraj a1").assertIsDisplayed()
+    }
+
+    @Test
+    fun target_mode_offers_to_hear_the_note_and_shows_its_fingering() {
+        show(listening(null))
+        compose.onNodeWithContentDescription("Hear the note").performClick()
+        assertEquals(1, playRequests)
+        compose.onNodeWithContentDescription("Fingering for A4").assertExists()
+    }
+
+    @Test
+    fun identify_mode_shows_the_heard_notes_fingering_and_no_play_button() {
+        show(identifying(392.0)) // G4
+        compose.onNodeWithContentDescription("Hear the note").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Fingering for G4").assertExists()
+    }
+
+    @Test
+    fun while_the_note_plays_the_status_says_listen() {
+        show(listening(null).copy(isPlayingReference = true))
+        compose.onNodeWithText("🔊 Listen").assertIsDisplayed()
     }
 }

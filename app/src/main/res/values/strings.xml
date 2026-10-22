@@ -60,6 +60,11 @@
     <string name="mode_target">Tune to a note</string>
     <string name="play_a_note">👂 Play a note</string>
     <string name="target_note">Note to tune, scroll to choose another</string>
+    <string name="hear_note">Hear the note</string>
+    <!-- Status line while the reference note sounds from the speaker -->
+    <string name="listen_status">🔊 Listen</string>
+    <!-- Accessibility name of the fingering diagram; the argument is the note, e.g. "A4" -->
+    <string name="fingering_for">Fingering for %1$s</string>
     <!-- Shown in silence; the argument is the chosen note, e.g. "A4" -->
     <string name="play_note_prompt">👂 Play %1$s</string>
     <string name="in_tune">🎉 Perfect!</string>

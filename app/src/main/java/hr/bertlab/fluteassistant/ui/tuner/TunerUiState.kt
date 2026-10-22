@@ -20,6 +20,8 @@ data class TunerUiState(
     /** The note the child chose to tune, as a MIDI number inside [FluteRange]; used in [TunerMode.TARGET]. */
     val targetMidi: Int = FluteRange.DEFAULT_TARGET,
     val mode: TunerMode = TunerMode.IDENTIFY,
+    /** True while the reference tone for [targetMidi] sounds; readings pause so the speaker is not measured. */
+    val isPlayingReference: Boolean = false,
     val errorMessage: String? = null,
 ) {
     /** Distance in cents from [targetMidi] to the played note (positive = sharp), or null in silence. */

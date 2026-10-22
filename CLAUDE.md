@@ -136,6 +136,11 @@ measures against it; `TARGET` lets the child pick the note to play in a `NoteWhe
 instead of being relabelled. `TunerUiState.gaugeCents` picks by mode and is what the gauge
 and status line show. `noteLabel` follows the locale's octave convention
 (`bool/note_octaves_helmholtz`: scientific C4 in English, music-school c1 in Croatian).
+`TunerViewModel.playTargetNote` sounds the chosen note for two seconds through
+`ReferenceTonePlayer` (`ReferenceToneSynth` renders it, `AudioTrackReferenceTonePlayer` plays
+it) and ignores microphone frames meanwhile. `FluteFingerings.keysFor(midi)` is the C-foot
+Boehm chart (Woodwind Fingering Guide basic fingerings; no entry for MIDI 94 and 95) that
+`FingeringDiagram` draws.
 
 ### UI conventions
 
@@ -169,9 +174,10 @@ the number, filled only when the tempo matches exactly), one beats-in-a-bar step
 (◀ 4/4 ▶, wrapping through every `TimeSignature` in enum order; the beat dots shrink above
 six beats), one play button and a numberless volume slider; the tuner shows either the huge name of the
 heard note or the note wheel (the note the child chose to play, on a peach band with faded
-neighbours; spec: `docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`), a
-numberless gauge, one status line and, at the bottom, the two mode pills ("Which note?" /
-"Tune to a note"). The user rejected a wider layout (−/+ beside the ring,
+neighbours and a speaker button that sounds it; spec:
+`docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`), the fingering diagram
+for that note, a numberless gauge, one status line and, at the bottom, the two mode pills
+("Which note?" / "Tune to a note"). The user rejected a wider layout (−/+ beside the ring,
 a ten-button signature scroller, flags in the content area) as too packed: keep the screen
 this sparse. Tap tempo, subdivisions, click sounds, presets and the A4 reference still exist
 in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`

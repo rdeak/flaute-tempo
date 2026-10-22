@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
+import hr.bertlab.fluteassistant.audio.tuner.ReferenceTonePlayer
 import hr.bertlab.fluteassistant.audio.tuner.TunerEngine
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
 import hr.bertlab.fluteassistant.domain.tuner.FluteRange
@@ -14,6 +15,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -28,6 +30,7 @@ import javax.inject.Inject
 class TunerViewModel @Inject constructor(
     private val engine: TunerEngine,
     private val settings: SettingsStore,
+    private val tonePlayer: ReferenceTonePlayer,
 ) : ViewModel() {
 
     // The simplified UI cannot show or change the A4 reference, so a stale stored value must
@@ -40,6 +43,7 @@ class TunerViewModel @Inject constructor(
     val state: StateFlow<TunerUiState> = _state.asStateFlow()
 
     private var listenJob: Job? = null
+    private var playJob: Job? = null
     private val recentFrequencies = ArrayDeque<Double>()
     private var silentFrames = 0
 
@@ -71,6 +75,7 @@ class TunerViewModel @Inject constructor(
     }
 
     fun stopListening() {
+        stopTone()
         listenJob?.cancel()
         listenJob = null
         recentFrequencies.clear()
@@ -96,6 +101,36 @@ class TunerViewModel @Inject constructor(
         _state.update { it.copy(targetMidi = clamped) }
     }
 
+    /**
+     * Sounds the chosen note for [REFERENCE_TONE_MS] at the app's volume. Readings pause meanwhile
+     * (the microphone would otherwise measure the speaker) and start afresh when it ends.
+     */
+    fun playTargetNote() {
+        playJob?.cancel()
+        val current = _state.value
+        tonePlayer.play(
+            NoteMath.midiToFrequency(current.targetMidi, current.referenceA4),
+            REFERENCE_TONE_MS,
+            settings.loadVolume(),
+        )
+        recentFrequencies.clear()
+        _state.update { it.copy(isPlayingReference = true, reading = null) }
+        playJob = viewModelScope.launch {
+            delay(REFERENCE_TONE_MS.toLong())
+            tonePlayer.stop() // the data has played out; release the track rather than leave it registered as playing
+            recentFrequencies.clear()
+            silentFrames = 0
+            _state.update { it.copy(isPlayingReference = false) }
+        }
+    }
+
+    private fun stopTone() {
+        playJob?.cancel()
+        playJob = null
+        tonePlayer.stop()
+        _state.update { it.copy(isPlayingReference = false) }
+    }
+
     /** Switches between naming the heard note and measuring against the chosen one; remembered. */
     fun setMode(mode: TunerMode) {
         settings.saveTunerMode(mode)
@@ -103,6 +138,10 @@ class TunerViewModel @Inject constructor(
     }
 
     private fun onFrame(frame: PitchFrame) {
+        if (_state.value.isPlayingReference) {
+            _state.update { it.copy(level = frame.level) }
+            return
+        }
         val frequency = frame.frequency
         if (frequency != null && frame.probability >= MIN_PROBABILITY) {
             silentFrames = 0
@@ -122,6 +161,7 @@ class TunerViewModel @Inject constructor(
     }
 
     override fun onCleared() {
+        stopTone()
         listenJob?.cancel()
     }
 
@@ -132,5 +172,7 @@ class TunerViewModel @Inject constructor(
         const val HOLD_FRAMES = 20
         const val MIN_A4 = 415.0
         const val MAX_A4 = 466.0
+        /** How long the reference note sounds. */
+        const val REFERENCE_TONE_MS = 2000
     }
 }

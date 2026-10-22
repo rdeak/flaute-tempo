@@ -4,6 +4,7 @@ import hr.bertlab.fluteassistant.audio.metronome.BeatEvent
 import hr.bertlab.fluteassistant.audio.metronome.MetronomePlayer
 import hr.bertlab.fluteassistant.audio.metronome.PlaybackState
 import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
+import hr.bertlab.fluteassistant.audio.tuner.ReferenceTonePlayer
 import hr.bertlab.fluteassistant.audio.tuner.TunerEngine
 import hr.bertlab.fluteassistant.core.MonotonicClock
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
@@ -107,6 +108,19 @@ class FakeTunerEngine : TunerEngine {
         subscriptions++
         return flowOverride ?: frames
     }
+}
+
+class FakeReferenceTonePlayer : ReferenceTonePlayer {
+    data class Played(val frequencyHz: Double, val durationMs: Int, val volume: Float)
+
+    val played = mutableListOf<Played>()
+    var stopCount = 0
+
+    override fun play(frequencyHz: Double, durationMs: Int, volume: Float) {
+        played += Played(frequencyHz, durationMs, volume)
+    }
+
+    override fun stop() { stopCount++ }
 }
 
 class FakeSettingsStore(

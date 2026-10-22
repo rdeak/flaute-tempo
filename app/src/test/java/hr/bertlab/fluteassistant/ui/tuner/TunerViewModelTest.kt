@@ -1,6 +1,7 @@
 package hr.bertlab.fluteassistant.ui.tuner
 
 import hr.bertlab.fluteassistant.audio.tuner.PitchFrame
+import hr.bertlab.fluteassistant.fakes.FakeReferenceTonePlayer
 import hr.bertlab.fluteassistant.fakes.FakeSettingsStore
 import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
@@ -10,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -29,6 +31,7 @@ class TunerViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val engine = FakeTunerEngine()
     private val settings = FakeSettingsStore()
+    private val tonePlayer = FakeReferenceTonePlayer()
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -39,14 +42,14 @@ class TunerViewModelTest {
     private fun pitched(freq: Double, probability: Double = 0.97) = PitchFrame(freq, probability, level = 0.4f)
     private val silence = PitchFrame(null, 0.0, level = 0f)
 
-    private fun listeningViewModel(): TunerViewModel = TunerViewModel(engine, settings).apply {
+    private fun listeningViewModel(): TunerViewModel = TunerViewModel(engine, settings, tonePlayer).apply {
         onPermissionResult(true)
         startListening()
     }
 
     @Test
     fun `does not listen without permission`() = runTest(dispatcher) {
-        val vm = TunerViewModel(engine, settings)
+        val vm = TunerViewModel(engine, settings, tonePlayer)
         vm.startListening()
         advanceUntilIdle()
         assertFalse(vm.state.value.isListening)
@@ -128,7 +131,7 @@ class TunerViewModelTest {
         // The simplified UI cannot show or change A4, so a stale 442 or 466 must not silently
         // relabel every note; only an explicit setReferenceA4 (future advanced mode) changes it.
         settings.referenceA4 = 442.0
-        val vm = TunerViewModel(engine, settings)
+        val vm = TunerViewModel(engine, settings, tonePlayer)
         assertEquals(NoteMath.DEFAULT_A4, vm.state.value.referenceA4, 0.0)
     }
 
@@ -156,7 +159,7 @@ class TunerViewModelTest {
 
     @Test
     fun `remembers that the permission prompt was shown`() = runTest(dispatcher) {
-        val vm = TunerViewModel(engine, settings)
+        val vm = TunerViewModel(engine, settings, tonePlayer)
         assertFalse(vm.state.value.permissionRequested)
         vm.onPermissionRequested()
         assertTrue(vm.state.value.permissionRequested)
@@ -175,14 +178,14 @@ class TunerViewModelTest {
     @Test
     fun `stored target note is restored and clamped`() {
         settings.targetNote = 62
-        assertEquals(62, TunerViewModel(engine, settings).state.value.targetMidi)
+        assertEquals(62, TunerViewModel(engine, settings, tonePlayer).state.value.targetMidi)
         settings.targetNote = 10
-        assertEquals(FluteRange.LOWEST_MIDI, TunerViewModel(engine, settings).state.value.targetMidi)
+        assertEquals(FluteRange.LOWEST_MIDI, TunerViewModel(engine, settings, tonePlayer).state.value.targetMidi)
     }
 
     @Test
     fun `choosing a target note is saved and clamped`() {
-        val vm = TunerViewModel(engine, settings)
+        val vm = TunerViewModel(engine, settings, tonePlayer)
         vm.setTargetNote(72)
         assertEquals(72, vm.state.value.targetMidi)
         assertEquals(72, settings.targetNote)
@@ -217,16 +220,49 @@ class TunerViewModelTest {
 
     @Test
     fun `stored tuner mode is restored`() {
-        assertEquals(TunerMode.IDENTIFY, TunerViewModel(engine, settings).state.value.mode)
+        assertEquals(TunerMode.IDENTIFY, TunerViewModel(engine, settings, tonePlayer).state.value.mode)
         settings.tunerMode = TunerMode.TARGET
-        assertEquals(TunerMode.TARGET, TunerViewModel(engine, settings).state.value.mode)
+        assertEquals(TunerMode.TARGET, TunerViewModel(engine, settings, tonePlayer).state.value.mode)
     }
 
     @Test
     fun `choosing a mode is saved`() {
-        val vm = TunerViewModel(engine, settings)
+        val vm = TunerViewModel(engine, settings, tonePlayer)
         vm.setMode(TunerMode.TARGET)
         assertEquals(TunerMode.TARGET, vm.state.value.mode)
         assertEquals(TunerMode.TARGET, settings.tunerMode)
+    }
+
+    @Test
+    fun `playing the target note sounds it and pauses the readings`() = runTest(dispatcher) {
+        settings.volume = 0.7f
+        val vm = listeningViewModel()
+        advanceUntilIdle()
+        vm.setTargetNote(69)
+
+        vm.playTargetNote()
+        assertTrue(vm.state.value.isPlayingReference)
+        assertEquals(listOf(FakeReferenceTonePlayer.Played(440.0, TunerViewModel.REFERENCE_TONE_MS, 0.7f)), tonePlayer.played)
+
+        engine.frames.tryEmit(pitched(440.0)) // the speaker, not the child: ignored
+        advanceTimeBy(TunerViewModel.REFERENCE_TONE_MS / 2L)
+        assertNull(vm.state.value.reading)
+
+        advanceTimeBy(TunerViewModel.REFERENCE_TONE_MS + 1L)
+        assertFalse(vm.state.value.isPlayingReference)
+        assertEquals(1, tonePlayer.stopCount) // the finished track is released, not left registered as playing
+        engine.frames.tryEmit(pitched(440.0))
+        advanceUntilIdle()
+        assertEquals("A4", vm.state.value.reading!!.label)
+    }
+
+    @Test
+    fun `stopping listening stops the tone`() = runTest(dispatcher) {
+        val vm = listeningViewModel()
+        advanceUntilIdle()
+        vm.playTargetNote()
+        vm.stopListening()
+        assertFalse(vm.state.value.isPlayingReference)
+        assertEquals(1, tonePlayer.stopCount)
     }
 }

@@ -9,6 +9,8 @@ import dagger.hilt.components.SingletonComponent
 import hr.bertlab.fluteassistant.audio.metronome.AudioTrackMetronomePlayer
 import hr.bertlab.fluteassistant.audio.metronome.MetronomePlayer
 import hr.bertlab.fluteassistant.audio.tuner.AudioRecordTunerEngine
+import hr.bertlab.fluteassistant.audio.tuner.AudioTrackReferenceTonePlayer
+import hr.bertlab.fluteassistant.audio.tuner.ReferenceTonePlayer
 import hr.bertlab.fluteassistant.audio.tuner.TunerEngine
 import hr.bertlab.fluteassistant.core.MonotonicClock
 import javax.inject.Singleton
@@ -24,6 +26,10 @@ abstract class AudioModule {
     @Binds
     @Singleton
     abstract fun bindTunerEngine(impl: AudioRecordTunerEngine): TunerEngine
+
+    @Binds
+    @Singleton
+    abstract fun bindReferenceTonePlayer(impl: AudioTrackReferenceTonePlayer): ReferenceTonePlayer
 
     companion object {
         @Provides

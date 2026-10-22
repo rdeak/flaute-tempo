@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
+import hr.bertlab.fluteassistant.domain.tuner.FluteFingerings
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.common.labelRes
@@ -108,6 +109,7 @@ fun TunerScreen(
         state = state,
         onTargetNoteChange = viewModel::setTargetNote,
         onModeChange = viewModel::setMode,
+        onPlayNote = viewModel::playTargetNote,
         onRequestPermission = { permissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
         onOpenSettings = {
             context.startActivity(
@@ -123,16 +125,17 @@ fun TunerScreen(
 
 /**
  * The whole tuner: either the name of the note being played ([TunerMode.IDENTIFY]) or the
- * wheel with the note the child chose to play ([TunerMode.TARGET]), the gauge measuring
- * against that note, one friendly status line, and the two mode pills at the bottom. No
- * numbers beyond the octave in the note name: a child only needs to know whether to go up
- * or down.
+ * wheel with the note the child chose to play ([TunerMode.TARGET], with a speaker button to
+ * hear it), that note's fingering, the gauge measuring against it, one friendly status line,
+ * and the two mode pills at the bottom. No numbers beyond the octave in the note name: a
+ * child only needs to know whether to go up or down.
  */
 @Composable
 fun TunerContent(
     state: TunerUiState,
     onTargetNoteChange: (Int) -> Unit,
     onModeChange: (TunerMode) -> Unit,
+    onPlayNote: () -> Unit,
     onRequestPermission: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -182,6 +185,8 @@ fun TunerContent(
                         targetMidi = state.targetMidi,
                         onTargetChange = onTargetNoteChange,
                         inTune = status == TuningStatus.IN_TUNE,
+                        onPlay = onPlayNote,
+                        isPlaying = state.isPlayingReference,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     TunerMode.IDENTIFY -> Text(
@@ -196,6 +201,20 @@ fun TunerContent(
                 }
             }
 
+            // Which keys to press: for the chosen note, or for whatever is being played.
+            val fingeredMidi = when (state.mode) {
+                TunerMode.TARGET -> state.targetMidi
+                TunerMode.IDENTIFY -> state.reading?.midi
+            }
+            Spacer(Modifier.height(8.dp))
+            FingeringDiagram(
+                keys = fingeredMidi?.let(FluteFingerings::keysFor),
+                noteLabel = fingeredMidi?.let { noteLabel(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp),
+            )
+
             Spacer(Modifier.height(8.dp))
             TuningGauge(
                 cents = cents,
@@ -209,6 +228,7 @@ fun TunerContent(
                 status = status,
                 color = statusColor,
                 targetNote = noteLabel(state.targetMidi).takeIf { state.mode == TunerMode.TARGET },
+                playing = state.isPlayingReference,
             )
 
             state.errorMessage?.let { message ->
@@ -274,10 +294,11 @@ private fun TunerModeChoice(mode: TunerMode, onSelect: (TunerMode) -> Unit) {
 
 /**
  * One line of feedback; while nothing is heard it names [targetNote] when there is one, or
- * asks for any note. It bounces in when the note comes into tune.
+ * asks for any note, and while the reference note is [playing] it says to listen. It bounces
+ * in when the note comes into tune.
  */
 @Composable
-private fun StatusLine(status: TuningStatus, color: Color, targetNote: String?) {
+private fun StatusLine(status: TuningStatus, color: Color, targetNote: String?, playing: Boolean) {
     val scale = remember { Animatable(1f) }
     LaunchedEffect(status == TuningStatus.IN_TUNE) {
         if (status == TuningStatus.IN_TUNE) {
@@ -287,8 +308,11 @@ private fun StatusLine(status: TuningStatus, color: Color, targetNote: String?) 
     }
     Text(
         text = when (status) {
-            TuningStatus.NONE ->
-                if (targetNote != null) stringResource(R.string.play_note_prompt, targetNote) else stringResource(R.string.play_a_note)
+            TuningStatus.NONE -> when {
+                playing -> stringResource(R.string.listen_status)
+                targetNote != null -> stringResource(R.string.play_note_prompt, targetNote)
+                else -> stringResource(R.string.play_a_note)
+            }
             TuningStatus.IN_TUNE -> stringResource(R.string.in_tune)
             TuningStatus.LOW -> stringResource(R.string.too_low)
             TuningStatus.HIGH -> stringResource(R.string.too_high)

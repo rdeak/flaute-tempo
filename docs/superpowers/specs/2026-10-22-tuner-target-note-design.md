@@ -145,3 +145,38 @@ setup. *My call* on the default.
 - Strings: `tuner_mode`, `mode_identify`, `mode_target`; `play_a_note` is back.
 - Tests: `TunerUiStateTest.gauge cents follow the mode`, two `TunerViewModelTest` cases, five
   `TunerScreenTest` cases for the identify mode and the pills.
+
+## Revision 3: hear the note and see the fingering
+
+The user asked for a way to hear the note that needs to be played, and for the flute
+fingering that produces it.
+
+### What the child sees
+
+- **Speaker button** at the right end of the note band in "Tune to a note": a coral round
+  button with a speaker. A tap sounds the chosen note for two seconds as a soft flute-like
+  tone (a sine with a little second and third harmonic, faded in and out) at the app's volume.
+  While it sounds the button is dimmed, the status line says "🔊 Listen" / "🔊 Slušaj", and the
+  microphone reading is paused so the speaker is not measured; readings start afresh when it
+  ends. Leaving the tab stops the tone. *My call* on the two-second one-shot rather than a
+  toggle: it avoids the microphone and speaker fighting each other.
+- **Fingering diagram** under the note (in both modes; in "Which note?" it shows the fingering
+  of whatever is being played, faintly empty in silence): the flute from above, head joint on
+  the left; thumb key, three left-hand keys, the G sharp lever, three right-hand keys, the E
+  flat key and the two foot-joint rollers. Pressed keys are filled coral, the rest outlines.
+  Fingerings follow the Woodwind Fingering Guide's basic chart for a C-foot Boehm flute; B flat
+  is the "one and one" fingering. a3 sharp and h3 need trill or sliver keys the diagram does not
+  draw, so they show no diagram. Accessibility name: "Fingering for A4" / "Prstomet za a1".
+
+### Code changes
+
+- `domain/tuner/FluteFingerings.kt`: `FluteKey` enum and `keysFor(midi)` (null when uncharted).
+- `audio/tuner/ReferenceTonePlayer.kt` (interface), `ReferenceToneSynth` (pure rendering),
+  `AudioTrackReferenceTonePlayer` (static-mode AudioTrack), bound in `AudioModule`.
+- `TunerUiState.isPlayingReference`; `TunerViewModel.playTargetNote()` (`REFERENCE_TONE_MS`),
+  frames ignored while playing, `stopListening` and `onCleared` stop the tone.
+- `ui/tuner/FingeringDiagram.kt`; `NoteWheel` gains `onPlay` / `isPlaying`; `TunerContent`
+  gains `onPlayNote`.
+- Strings `hear_note`, `listen_status`, `fingering_for`.
+- Tests: `FluteFingeringsTest`, `ReferenceToneSynthTest`, two `TunerViewModelTest` cases,
+  three `TunerScreenTest` cases.
