@@ -59,6 +59,7 @@ import hr.bertlab.fluteassistant.domain.model.SoundProfile
 import hr.bertlab.fluteassistant.domain.model.Subdivision
 import hr.bertlab.fluteassistant.domain.model.TimeSignature
 import hr.bertlab.fluteassistant.ui.common.AppIcons
+import hr.bertlab.fluteassistant.ui.common.labelRes
 import kotlin.math.roundToInt
 
 private const val FLASH_DURATION_MS = 180
@@ -266,7 +267,7 @@ fun MetronomeContent(
                 FilterChip(
                     selected = subdivision == state.config.subdivision,
                     onClick = { onSubdivisionChange(subdivision) },
-                    label = { Text(subdivision.label) },
+                    label = { Text(stringResource(subdivision.labelRes())) },
                 )
             }
         }
@@ -280,7 +281,7 @@ fun MetronomeContent(
                     onClick = { onSoundChange(sound) },
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = SoundProfile.entries.size),
                 ) {
-                    Text(sound.label)
+                    Text(stringResource(sound.labelRes()))
                 }
             }
         }

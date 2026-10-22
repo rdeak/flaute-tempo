@@ -69,6 +69,11 @@ android {
     buildFeatures {
         compose = true
     }
+    androidResources {
+        // Shipped languages: English (default resources) and Croatian. Other library locales are
+        // stripped, and Play lists exactly these two.
+        localeFilters += listOf("en", "hr")
+    }
 }
 
 // Room exports each schema version to app/schemas so future migrations can be written and tested.

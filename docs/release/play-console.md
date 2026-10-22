@@ -16,6 +16,7 @@ collects data. Presets and settings are stored locally on the device.
 | Feature graphic | `play-listing/feature-graphic-1024x500.png` |
 | Screenshots | At least 2 phone screenshots (metronome, tuner); 16:9 or 9:16, 320 to 3840 px |
 | Category | Music & Audio |
+| Languages | English (default) and Croatian; the UI follows the system language and Android 13+ per-app language settings. Add a Croatian store listing translation if you want the listing localised too. |
 | Contact email | Required; shown publicly |
 | Privacy policy URL | Required; host `privacy-policy.md` (for example on GitHub Pages) |
 

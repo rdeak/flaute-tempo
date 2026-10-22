@@ -11,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import hr.bertlab.fluteassistant.MainActivity
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
+import hr.bertlab.fluteassistant.ui.common.summary
 
 /** Builds the ongoing "metronome running" notification shown by [MetronomeService]. */
 internal class PlaybackNotifications(private val context: Context) {
@@ -42,7 +43,7 @@ internal class PlaybackNotifications(private val context: Context) {
         return NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_metronome)
             .setContentTitle(context.getString(R.string.notification_playing_title))
-            .setContentText(config?.summary().orEmpty())
+            .setContentText(config?.summary(context.resources).orEmpty())
             .setContentIntent(openApp)
             .addAction(R.drawable.ic_stat_stop, context.getString(R.string.stop), stop)
             .setOngoing(true)

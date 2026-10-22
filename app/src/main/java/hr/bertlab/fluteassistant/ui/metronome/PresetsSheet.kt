@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.Preset
+import hr.bertlab.fluteassistant.ui.common.summary
 import hr.bertlab.fluteassistant.ui.common.AppIcons
 import kotlinx.coroutines.launch
 

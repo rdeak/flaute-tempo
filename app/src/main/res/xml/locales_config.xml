@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lets people pick a per-app language in system settings (Android 13+). The system language
+     decides otherwise: Croatian devices get values-hr, everything else the English defaults. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="hr" />
+</locale-config>

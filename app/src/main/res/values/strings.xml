@@ -20,6 +20,18 @@
     <string name="sound">Sound</string>
     <string name="volume">Volume</string>
 
+    <!-- Subdivisions and click sounds (the domain enums map to these in ui/common/Labels.kt) -->
+    <string name="subdivision_quarter">Quarter</string>
+    <string name="subdivision_eighth">8ths</string>
+    <string name="subdivision_sixteenth">16ths</string>
+    <string name="subdivision_triplet">Triplets</string>
+    <string name="subdivision_shuffle">Shuffle</string>
+    <string name="sound_woodblock">Woodblock</string>
+    <string name="sound_beep">Digital Beep</string>
+    <string name="sound_bell">Bell</string>
+    <!-- BPM, meter, subdivision, sound -->
+    <string name="config_summary">%1$d BPM · %2$s · %3$s · %4$s</string>
+
     <!-- Presets -->
     <string name="presets">Presets</string>
     <string name="current_settings">Current: %1$s</string>
@@ -56,4 +68,19 @@
     <string name="mic_permission_body">The tuner listens to your instrument through the microphone. Audio is analysed on the device and never stored or sent anywhere.</string>
     <string name="allow_microphone">Allow microphone</string>
     <string name="open_settings">Open settings</string>
+    <!-- Note names for the 12 pitch classes from C, using sharps. Localised: Croatian uses H and B. -->
+    <string-array name="note_names">
+        <item>C</item>
+        <item>C♯</item>
+        <item>D</item>
+        <item>D♯</item>
+        <item>E</item>
+        <item>F</item>
+        <item>F♯</item>
+        <item>G</item>
+        <item>G♯</item>
+        <item>A</item>
+        <item>A♯</item>
+        <item>B</item>
+    </string-array>
 </resources>

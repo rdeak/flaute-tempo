@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
-import hr.bertlab.fluteassistant.domain.tuner.NoteMath
+import hr.bertlab.fluteassistant.ui.common.noteLabel
 import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.theme.InTuneGreen
 import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRed
@@ -154,7 +154,7 @@ fun TunerContent(
 
             // Note name
             Text(
-                text = reading?.label ?: "—",
+                text = reading?.let { noteLabel(it.midi) } ?: "—",
                 style = MaterialTheme.typography.displayLarge,
                 color = if (status == TuningStatus.IN_TUNE) InTuneGreen else MaterialTheme.colorScheme.onSurface,
             )
@@ -190,8 +190,8 @@ fun TunerContent(
                         .padding(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text(NoteMath.labelOf(reading.midi - 1), style = MaterialTheme.typography.labelLarge)
-                    Text(NoteMath.labelOf(reading.midi + 1), style = MaterialTheme.typography.labelLarge)
+                    Text(noteLabel(reading.midi - 1), style = MaterialTheme.typography.labelLarge)
+                    Text(noteLabel(reading.midi + 1), style = MaterialTheme.typography.labelLarge)
                 }
             }
 

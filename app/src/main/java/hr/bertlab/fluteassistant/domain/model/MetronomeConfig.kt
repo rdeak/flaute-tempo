@@ -42,21 +42,17 @@ enum class TimeSignature(
  * (0.0 = on the beat, 0.5 = halfway) at which a click is played. The first offset is
  * always 0.0 so the main beat itself is part of every pattern.
  */
-enum class Subdivision(val label: String, val offsets: List<Double>) {
-    NONE("Quarter", listOf(0.0)),
-    EIGHTH("8ths", listOf(0.0, 0.5)),
-    SIXTEENTH("16ths", listOf(0.0, 0.25, 0.5, 0.75)),
-    TRIPLET("Triplets", listOf(0.0, 1.0 / 3.0, 2.0 / 3.0)),
+enum class Subdivision(val offsets: List<Double>) {
+    NONE(listOf(0.0)),
+    EIGHTH(listOf(0.0, 0.5)),
+    SIXTEENTH(listOf(0.0, 0.25, 0.5, 0.75)),
+    TRIPLET(listOf(0.0, 1.0 / 3.0, 2.0 / 3.0)),
     /** Swing feel: the off-beat 8th is delayed to the last triplet position. */
-    SHUFFLE("Shuffle", listOf(0.0, 2.0 / 3.0)),
+    SHUFFLE(listOf(0.0, 2.0 / 3.0)),
 }
 
 /** Click sound family. Each profile has an accent, beat and subdivision variant. */
-enum class SoundProfile(val label: String) {
-    WOODBLOCK("Woodblock"),
-    BEEP("Digital Beep"),
-    BELL("Bell"),
-}
+enum class SoundProfile { WOODBLOCK, BEEP, BELL }
 
 /** Everything the metronome engine needs to produce a click pattern. */
 data class MetronomeConfig(
@@ -67,9 +63,6 @@ data class MetronomeConfig(
 ) {
     /** Returns a copy with [bpm] clamped to the supported range. */
     fun withBpm(newBpm: Int): MetronomeConfig = copy(bpm = newBpm.coerceIn(MIN_BPM, MAX_BPM))
-
-    /** One-line description for preset lists and the playback notification, e.g. "120 BPM · 4/4 · 8ths · Woodblock". */
-    fun summary(): String = "$bpm BPM · ${timeSignature.label} · ${subdivision.label} · ${sound.label}"
 
     companion object {
         const val MIN_BPM = 30

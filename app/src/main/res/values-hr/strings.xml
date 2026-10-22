@@ -1,0 +1,85 @@
+<resources>
+    <string name="app_name">Flute Assistant</string>
+    <string name="tab_metronome">Metronom</string>
+    <string name="tab_tuner">Štimer</string>
+
+    <!-- Metronome -->
+    <string name="bpm">BPM</string>
+    <string name="tap">KUCAJ</string>
+    <plurals name="tap_hint">
+        <item quantity="one">%1$d dodir</item>
+        <item quantity="few">%1$d dodira</item>
+        <item quantity="other">%1$d dodira</item>
+    </plurals>
+    <string name="start">Pokreni</string>
+    <string name="stop">Zaustavi</string>
+    <string name="decrease_tempo">Smanji tempo</string>
+    <string name="increase_tempo">Povećaj tempo</string>
+    <string name="tempo_dial">Kotačić tempa, povucite po prstenu za promjenu tempa</string>
+    <string name="time_signature">Mjera</string>
+    <string name="subdivision">Podjela</string>
+    <string name="sound">Zvuk</string>
+    <string name="volume">Glasnoća</string>
+
+    <string name="subdivision_quarter">Četvrtinke</string>
+    <string name="subdivision_eighth">Osminke</string>
+    <string name="subdivision_sixteenth">Šesnaestinke</string>
+    <string name="subdivision_triplet">Triole</string>
+    <string name="subdivision_shuffle">Shuffle</string>
+    <string name="sound_woodblock">Drveni blok</string>
+    <string name="sound_beep">Digitalni bip</string>
+    <string name="sound_bell">Zvono</string>
+    <string name="config_summary">%1$d BPM · %2$s · %3$s · %4$s</string>
+
+    <!-- Presets -->
+    <string name="presets">Predlošci</string>
+    <string name="current_settings">Trenutno: %1$s</string>
+    <string name="preset_name">Naziv predloška</string>
+    <string name="preset_name_hint">Skladba 1 - uživo</string>
+    <string name="save">Spremi</string>
+    <string name="no_presets">Još nema predložaka. Imenujte trenutne postavke iznad i dodirnite Spremi.</string>
+    <string name="delete_preset">Izbriši %1$s</string>
+    <string name="delete_preset_title">Izbrisati predložak?</string>
+    <string name="delete_preset_body">„%1$s“ bit će trajno uklonjen.</string>
+    <string name="delete">Izbriši</string>
+    <string name="cancel">Odustani</string>
+
+    <!-- One-shot messages -->
+    <string name="msg_audio_unavailable">Audio izlaz trenutačno nije dostupan (možda ga koristi druga aplikacija).</string>
+    <string name="msg_save_failed">Predložak nije moguće spremiti.</string>
+    <string name="msg_delete_failed">Predložak nije moguće izbrisati.</string>
+
+    <!-- Playback notification -->
+    <string name="notification_channel_playback">Reprodukcija metronoma</string>
+    <string name="notification_channel_playback_description">Prikazuje se dok metronom radi kako biste ga mogli zaustaviti bilo gdje.</string>
+    <string name="notification_playing_title">Metronom radi</string>
+
+    <!-- Tuner -->
+    <string name="reference_pitch">A4 = %1$d Hz</string>
+    <string name="lower_reference">Snizi referentnu visinu</string>
+    <string name="raise_reference">Povisi referentnu visinu</string>
+    <string name="play_a_note">Odsvirajte ton</string>
+    <string name="listening">Slušam…</string>
+    <string name="in_tune">Ugođeno</string>
+    <string name="too_low">Prenisko ♭</string>
+    <string name="too_high">Previsoko ♯</string>
+    <string name="mic_permission_title">Potreban je pristup mikrofonu</string>
+    <string name="mic_permission_body">Štimer sluša vaš instrument kroz mikrofon. Zvuk se analizira na uređaju i nikada se ne sprema niti šalje.</string>
+    <string name="allow_microphone">Dopusti mikrofon</string>
+    <string name="open_settings">Otvori postavke</string>
+    <!-- German note names as taught in Croatia: H is B natural, B is B flat -->
+    <string-array name="note_names">
+        <item>C</item>
+        <item>Cis</item>
+        <item>D</item>
+        <item>Dis</item>
+        <item>E</item>
+        <item>F</item>
+        <item>Fis</item>
+        <item>G</item>
+        <item>Gis</item>
+        <item>A</item>
+        <item>B</item>
+        <item>H</item>
+    </string-array>
+</resources>
