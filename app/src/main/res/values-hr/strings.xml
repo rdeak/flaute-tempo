@@ -6,10 +6,15 @@
     <!-- Metronome -->
     <string name="play">Idemo!</string>
     <string name="stop">Stani</string>
-    <string name="decrease_tempo">Smanji tempo</string>
-    <string name="increase_tempo">Povećaj tempo</string>
     <string name="tempo_dial">Prsten tempa, povuci po njemu za promjenu brzine</string>
+    <string name="tempo_tap">Promijeni brzinu</string>
+    <string name="tempo_wheel">Kotačić tempa, zavrti ga za promjenu brzine</string>
     <string name="time_signature">Dobe u taktu</string>
+    <string name="previous_time_signature">Prethodne dobe u taktu</string>
+    <string name="next_time_signature">Sljedeće dobe u taktu</string>
+    <string name="volume">Glasnoća</string>
+
+    <string name="language">Jezik</string>
 
     <string name="feel_very_slow">Jako sporo</string>
     <string name="feel_slow">Sporo</string>

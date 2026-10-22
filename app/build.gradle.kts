@@ -95,6 +95,8 @@ kotlin {
 dependencies {
     // AndroidX core + Activity/Lifecycle
     implementation(libs.androidx.core.ktx)
+    // In-app language switch: AppCompatDelegate.setApplicationLocales works back to minSdk.
+    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)

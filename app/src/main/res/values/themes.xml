@@ -1,4 +1,6 @@
 <resources>
-    <!-- Compose draws all UI; the window only needs a no-action-bar Material base. -->
-    <style name="Theme.FluteAssistant" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Compose draws all UI; the window only needs a no-action-bar base. It must be an AppCompat
+         theme because MainActivity is an AppCompatActivity (for the in-app language switch);
+         DayNight follows the system dark mode on its own. -->
+    <style name="Theme.FluteAssistant" parent="Theme.AppCompat.DayNight.NoActionBar" />
 </resources>

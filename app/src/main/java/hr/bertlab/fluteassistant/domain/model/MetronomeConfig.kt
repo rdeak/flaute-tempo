@@ -13,9 +13,20 @@ enum class BeatStrength { STRONG, MEDIUM, WEAK, SUBDIVISION }
 private fun simpleMeter(beats: Int): List<BeatStrength> =
     List(beats) { index -> if (index == 0) BeatStrength.STRONG else BeatStrength.WEAK }
 
+/** Compound meter: a strong first beat, then a medium accent at the start of every later group of three. */
+private fun compoundMeter(beats: Int): List<BeatStrength> =
+    List(beats) { index ->
+        when {
+            index == 0 -> BeatStrength.STRONG
+            index % 3 == 0 -> BeatStrength.MEDIUM
+            else -> BeatStrength.WEAK
+        }
+    }
+
 /**
- * Supported time signatures. [accents] has exactly [beatsPerBar] entries and describes
- * the strength of every main beat in the bar.
+ * Supported time signatures, in the order the UI offers them: the three a beginner meets
+ * first, then the rest. [accents] has exactly [beatsPerBar] entries and describes the
+ * strength of every main beat in the bar. Persisted by name, so the order is free to change.
  */
 enum class TimeSignature(
     val beatsPerBar: Int,
@@ -26,13 +37,20 @@ enum class TimeSignature(
     THREE_FOUR(3, 4, simpleMeter(3)),
     FOUR_FOUR(4, 4, simpleMeter(4)),
     FIVE_FOUR(5, 4, simpleMeter(5)),
-    SIX_EIGHT(
-        6, 8,
+    THREE_EIGHT(3, 8, simpleMeter(3)),
+    SIX_EIGHT(6, 8, compoundMeter(6)),
+    /** Grouped 2 + 2 + 3, the usual textbook (and folk-dance) reading. */
+    SEVEN_EIGHT(
+        7, 8,
         listOf(
-            BeatStrength.STRONG, BeatStrength.WEAK, BeatStrength.WEAK,
+            BeatStrength.STRONG, BeatStrength.WEAK,
+            BeatStrength.MEDIUM, BeatStrength.WEAK,
             BeatStrength.MEDIUM, BeatStrength.WEAK, BeatStrength.WEAK,
         ),
-    );
+    ),
+    NINE_EIGHT(9, 8, compoundMeter(9)),
+    TWELVE_EIGHT(12, 8, compoundMeter(12)),
+    TWO_TWO(2, 2, simpleMeter(2));
 
     val label: String get() = "$beatsPerBar/$noteValue"
 }

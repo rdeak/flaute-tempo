@@ -7,6 +7,8 @@ ksp = "2.3.12"
 hilt = "2.60.1"
 hiltAndroidx = "1.4.0"
 coreKtx = "1.19.1"
+# Only for AppCompatDelegate.setApplicationLocales: the per-app language backport below Android 13.
+appcompat = "1.8.0"
 activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 lifecycle = "2.11.0"
@@ -21,6 +23,7 @@ espressoCore = "3.7.0"
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }

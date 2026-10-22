@@ -42,6 +42,17 @@
             android:name=".playback.MetronomeService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Lets AppCompat persist the in-app language choice itself below Android 13 (on 13+
+             the system stores it). Never started; the metadata is all that is read. -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
     </application>
 
 </manifest>

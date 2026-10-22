@@ -5,6 +5,7 @@ import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.model.BeatStrength
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.Preset
+import hr.bertlab.fluteassistant.domain.model.TimeSignature
 
 /** One-shot messages the screen shows in a snackbar (mapped to string resources in the UI). */
 enum class MetronomeMessage { AUDIO_UNAVAILABLE, SAVE_FAILED, DELETE_FAILED }
@@ -61,3 +62,13 @@ enum class SkillLevel(val bpm: Int, val emoji: String, @StringRes val labelRes: 
 
 /** The level whose tempo is exactly [bpm], or null when the child has nudged in between. */
 fun skillLevelFor(bpm: Int): SkillLevel? = SkillLevel.entries.firstOrNull { it.bpm == bpm }
+
+/*
+ * The beats-in-a-bar stepper walks the engine's display order and wraps at both ends, so
+ * the signatures at the far end are a couple of taps backwards instead of nine forwards.
+ */
+fun TimeSignature.next(): TimeSignature =
+    TimeSignature.entries[(ordinal + 1) % TimeSignature.entries.size]
+
+fun TimeSignature.previous(): TimeSignature =
+    TimeSignature.entries[(ordinal - 1 + TimeSignature.entries.size) % TimeSignature.entries.size]

@@ -6,10 +6,16 @@
     <!-- Metronome -->
     <string name="play">Let\'s play!</string>
     <string name="stop">Stop</string>
-    <string name="decrease_tempo">Decrease tempo</string>
-    <string name="increase_tempo">Increase tempo</string>
     <string name="tempo_dial">Tempo ring, drag around it to change the speed</string>
+    <string name="tempo_tap">Change the speed</string>
+    <string name="tempo_wheel">Tempo wheel, scroll to change the speed</string>
     <string name="time_signature">Beats in a bar</string>
+    <string name="previous_time_signature">Previous beats in a bar</string>
+    <string name="next_time_signature">Next beats in a bar</string>
+    <string name="volume">Volume</string>
+
+    <!-- In-app language switch (the language names themselves are endonyms in ui/common/AppLanguage.kt) -->
+    <string name="language">Language</string>
 
     <!-- How the tempo feels, shown under the number with an emoji (ui/metronome/MetronomeUiState.kt) -->
     <string name="feel_very_slow">Very slow</string>

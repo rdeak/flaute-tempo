@@ -45,7 +45,7 @@ also means the audio output itself can only be judged on a real device.
 ```sh
 $ANDROID_HOME/emulator/emulator -avd Medium_Phone_API_37.0 -no-window -no-audio -gpu swiftshader_indirect -no-boot-anim &
 adb shell pm grant hr.bertlab.fluteassistant android.permission.RECORD_AUDIO
-adb shell cmd locale set-app-locales hr.bertlab.fluteassistant --user 0 --locales hr   # switch the app to Croatian
+adb shell cmd locale set-app-locales hr.bertlab.fluteassistant --user 0 --locales hr   # switch the app to Croatian (the in-app flags do the same)
 adb shell cmd uimode night yes                                                         # dark mode
 adb exec-out screencap -p > shot.png
 ```
@@ -72,6 +72,13 @@ bundled Kotlin to the catalog's `kotlin` version, and the Compose compiler plugi
 same version ref; keep the two equal. KSP is the standalone 2.3.x line; Hilt must stay >= 2.59.
 Room exports schemas to `app/schemas` (database version 1, destructive fallback migration for
 now). `localeFilters` strips every library locale except en and hr.
+
+`androidx.appcompat` is in the build only for the in-app language switch:
+`AppCompatDelegate.setApplicationLocales` is the per-app-language backport below Android 13, so
+`MainActivity` is an `AppCompatActivity`, the window theme must stay an AppCompat theme
+(`Theme.AppCompat.DayNight.NoActionBar`) and the manifest declares
+`AppLocalesMetadataHolderService` with `autoStoreLocales`. The choice is stored by the platform
+(system on 13+, AppCompat below), not by `SettingsStore`.
 
 ## Architecture
 
@@ -124,8 +131,11 @@ turns the median into a `NoteReading`.
 
 ### UI conventions
 
-- One Activity. `MainScreen` hosts a bottom bar switching between the two tabs; both ViewModels
-  are Activity-scoped so state survives tab switches and rotation.
+- One Activity. `MainScreen` hosts a top app bar (app name plus the `LanguageSwitch`: two flag
+  buttons over `ui/common/AppLanguage`; selecting one calls
+  `AppCompatDelegate.setApplicationLocales`, which re-creates the Activity) and a bottom bar
+  switching between the two tabs. Both ViewModels are Activity-scoped so state and playback
+  survive tab switches, rotation and that re-creation.
 - Each screen is split into a stateful `MetronomeScreen` / `TunerScreen` (ViewModel, permissions,
   lifecycle) and a stateless `MetronomeContent` / `TunerContent` taking state plus callbacks. The
   `*Content` composables are what the Compose UI tests render, wrapped in the test-only
@@ -139,16 +149,22 @@ turns the median into a `NoteReading`.
 
 ### Kid-friendly UI constraint
 
-The UI was deliberately reduced (spec: `docs/superpowers/specs/2026-10-22-kid-friendly-ui-design.md`)
-to beat dots, a tempo ring, hold-to-repeat minus/plus, four "level" pills (`SkillLevel` in
+The UI was deliberately reduced (spec: `docs/superpowers/specs/2026-10-22-kid-friendly-ui-design.md`,
+follow-up: `docs/superpowers/specs/2026-10-22-metronome-controls-and-language-design.md`)
+to beat dots, a tempo ring (drag it, or tap the number to get an in-place three-value
+`TempoWheel`; there are no −/+ buttons), four "level" pills (`SkillLevel` in
 `MetronomeUiState.kt`: Beginner 60, Learner 80, Star 100, Master 120; emoji plus a word, never
-the number, filled only when the tempo matches exactly), one play button and 2/4 3/4 4/4; the
-tuner shows a big note name, a numberless gauge and one status line. Tap tempo, subdivisions,
-click sounds, volume, presets and the A4 reference still exist in the engine, data layer and
-ViewModels but are not exposed: `MetronomeViewModel.initialState()` resets subdivision and sound
-to their defaults and `TunerViewModel` starts from 440 Hz so a stale stored value cannot silently
-affect playback. Do not reintroduce numbers or jargon (BPM, Hz, cents, Italian markings) or extra
-controls on the main screens; an "advanced mode" is the intended home for those features.
+the number, filled only when the tempo matches exactly), one beats-in-a-bar stepper pill
+(◀ 4/4 ▶, wrapping through every `TimeSignature` in enum order; the beat dots shrink above
+six beats), one play button and a numberless volume slider; the tuner shows a big note name, a
+numberless gauge and one status line. The user rejected a wider layout (−/+ beside the ring,
+a ten-button signature scroller, flags in the content area) as too packed: keep the screen
+this sparse. Tap tempo, subdivisions, click sounds, presets and the A4 reference still exist
+in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`
+resets subdivision and sound to their defaults and `TunerViewModel` starts from 440 Hz so a
+stale stored value cannot silently affect playback. Do not reintroduce numbers or jargon
+(BPM, Hz, cents, Italian markings) or extra controls on the main screens; an "advanced mode"
+is the intended home for those features.
 
 ## Testing conventions
 

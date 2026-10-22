@@ -1,14 +1,21 @@
 package hr.bertlab.fluteassistant.ui.metronome
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.progressSemantics
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,8 +26,11 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
@@ -28,6 +38,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
+import hr.bertlab.fluteassistant.ui.common.AppIcons
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -36,17 +47,27 @@ import kotlin.math.sin
 private const val START_ANGLE = 135f
 private const val SWEEP_ANGLE = 270f
 
+/** Width of the wheel inside the ring; the ring's clear centre is about 180 dp across. */
+private val WheelWidth = 150.dp
+
 /**
  * A chunky tempo ring. Dragging anywhere on it rotates it; one degree of rotation is one
  * BPM, so the knob tracks the finger. The filled arc shows where the tempo sits in the
  * supported range, the number sits in the middle with a "how fast does it feel" line under
  * it, and the whole ring glows with [flash] (read in the draw phase only) on every beat.
+ *
+ * Tapping the number swaps it for a [TempoWheel] in the same spot while [editing] is true;
+ * the caller owns that flag so it can also close the wheel on a tap anywhere else, using
+ * the wheel's position reported through [onWheelPositioned].
  * Exposes slider semantics so assistive technology can adjust the tempo too.
  */
 @Composable
 fun TempoDial(
     bpm: Int,
     onBpmChange: (Int) -> Unit,
+    editing: Boolean,
+    onEditingChange: (Boolean) -> Unit,
+    onWheelPositioned: (LayoutCoordinates) -> Unit,
     flash: () -> Float,
     flashColor: Color,
     modifier: Modifier = Modifier,
@@ -135,15 +156,50 @@ fun TempoDial(
             drawCircle(knobCenterColor, radius = strokeWidth * 0.35f, center = knobCenter)
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = bpm.toString(), style = MaterialTheme.typography.displayLarge)
-            val feel = tempoFeel(bpm)
-            Text(
-                text = "${feel.emoji} ${stringResource(feel.labelRes)}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
+        if (editing) {
+            TempoWheel(
+                bpm = bpm,
+                onBpmChange = onBpmChange,
+                onClose = { onEditingChange(false) },
+                minBpm = minBpm,
+                maxBpm = maxBpm,
+                modifier = Modifier
+                    .width(WheelWidth)
+                    .onGloballyPositioned(onWheelPositioned),
             )
+        } else {
+            TempoNumber(bpm = bpm, onClick = { onEditingChange(true) })
         }
+    }
+}
+
+/** The big tempo figure with a faint scroll hint above and the speed-feel line under it. */
+@Composable
+private fun TempoNumber(bpm: Int, onClick: () -> Unit) {
+    val tapLabel = stringResource(R.string.tempo_tap)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = ripple(bounded = false, radius = 84.dp),
+            role = Role.Button,
+            onClickLabel = tapLabel,
+            onClick = onClick,
+        ),
+    ) {
+        Icon(
+            imageVector = AppIcons.UnfoldMore,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            modifier = Modifier.size(20.dp),
+        )
+        Text(text = bpm.toString(), style = MaterialTheme.typography.displayLarge)
+        val feel = tempoFeel(bpm)
+        Text(
+            text = "${feel.emoji} ${stringResource(feel.labelRes)}",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }
 

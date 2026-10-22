@@ -14,10 +14,27 @@ import androidx.compose.ui.unit.dp
  * fork are simple strokes drawn for this app. Tinting is applied by [androidx.compose.material3.Icon].
  */
 object AppIcons {
-    val Add: ImageVector by lazy { filled("add", "M19,13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z") }
-    val Remove: ImageVector by lazy { filled("remove", "M19,13H5v-2h14v2z") }
+    val ChevronLeft: ImageVector by lazy { filled("chevron_left", "M15.41,7.41L14,6l-6,6 6,6 1.41,-1.41L10.83,12z") }
+    val ChevronRight: ImageVector by lazy { filled("chevron_right", "M10,6L8.59,7.41 13.17,12l-4.58,4.59L10,18l6,-6z") }
+    /** Two small chevrons, up and down: the hint that the tempo number can be scrolled. */
+    val UnfoldMore: ImageVector by lazy {
+        filled(
+            "unfold_more",
+            "M12,5.83L15.17,9l1.41,-1.41L12,3 7.41,7.59 8.83,9 12,5.83zM12,18.17L8.83,15l-1.41,1.41L12,21l4.59,-4.59L15.17,15 12,18.17z",
+        )
+    }
     val PlayArrow: ImageVector by lazy { filled("play_arrow", "M8,5v14l11,-7z") }
     val Stop: ImageVector by lazy { filled("stop", "M6,6h12v12H6z") }
+    /** A speaker with no sound waves: the quiet end of the volume slider. */
+    val VolumeMute: ImageVector by lazy { filled("volume_mute", "M7,9v6h4l5,5V4l-5,5H7z") }
+    /** A speaker with two sound waves: the loud end of the volume slider. */
+    val VolumeUp: ImageVector by lazy {
+        filled(
+            "volume_up",
+            "M3,9v6h4l5,5V4L7,9H3zM16.5,12c0,-1.77 -1.02,-3.29 -2.5,-4.03v8.05c1.48,-0.73 2.5,-2.25 2.5,-4.02zM14,3.23v2.06" +
+                "c2.89,0.86 5,3.54 5,6.71s-2.11,5.85 -5,6.71v2.06c4.01,-0.91 7,-4.49 7,-8.77s-2.99,-7.86 -7,-8.77z",
+        )
+    }
     val Mic: ImageVector by lazy {
         filled(
             "mic",
