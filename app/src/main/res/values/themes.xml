@@ -1,4 +1,4 @@
 <resources>
     <!-- Compose draws all UI; the window only needs a no-action-bar Material base. -->
-    <style name="Theme.FluteTempo" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.FluteAssistant" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

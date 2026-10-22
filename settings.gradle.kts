@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FluteTempo"
+rootProject.name = "FluteAssistant"
 include(":app")

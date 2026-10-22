@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -6,27 +8,57 @@ plugins {
     alias(libs.plugins.room)
 }
 
+// Release signing. Credentials never live in the repo: they come from the environment
+// (FLUTE_ASSISTANT_STORE_PASSWORD and friends, e.g. injected at build time from AWS Secrets
+// Manager) or from keystore.properties in the project root (gitignored, see docs/release).
+// Without them the release build is left unsigned so any machine can still compile it.
+val keystoreProperties = Properties().apply {
+    val file = rootDir.resolve("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+fun signingValue(property: String, envVar: String): String? =
+    System.getenv(envVar)?.takeIf { it.isNotBlank() } ?: keystoreProperties.getProperty(property)
+val releaseStoreFile = signingValue("storeFile", "FLUTE_ASSISTANT_STORE_FILE")?.let { rootDir.resolve(it) }
+val releaseStorePassword = signingValue("storePassword", "FLUTE_ASSISTANT_STORE_PASSWORD")
+val releaseKeyAlias = signingValue("keyAlias", "FLUTE_ASSISTANT_KEY_ALIAS") ?: "upload"
+val releaseKeyPassword = signingValue("keyPassword", "FLUTE_ASSISTANT_KEY_PASSWORD") ?: releaseStorePassword
+val canSignRelease = releaseStoreFile?.exists() == true && releaseStorePassword != null
+
 android {
-    namespace = "hr.bertlab.flutetempo"
+    namespace = "hr.bertlab.fluteassistant"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "hr.bertlab.flutetempo"
+        applicationId = "hr.bertlab.fluteassistant"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = (property("fluteAssistant.versionCode") as String).toInt()
+        versionName = property("fluteAssistant.versionName") as String
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (canSignRelease) {
+            create("release") {
+                storeFile = releaseStoreFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
+            // Whole-app R8 (shrink, optimise, obfuscate). Keep rules come from the libraries'
+            // consumer rules. Upload app/build/outputs/mapping/release/mapping.txt to Play so
+            // crash reports are readable. (A package-scoped optimisation was tried and crashed
+            // at startup with an IllegalAccessError in androidx.startup.)
             optimization {
                 enable = true
-                packageScope = setOf("androidx.**", "kotlin.**", "kotlinx.**")
             }
         }
     }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FluteTempo</string>
+    <string name="app_name">Flute Assistant</string>
     <string name="tab_metronome">Metronome</string>
     <string name="tab_tuner">Tuner</string>
 
