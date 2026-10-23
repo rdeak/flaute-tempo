@@ -97,12 +97,12 @@ If the upload key is ever lost, Play Console lets you request an upload key rese
 `docs/superpowers/specs/2026-10-23-release-workflow-design.md`). Each run does the full check
 (`testDebugUnitTest lintRelease bundleRelease assembleRelease`) signed with the upload key, checks
 that both the APK and the bundle carry the upload certificate (`tools/release.sh verify`; a build
-without the secrets comes out unsigned and must never be published) and keeps the bundle, APK and
-mapping file as a workflow artifact, so any commit can be sideloaded. When
-`fluteAssistant.versionName` has no `v<name>` tag yet, the run also tags the commit and publishes
-GitHub Release `v<name>` with those three files and notes listing the commits since the previous
-release. A release is therefore: bump the version line, push to `main`. A push that does not bump
-just runs the check.
+without the secrets comes out unsigned and must never be published). When
+`fluteAssistant.versionName` has no `v<name>` tag yet, the run also uploads the bundle to Play,
+tags the commit and publishes GitHub Release `v<name>` with the bundle, the APK and the mapping
+file and notes listing the commits since the previous release. A release is therefore: bump the
+version line, push to `main`. A push that does not bump just runs the check and keeps nothing; a
+failed run is read from its log or reproduced locally with the same Gradle command.
 
 ### Secrets, set once
 
@@ -177,8 +177,8 @@ gh variable set PLAY_SERVICE_ACCOUNT --body "github-play-upload@flute-assistent-
 gh variable set PLAY_WORKLOAD_IDENTITY_PROVIDER --body "projects/213106687720/locations/global/workloadIdentityPools/github/providers/flute-assistant"
 ```
 
-While either variable is unset the Play step is skipped with a notice in the run and the GitHub
-release still goes out. The upload goes before the tag, so a Google failure leaves no tag and the
+Both variables are required: if either is missing, a release run fails at the Google step before
+anything is tagged. The upload goes before the tag, so a Google failure leaves no tag and the
 run can be repeated; if Play accepted the bundle but the GitHub release failed, create the release
 by hand with `gh release create`, because Play never takes the same version code twice.
 

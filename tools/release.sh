@@ -47,23 +47,38 @@ cmd_version() {
   printf 'name=%s\ncode=%s\ntag=v%s\nrelease=%s\n' "$name" "$code" "$name" "$release"
 }
 
-check_cert() { # check_cert FILE DIGEST
+check_cert() { # check_cert FILE DIGEST [DETAIL]
   if [ "$2" = "$UPLOAD_CERT_SHA256" ]; then
     echo "$1: signed with the upload certificate"
   else
     echo "$1: NOT signed with the upload certificate (got '${2:-nothing}')" >&2
+    # Certificates are public, so showing what the tool said is safe and makes a red run readable.
+    [ -z "${3:-}" ] || printf '%s\n' "$3" | sed 's/^/  | /' >&2
     exit 1
   fi
 }
 
+# Every SHA-256 digest in apksigner's output as lowercase hex, one per line. It matches on the
+# digest, not on the label in front of it: the label differs between build-tools versions and
+# for a rotated key ("Signer #1 ..." versus "Signer (minSdkVersion=...) ...").
+cert_digests() {
+  grep -i 'sha-\{0,1\}256' | tr -d ':' | grep -o -E '[0-9A-Fa-f]{64}' | tr 'A-F' 'a-f' | sort -u
+}
+
 cmd_verify() {
-  local apk=$1 aab=$2 sdk apksigner digest block
+  local apk=$1 aab=$2 sdk apksigner digest block out status=0
   sdk=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}
   apksigner=$(ls -d "$sdk"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
   [ -n "$apksigner" ] || { echo "apksigner not found under $sdk/build-tools" >&2; exit 1; }
   # apksigner exits non-zero for an unsigned APK, which is what a missing secret produces.
-  digest=$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
-  check_cert "$apk" "$digest"
+  out=$("$apksigner" verify --print-certs "$apk" 2>&1) || status=$?
+  if [ "$status" -ne 0 ]; then
+    echo "$apk: apksigner rejected the APK (exit $status), it is unsigned or broken" >&2
+    printf '%s\n' "$out" | sed 's/^/  | /' >&2
+    exit 1
+  fi
+  digest=$(printf '%s\n' "$out" | cert_digests)
+  check_cert "$apk" "$digest" "$out"
   # A bundle is jar-signed: its certificate sits in META-INF/<alias>.RSA; an unsigned one has none.
   block=$(mktemp)
   if ! unzip -p "$aab" 'META-INF/*.RSA' > "$block" 2>/dev/null; then
