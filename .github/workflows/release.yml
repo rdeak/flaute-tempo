@@ -4,6 +4,9 @@
 # tags the commit and publishes a GitHub Release with the bundle, the APK and the R8 mapping file.
 # So a release is: bump the version line, push to main. Design and the reasons for each step:
 # docs/superpowers/specs/2026-10-23-release-workflow-design.md. Setup: docs/release/README.md.
+#
+# Three jobs, so "Re-run failed jobs" repeats only what failed: build -> play -> release. Only
+# build sees the signing secrets; only play gets an identity token; only release can write.
 name: Release
 
 on:
@@ -19,17 +22,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Check, build and release
+  build:
+    name: Check and build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # the tag and the release
-      id-token: write # the identity token Google trades for a short-lived access token
+    outputs:
+      name: ${{ steps.version.outputs.name }}
+      code: ${{ steps.version.outputs.code }}
+      tag: ${{ steps.version.outputs.tag }}
+      release: ${{ steps.version.outputs.release }}
     steps:
-      - name: Check out with history and tags
+      - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
 
       - name: Set up JDK 25
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
@@ -77,7 +80,10 @@ jobs:
           app/build/outputs/apk/release/app-release.apk
           app/build/outputs/bundle/release/app-release.aab
 
+      # Only release runs keep files: the later jobs need them, and the same files go public in
+      # the GitHub Release anyway. A week is enough to re-run a failed play or release job.
       - name: Collect the outputs
+        if: steps.version.outputs.release == 'true'
         env:
           NAME: ${{ steps.version.outputs.name }}
         run: |
@@ -86,12 +92,33 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "dist/flute-assistant-$NAME.apk"
           cp app/build/outputs/mapping/release/mapping.txt "dist/flute-assistant-$NAME-mapping.txt"
 
-      # Play goes before the GitHub release on purpose: if Google refuses, no tag exists yet and
-      # the same run can simply be repeated. The reverse order would leave a tag and a release
-      # that skip every retry.
+      - name: Keep the outputs for the next jobs
+        if: steps.version.outputs.release == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+          if-no-files-found: error
+
+  # Play goes before the GitHub release on purpose: if Google refuses, no tag exists yet and
+  # re-running this job just works. No checkout: no repository code runs next to the token.
+  play:
+    name: Upload to Play internal testing
+    needs: build
+    if: needs.build.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # the identity token Google trades for a short-lived access token
+    steps:
+      - name: Fetch the bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+
       - name: Authenticate to Google Cloud
         id: play-auth
-        if: steps.version.outputs.release == 'true'
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
           workload_identity_provider: ${{ vars.PLAY_WORKLOAD_IDENTITY_PROVIDER }}
@@ -100,23 +127,42 @@ jobs:
       # The bundle already carries the R8 mapping file (BUNDLE-METADATA/.../proguard.map), so
       # Play gets it from there.
       - name: Upload to Play internal testing
-        if: steps.version.outputs.release == 'true'
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJson: ${{ steps.play-auth.outputs.credentials_file_path }}
           packageName: hr.bertlab.fluteassistant
-          releaseFiles: dist/flute-assistant-${{ steps.version.outputs.name }}.aab
+          releaseFiles: dist/flute-assistant-${{ needs.build.outputs.name }}.aab
           tracks: internal
           status: completed
-          releaseName: ${{ steps.version.outputs.name }}
+          releaseName: ${{ needs.build.outputs.name }}
+
+  # Its own job so a failure here re-runs only this, never the Play upload again (Play refuses
+  # a version code it has already seen).
+  release:
+    name: Tag and publish the GitHub Release
+    needs: [build, play]
+    if: needs.build.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the tag and the release
+    steps:
+      - name: Check out with history and tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Fetch the release files
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
 
       - name: Publish the release
-        if: steps.version.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          NAME: ${{ steps.version.outputs.name }}
-          CODE: ${{ steps.version.outputs.code }}
-          TAG: ${{ steps.version.outputs.tag }}
+          NAME: ${{ needs.build.outputs.name }}
+          CODE: ${{ needs.build.outputs.code }}
+          TAG: ${{ needs.build.outputs.tag }}
         run: |
           tools/release.sh notes "$NAME" "$CODE" > "$RUNNER_TEMP/notes.md"
           gh release create "$TAG" \

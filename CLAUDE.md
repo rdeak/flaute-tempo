@@ -59,8 +59,9 @@ The notification-permission dialog appears on the first metronome start (API 33+
 
 Versions live in `gradle.properties`. Pushing a new `fluteAssistant.versionName` to `main` makes
 `.github/workflows/release.yml` tag `v<name>` and publish a GitHub Release with the signed bundle,
-APK and mapping file; every push to `main` runs the full check and keeps nothing else (no
-workflow artifacts). `tools/release.sh` derives the versionCode from the name (major * 10000 +
+APK and mapping file; every push to `main` runs the full check. Three jobs (build, then play,
+then release; only a release run keeps a 7-day artifact for the later two) so "Re-run failed
+jobs" repeats only what failed. `tools/release.sh` derives the versionCode from the name (major * 10000 +
 minor * 100 + patch), checks both outputs carry the upload certificate (a build without the
 secrets comes out unsigned on purpose, so the check is what stops it being published), writes
 the notes from the git log, and `tools/release.sh secrets` sets the four signing secrets from

@@ -104,6 +104,10 @@ file and notes listing the commits since the previous release. A release is ther
 version line, push to `main`. A push that does not bump just runs the check and keeps nothing; a
 failed run is read from its log or reproduced locally with the same Gradle command.
 
+The run has three jobs: build, then the Play upload, then the GitHub Release. If the Play or
+release job fails, use "Re-run failed jobs" (`gh run rerun <run-id> --failed`): it repeats only
+that job and the ones after it and reuses the build, whose files a release run keeps for 7 days.
+
 ### Secrets, set once
 
 The workflow signs with four repository secrets: `FLUTE_ASSISTANT_KEYSTORE_BASE64` (the PKCS12
@@ -179,8 +183,9 @@ gh variable set PLAY_WORKLOAD_IDENTITY_PROVIDER --body "projects/213106687720/lo
 
 Both variables are required: if either is missing, a release run fails at the Google step before
 anything is tagged. The upload goes before the tag, so a Google failure leaves no tag and the
-run can be repeated; if Play accepted the bundle but the GitHub release failed, create the release
-by hand with `gh release create`, because Play never takes the same version code twice.
+failed jobs can be re-run; if Play accepted the bundle but the GitHub release failed, re-run the
+failed jobs too: only the release job runs again, so Play is never sent the same version code
+twice.
 
 ### What CI does not do
 
