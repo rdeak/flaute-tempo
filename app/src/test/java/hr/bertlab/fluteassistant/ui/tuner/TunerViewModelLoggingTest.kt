@@ -130,4 +130,25 @@ class TunerViewModelLoggingTest {
         assertEquals(TunerMode.TARGET, logger.events("tuner.mode").single()["mode"])
         assertEquals(72, logger.events("tuner.reference").single()["midi"])
     }
+
+    @Test
+    fun `the hearing is logged when it changes, with the level that decided it`() = runTest(dispatcher) {
+        listeningViewModel(); advanceUntilIdle()
+        repeat(HearingTracker.UNCLEAR_FRAMES) { engine.frames.tryEmit(PitchFrame(null, 0.0, level = 0.3f)) }
+        advanceUntilIdle()
+        val event = logger.events("tuner.hearing").single()
+        assertEquals(Hearing.QUIET_UNCLEAR, event["hearing"])
+        assertEquals(0.3, event["levelMean"] as Double, 1e-6)
+        // Holds because SUMMARY_FRAMES == HearingTracker.UNCLEAR_FRAMES (both 25): the summary fires on the frame that flips the hearing.
+        assertEquals(Hearing.QUIET_UNCLEAR, logger.events("tuner.summary").single()["hearing"])
+
+        // The note that ends the run is logged with the mean that was in force, not the emptied window's 0.0:
+        // two unsteady frames at 0.4 pushed two of the 25 quiet frames out before the third frame was shown.
+        steady(440.0)
+        advanceUntilIdle()
+        val events = logger.events("tuner.hearing")
+        assertEquals(2, events.size)
+        assertEquals(Hearing.CLEAR, events[1]["hearing"])
+        assertEquals((23 * 0.3 + 2 * 0.4) / 25, events[1]["levelMean"] as Double, 1e-6)
+    }
 }

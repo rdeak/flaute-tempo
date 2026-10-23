@@ -124,9 +124,10 @@ fun TunerScreen(
  * The whole tuner: either the name of the note being played ([TunerMode.IDENTIFY]) or the
  * wheel with the note the child chose to play ([TunerMode.TARGET], with a speaker button to
  * hear it), that note's fingering, the gauge measuring against it, one friendly status line
- * (which names the heard note when it is not the chosen one), and the two mode pills at the
- * bottom. No numbers beyond the octave in the note name: a child only needs to know whether
- * to go up or down.
+ * (which names the heard note when it is not the chosen one), under it one quieter advice
+ * line saying what to change (always present, empty when there is nothing to say, so
+ * nothing moves), and the two mode pills at the bottom. No numbers beyond the octave in the
+ * note name: a child only needs to know whether to go up or down.
  */
 @Composable
 fun TunerContent(
@@ -225,13 +226,15 @@ fun TunerContent(
                 heardNote = state.reading?.let { noteLabel(it.midi) },
                 playing = state.isPlayingReference,
             )
+            Spacer(Modifier.height(4.dp))
+            AdviceLine(state.advice)
 
             state.errorMessage?.let { message ->
                 Spacer(Modifier.height(16.dp))
                 Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
             }
 
-            Spacer(Modifier.height(32.dp))
+            Spacer(Modifier.height(20.dp))
             TunerModeChoice(mode = state.mode, onSelect = onModeChange)
         }
         Spacer(Modifier.height(24.dp))
@@ -289,8 +292,8 @@ private fun TunerModeChoice(mode: TunerMode, onSelect: (TunerMode) -> Unit) {
  * One line of feedback; while nothing is heard it names [targetNote] when there is one, or
  * asks for any note, and while the reference note is [playing] it says to listen. When the
  * child plays a different note from the chosen one ([mismatch]) the line says which note it
- * was ([heardNote]), and for the octave above or below it says what to change, since on a
- * flute that is the air and not the fingers. It bounces in when the note comes into tune.
+ * was ([heardNote]), or that it is the octave above or below. What to change about it is
+ * the advice line's business ([AdviceLine]). It bounces in when the note comes into tune.
  */
 @Composable
 private fun StatusLine(
@@ -318,12 +321,12 @@ private fun StatusLine(
             TuningStatus.IN_TUNE -> stringResource(R.string.in_tune)
             TuningStatus.LOW -> when (mismatch) {
                 TargetMismatch.OCTAVE_DOWN -> stringResource(R.string.octave_too_low)
-                TargetMismatch.OTHER_NOTE -> stringResource(R.string.too_low_heard, heardNote.orEmpty())
+                TargetMismatch.OTHER_NOTE -> stringResource(R.string.heard_other_note, heardNote.orEmpty())
                 else -> stringResource(R.string.too_low)
             }
             TuningStatus.HIGH -> when (mismatch) {
                 TargetMismatch.OCTAVE_UP -> stringResource(R.string.octave_too_high)
-                TargetMismatch.OTHER_NOTE -> stringResource(R.string.too_high_heard, heardNote.orEmpty())
+                TargetMismatch.OTHER_NOTE -> stringResource(R.string.heard_other_note, heardNote.orEmpty())
                 else -> stringResource(R.string.too_high)
             }
         },
@@ -333,6 +336,25 @@ private fun StatusLine(
             scaleX = scale.value
             scaleY = scale.value
         },
+    )
+}
+
+/**
+ * The quieter line under the status saying what to change: roll the flute, the air, the
+ * fingers, come closer, or play a clear note. Empty text for [TunerAdvice.NONE] keeps the
+ * line's height, so the gauge and the mode pills never move when advice comes and goes.
+ */
+@Composable
+private fun AdviceLine(advice: TunerAdvice) {
+    Text(
+        text = advice.labelRes()?.let { stringResource(it) } ?: "",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        minLines = 1,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.fillMaxWidth(),
     )
 }
 

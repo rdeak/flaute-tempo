@@ -10,6 +10,7 @@ import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.SoundProfile
 import hr.bertlab.fluteassistant.domain.model.Subdivision
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
+import hr.bertlab.fluteassistant.ui.tuner.TunerAdvice
 
 /*
  * Display names live in string resources so the app can be localised (English by default,
@@ -36,6 +37,19 @@ fun SoundProfile.labelRes(): Int = when (this) {
 fun TunerMode.labelRes(): Int = when (this) {
     TunerMode.IDENTIFY -> R.string.mode_identify
     TunerMode.TARGET -> R.string.mode_target
+}
+
+/** The advice line's words, or null when there is nothing to say. */
+@StringRes
+fun TunerAdvice.labelRes(): Int? = when (this) {
+    TunerAdvice.NONE -> null
+    TunerAdvice.COME_CLOSER -> R.string.advice_come_closer
+    TunerAdvice.CLEAR_NOTE -> R.string.advice_clear_note
+    TunerAdvice.ROLL_OUT -> R.string.advice_roll_out
+    TunerAdvice.ROLL_IN -> R.string.advice_roll_in
+    TunerAdvice.FASTER_AIR -> R.string.advice_faster_air
+    TunerAdvice.GENTLER_AIR -> R.string.advice_gentler_air
+    TunerAdvice.CHECK_FINGERS -> R.string.advice_check_fingers
 }
 
 /** One line for preset lists and the playback notification, e.g. "120 BPM · 4/4 · Quarter · Woodblock". */

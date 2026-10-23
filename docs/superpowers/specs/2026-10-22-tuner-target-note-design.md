@@ -217,3 +217,135 @@ unchanged: a heard-note marker on it is the possible next step.
   Conventions and adb commands are in CLAUDE.md ("Logging and observability").
 - Tests: `LogLineTest`, `TunerUiStateMismatchTest`, `TunerViewModelLoggingTest` (JVM, with
   `FakeLogger`); four `TunerScreenTest` cases (instrumented).
+
+## Revision 5: say what to change
+
+Date: 2026-10-23. The user reported that a child played h1 and the tuner showed a1, then
+played a1 and it showed b1, with the phone placed at several distances, and asked that the
+tuner show "how far the flute is from the microphone and what to change to produce the target
+tone", simply, for a young student. From three mockups (one status line carrying everything;
+the same plus a three-bar hearing meter; a short status with the advice on a second, quieter
+line) the user chose the two-line layout, and words only for a wrong note (no marker on the
+fingering diagram). The user does not know what the teacher says for a flat note and asked
+for a recommendation; the advice words below are the builder's, from standard flute
+pedagogy, and are the first thing to change if a teacher disagrees.
+
+This revision does not make the detector more accurate. In "Tune to a note" a wrong reading
+at least appears as "That's a1" with "Check your fingers" rather than as a renamed note.
+Why the readings went wrong that morning is unknown; the structured log (`tuner.summary`,
+`tuner.reading`) is what a next occurrence should be captured with, and the new
+`tuner.hearing` event adds the input level to that picture.
+
+### What the child sees
+
+Under the status line, one more line of text: smaller, in the muted text colour, centred,
+and always occupying its height (empty when there is nothing to say) so the gauge and the
+mode pills never move. The status line keeps its colour and bounce. Together they read:
+
+| Moment | Status line | Advice line |
+|--------|-------------|-------------|
+| Nothing heard | "👂 Play h1" (target) / "👂 Play a note" | (empty) |
+| Sound for about a second, no readable note, quiet | same as nothing heard | "Come closer to the phone" |
+| Sound for about a second, no readable note, loud enough | same as nothing heard | "Play one long, clear note" |
+| Reference tone sounding | "🔊 Listen" | (empty) |
+| In tune | "🎉 Perfect!" | (empty) |
+| Chosen note (or nearest note), flat, even past the halfway point to the neighbour | "⬇️ Too low" | "Roll the flute out a little" |
+| Chosen note (or nearest note), sharp, likewise | "⬆️ Too high" | "Roll the flute in a little" |
+| Target mode, octave below | "⬇️ An octave too low" | "Faster air" |
+| Target mode, octave above | "⬆️ An octave too high" | "Gentler air" |
+| Target mode, any other note (further than `NEAR_TARGET_CENTS` from the chosen one) | "🖐️ That's a1" (the heard note), in red | "Check your fingers" |
+
+Croatian, informal singular as everywhere: "Dođi bliže mobitelu", "Odsviraj jedan dug, čist
+ton", "Zakreni flautu malo od sebe", "Zakreni flautu malo k sebi", "Brži zrak", "Nježniji
+zrak", "Provjeri prste"; status "⬇️ Oktavu prenisko", "⬆️ Oktavu previsoko", "🖐️ To je a1".
+
+Why rolling and not air for a flat or sharp note (*builder's call*): a beginner is flat
+mostly because the embouchure hole is covered too much and the air is slow; rolling the
+flute out uncovers the hole and raises the pitch a little, which is the adjustment teachers
+give first and the one a child can do by small degrees. "Faster air" is kept for the octave,
+where it is the actual cure; told to blow faster for twenty cents, a child overblows into the
+octave. Sharp is the mirror.
+
+Why "long, clear" for unreadable sound at a good level (*builder's call*): the common case is
+a breathy but steady tone that the detector finds and the confidence gate discards
+(revision 4), so "steady" would tell the child to keep doing what they are doing; "clear"
+points at the embouchure, "long" at the wobble, and one wording serves every cause.
+
+Far-off but still the chosen note (*builder's call, the one open question put to the user*):
+a child playing a1 sixty cents flat has g♯1 as the nearest note, and calling that "That's
+gis1, check your fingers" is the trap the first part of this document set out to remove,
+since the fingers are right. So in "Tune to a note" a heard pitch within `NEAR_TARGET_CENTS`
+(70) of the chosen note counts as the chosen note, flat or sharp, even when its nearest note
+is the semitone neighbour; beyond that it is another note. Seventy because an embouchure
+drift stays under half a semitone while a wrong fingering lands near a whole other note, and
+a neighbour played in tune (100 cents away) still gets "Check your fingers". The same band
+applies around the octave above and below, so an underblown or overblown note that is also
+flat or sharp still gets the air advice rather than "Check your fingers" (*builder's call*,
+made at the final review). The gauge is unchanged: it pegs at fifty.
+
+"Which note?" mode shows the same advice for flat, sharp, quiet and unclear sound. The octave
+and wrong-note pairs need a chosen note and so appear only in "Tune to a note", as today.
+
+The "come closer" / "steady note" advice can also appear when a child talks near the phone
+(a voice is sound without a readable note). Accepted: the status line still says what to
+play, and the advice clears as soon as a note is read or the sound stops.
+
+### Behaviour (the how, for the builder)
+
+- `TunerUiState.mismatch` becomes `NONE` whenever `abs(centsOffTarget) <= NEAR_TARGET_CENTS`
+  (70, a constant beside `IN_TUNE_CENTS`), then the same band around ±1200 cents for the
+  octaves, then `OTHER_NOTE`; `status` is unchanged, so such a note reads "Too low" / "Too
+  high" with the needle pegged.
+- `TunerUiState` gains `hearing: Hearing` (`CLEAR`, `QUIET_UNCLEAR`, `LOUD_UNCLEAR`;
+  default `CLEAR`) and a derived `advice: TunerAdvice` (`NONE`, `COME_CLOSER`, `CLEAR_NOTE`,
+  `ROLL_OUT`, `ROLL_IN`, `FASTER_AIR`, `GENTLER_AIR`, `CHECK_FINGERS`) computed from `status`,
+  `mismatch`, `hearing` and `isPlayingReference`, so the composable only maps an enum to a
+  string. Precedence: a reading (status not `NONE`) wins over `hearing`; the reference tone
+  wins over both.
+- `TunerViewModel` detects unclear sound from the frames it already receives: a frame that
+  is not `SHOWN` and not `IGNORED` and whose `level` is at least `SOUND_LEVEL` is a sound
+  frame and joins the run; a `SHOWN` frame ends the run at once and sets `hearing` back to
+  `CLEAR`. Frames under `SOUND_LEVEL` are tolerated inside the run (a beginner breathes
+  between short notes) until `UNCLEAR_GAP_FRAMES` (10, about 0.4 s) of them come in a row,
+  which also ends the run. Once the run holds `UNCLEAR_FRAMES` (25) sound frames, about a
+  second, `hearing` becomes `QUIET_UNCLEAR` when the mean level of the last `UNCLEAR_FRAMES`
+  sound frames (a sliding window, not the whole run, so moving closer is noticed within a
+  second) is under `CLOSE_LEVEL`, else `LOUD_UNCLEAR`, re-evaluated on every sound frame.
+  Starting values, *builder's call* and to be confirmed from `levelMean` in `tuner.summary`
+  on a real phone: `SOUND_LEVEL` 0.25 (about -45 dBFS, above a quiet room) and `CLOSE_LEVEL`
+  0.5 (about -30 dBFS). The run resets with `recentFrequencies` in `stopListening` and when
+  the reference tone ends.
+- The hold: today a confident but `UNSTEADY` frame resets `silentFrames`, so a wandering
+  pitch (a glissando, speech vowels after a note) keeps the last reading, and with it stale
+  advice, on screen for as long as it lasts. `UNSTEADY` frames now count towards
+  `HOLD_FRAMES` like silent ones (`silentFrames++` instead of the reset), so the reading
+  clears after 0.9 s of unsteadiness and the hearing advice can take over. A note change
+  passes through one or two unsteady frames and then a `SHOWN` one, which still resets the
+  count, so steady playing is unaffected. *Builder's call*, the one change to the hold.
+- Logging: `tuner.hearing` (`d`) when `hearing` changes, with the new value and the run's
+  mean level, and a `hearing` field in `tuner.summary`, so the two thresholds can be judged
+  from one logcat capture.
+- `TunerScreen`: `StatusLine` keeps its signature minus the strings it no longer builds; a
+  new `AdviceLine(advice)` under it, `bodyLarge` in `onSurfaceVariant`, with a fixed height
+  of one line, 4 dp below the status; the 32 dp spacer above the pills shrinks so the pills
+  stay roughly where they are. Each `TunerAdvice` maps to a string through `Labels.kt`
+  (`TunerAdvice.labelRes()`), `NONE` to an empty string.
+- Strings: `advice_come_closer`, `advice_clear_note`, `advice_roll_out`, `advice_roll_in`,
+  `advice_faster_air`, `advice_gentler_air`, `advice_check_fingers`; `octave_too_low` and
+  `octave_too_high` lose their ": faster air" / ": gentler air" tails; `too_low_heard` and
+  `too_high_heard` are replaced by one `heard_other_note` ("🖐️ That's %1$s"). Both languages.
+- Tests: `TunerUiStateTest` (advice for every row of the table, in both modes; a1 played
+  sixty cents flat is `NONE` / "Too low", g♯1 in tune is `OTHER_NOTE`);
+  `TunerViewModelTest` (quiet and loud unclear runs, a breath inside a run tolerated and a
+  longer gap ending it, the window following a move closer, the run ending on a shown frame,
+  nothing during the reference tone, an unsteady stretch clearing the reading after the
+  hold, the `tuner.hearing` log line through `FakeLogger`); `TunerScreenTest` (the advice line's text in three or four states, the
+  revision-4 cases updated to the new status strings).
+- Docs: CLAUDE.md's tuner path, kid-friendly UI paragraph and logging list.
+
+### Non-goals of this revision
+
+- Any change to the detector, `MIN_PROBABILITY` or the lock (the hold changes only as
+  described above).
+- A level meter, a number, or a marker on the fingering diagram.
+- Advice about the head joint (an instrument-setup matter for the teacher).

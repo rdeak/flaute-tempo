@@ -114,7 +114,8 @@ class TunerScreenTest {
     fun measures_against_the_chosen_note() {
         show(listening(440.0, targetMidi = 67)) // a perfect A4, but G4 was chosen
         compose.onNodeWithText("G4").assertIsDisplayed()
-        compose.onNodeWithText("⬆️ Too high, that's A4").assertIsDisplayed()
+        compose.onNodeWithText("🖐️ That's A4").assertIsDisplayed()
+        compose.onNodeWithText("Check your fingers").assertIsDisplayed()
     }
 
     @Test
@@ -124,33 +125,83 @@ class TunerScreenTest {
     }
 
     @Test
-    fun a_lower_note_than_the_chosen_one_is_named_with_the_direction() {
+    fun a_different_note_is_named_and_sent_to_the_fingers() {
         show(listening(329.63)) // E4 played, A4 chosen
-        compose.onNodeWithText("⬇️ Too low, that's E4").assertIsDisplayed()
-    }
-
-    @Test
-    fun a_higher_note_than_the_chosen_one_is_named_with_the_direction() {
-        show(listening(493.88)) // B4 played, A4 chosen
-        compose.onNodeWithText("⬆️ Too high, that's B4").assertIsDisplayed()
+        compose.onNodeWithText("🖐️ That's E4").assertIsDisplayed()
+        compose.onNodeWithText("Check your fingers").assertIsDisplayed()
     }
 
     @Test
     fun the_octave_above_the_chosen_note_asks_for_gentler_air() {
         show(listening(880.0)) // A5 played, A4 chosen: overblown
-        compose.onNodeWithText("⬆️ An octave too high: gentler air").assertIsDisplayed()
+        compose.onNodeWithText("⬆️ An octave too high").assertIsDisplayed()
+        compose.onNodeWithText("Gentler air").assertIsDisplayed()
     }
 
     @Test
     fun the_octave_below_the_chosen_note_asks_for_faster_air() {
         show(listening(261.63, targetMidi = 72)) // C4 played, C5 chosen: underblown
-        compose.onNodeWithText("⬇️ An octave too low: faster air").assertIsDisplayed()
+        compose.onNodeWithText("⬇️ An octave too low").assertIsDisplayed()
+        compose.onNodeWithText("Faster air").assertIsDisplayed()
     }
 
     @Test
     fun a_different_note_is_named_in_croatian_with_its_croatian_name() {
         show(listening(493.88), locale = Locale.forLanguageTag("hr")) // B4 is h1
-        compose.onNodeWithText("⬆️ Previsoko, to je h1").assertIsDisplayed()
+        compose.onNodeWithText("🖐️ To je h1").assertIsDisplayed()
+        compose.onNodeWithText("Provjeri prste").assertIsDisplayed()
+    }
+
+    @Test
+    fun too_low_advises_rolling_out() {
+        show(listening(430.0)) // A4 about 40 cents flat
+        compose.onNodeWithText("⬇️ Too low").assertIsDisplayed()
+        compose.onNodeWithText("Roll the flute out a little").assertIsDisplayed()
+    }
+
+    @Test
+    fun too_high_advises_rolling_in() {
+        show(listening(443.0)) // A4 about 12 cents sharp
+        compose.onNodeWithText("⬆️ Too high").assertIsDisplayed()
+        compose.onNodeWithText("Roll the flute in a little").assertIsDisplayed()
+    }
+
+    @Test
+    fun a_note_played_well_flat_is_still_the_chosen_note() {
+        show(listening(425.0)) // A4 sixty cents flat: the nearest note is G♯4, the fingers are right
+        compose.onNodeWithText("⬇️ Too low").assertIsDisplayed()
+        compose.onNodeWithText("Roll the flute out a little").assertIsDisplayed()
+        compose.onNodeWithText("🖐️ That's G♯4").assertDoesNotExist()
+    }
+
+    @Test
+    fun quiet_unclear_sound_asks_to_come_closer() {
+        show(listening(null).copy(hearing = Hearing.QUIET_UNCLEAR))
+        compose.onNodeWithText("👂 Play A4").assertIsDisplayed()
+        compose.onNodeWithText("Come closer to the phone").assertIsDisplayed()
+    }
+
+    @Test
+    fun loud_unclear_sound_asks_for_a_clear_note() {
+        show(identifying(null).copy(hearing = Hearing.LOUD_UNCLEAR))
+        compose.onNodeWithText("👂 Play a note").assertIsDisplayed()
+        compose.onNodeWithText("Play one long, clear note").assertIsDisplayed()
+    }
+
+    @Test
+    fun in_tune_gives_no_advice() {
+        show(listening(440.0))
+        compose.onNodeWithText("🎉 Perfect!").assertIsDisplayed()
+        compose.onNodeWithText("Roll the flute out a little").assertDoesNotExist()
+        compose.onNodeWithText("Roll the flute in a little").assertDoesNotExist()
+        compose.onNodeWithText("Check your fingers").assertDoesNotExist()
+    }
+
+    @Test
+    fun croatian_advice_uses_the_informal_form() {
+        show(listening(430.0), Locale("hr"))
+        compose.onNodeWithText("⬇️ Prenisko").assertIsDisplayed()
+        compose.onNodeWithText("Zakreni flautu malo od sebe").assertIsDisplayed()
     }
 
     @Test

@@ -43,6 +43,7 @@ class TunerViewModelTest {
 
     private fun pitched(freq: Double, probability: Double = 0.97) = PitchFrame(freq, probability, level = 0.4f)
     private val silence = PitchFrame(null, 0.0, level = 0f)
+    private fun quiet(level: Float = 0.3f) = PitchFrame(null, 0.0, level)
 
     /** A held note: enough agreeing frames for the tuner to trust it. */
     private fun steady(freq: Double) = repeat(TunerViewModel.LOCK_FRAMES) { engine.frames.tryEmit(pitched(freq)) }
@@ -307,5 +308,52 @@ class TunerViewModelTest {
         vm.stopListening()
         assertFalse(vm.state.value.isPlayingReference)
         assertEquals(1, tonePlayer.stopCount)
+    }
+
+    @Test
+    fun `unclear sound reaches the state and clears when listening stops`() = runTest(dispatcher) {
+        val vm = listeningViewModel(); advanceUntilIdle()
+        repeat(HearingTracker.UNCLEAR_FRAMES) { engine.frames.tryEmit(quiet()) }
+        advanceUntilIdle()
+        assertEquals(Hearing.QUIET_UNCLEAR, vm.state.value.hearing)
+        assertEquals(TunerAdvice.COME_CLOSER, vm.state.value.advice)
+        vm.stopListening()
+        assertEquals(Hearing.CLEAR, vm.state.value.hearing)
+    }
+
+    @Test
+    fun `an engine failure does not leave the unclear-sound advice next to the error`() = runTest(dispatcher) {
+        engine.flowOverride = flow {
+            repeat(HearingTracker.UNCLEAR_FRAMES) { emit(quiet()) }
+            throw IllegalStateException("Microphone busy")
+        }
+        val vm = listeningViewModel(); advanceUntilIdle()
+        assertEquals("Microphone busy", vm.state.value.errorMessage)
+        assertEquals(Hearing.CLEAR, vm.state.value.hearing)
+        assertEquals(TunerAdvice.NONE, vm.state.value.advice)
+    }
+
+    @Test
+    fun `the reference tone neither counts as unclear sound nor leaves a stale hearing`() = runTest(dispatcher) {
+        val vm = listeningViewModel(); advanceUntilIdle()
+        repeat(HearingTracker.UNCLEAR_FRAMES) { engine.frames.tryEmit(quiet()) }
+        advanceUntilIdle()
+        vm.playTargetNote()
+        assertEquals(Hearing.CLEAR, vm.state.value.hearing)
+        repeat(HearingTracker.UNCLEAR_FRAMES) { engine.frames.tryEmit(quiet(0.6f)) } // the speaker, ignored
+        advanceTimeBy(TunerViewModel.REFERENCE_TONE_MS + 1L)
+        assertEquals(Hearing.CLEAR, vm.state.value.hearing)
+    }
+
+    @Test
+    fun `a wandering pitch clears the reading after the hold`() = runTest(dispatcher) {
+        val vm = listeningViewModel(); advanceUntilIdle()
+        steady(440.0)
+        repeat(TunerViewModel.HOLD_FRAMES - 1) { engine.frames.tryEmit(pitched(300.0 + it * 7)) } // a glissando: no three frames agree
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.reading)
+        engine.frames.tryEmit(pitched(300.0 + (TunerViewModel.HOLD_FRAMES - 1) * 7))
+        advanceUntilIdle()
+        assertNull(vm.state.value.reading)
     }
 }

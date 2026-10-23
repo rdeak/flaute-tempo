@@ -30,12 +30,16 @@ import kotlin.math.min
  * - shows a reading only once a few consecutive frames agree (a held note, not room noise),
  * - keeps a short median window so a single mis-detected frame does not flick the needle,
  * - ignores low-confidence frames,
- * - holds the last reading for a few silent frames so the display does not blink between notes.
+ * - holds the last reading for a few silent or unsteady frames so the display does not blink
+ *   between notes; a wandering pitch expires the reading after [HOLD_FRAMES] like silence does,
+ *   and only a steady note resets that count,
+ * - tells the screen when sound keeps coming without ever becoming a note ([Hearing], judged
+ *   by [HearingTracker]), so it can say what to change.
  *
  * It also writes the tuner's structured log under [LogTags.TUNER]: what became of every frame
  * ([FrameDecision], verbose), a `tuner.summary` every [SUMMARY_FRAMES] frames, `tuner.reading`
- * when the shown note changes, and the child's choices, so a session on a real phone can be
- * read back without a debugger.
+ * when the shown note changes, `tuner.hearing` when the hearing changes, and the child's
+ * choices, so a session on a real phone can be read back without a debugger.
  */
 @HiltViewModel
 class TunerViewModel @Inject constructor(
@@ -57,7 +61,9 @@ class TunerViewModel @Inject constructor(
     private var listenJob: Job? = null
     private var playJob: Job? = null
     private val recentFrequencies = ArrayDeque<Double>()
+    /** Frames in a row without a steady note (silent, uncertain or unsteady); [HOLD_FRAMES] of them clear the reading. */
     private var silentFrames = 0
+    private val hearingTracker = HearingTracker()
     private val summary = FrameSummary()
     private var loggedReadingMidi: Int? = null
 
@@ -83,6 +89,7 @@ class TunerViewModel @Inject constructor(
                 throw e
             } catch (e: Exception) {
                 logger.w(LogTags.TUNER, "tuner.error", "message" to e.message, error = e)
+                clearHearing()
                 _state.update {
                     it.copy(isListening = false, reading = null, errorMessage = e.message ?: "Microphone unavailable")
                 }
@@ -96,6 +103,7 @@ class TunerViewModel @Inject constructor(
         listenJob = null
         recentFrequencies.clear()
         silentFrames = 0
+        clearHearing()
         _state.update { it.copy(isListening = false, reading = null, level = 0f) }
         if (summary.frames > 0) logSummary() // the last partial second, before the child left
         logReadingIfChanged()
@@ -134,12 +142,14 @@ class TunerViewModel @Inject constructor(
             REFERENCE_TONE_VOLUME,
         )
         recentFrequencies.clear()
+        clearHearing()
         _state.update { it.copy(isPlayingReference = true, reading = null) }
         playJob = viewModelScope.launch {
             delay(REFERENCE_TONE_MS.toLong())
             tonePlayer.stop() // the data has played out; release the track rather than leave it registered as playing
             recentFrequencies.clear()
             silentFrames = 0
+            clearHearing()
             _state.update { it.copy(isPlayingReference = false) }
         }
     }
@@ -166,6 +176,9 @@ class TunerViewModel @Inject constructor(
                 "f" to frame.frequency, "p" to frame.probability, "level" to frame.level, "decision" to decision,
             )
         }
+        val runMean = hearingTracker.levelMean // read before onFrame, which empties the window when the run ends
+        val hearing = hearingTracker.onFrame(frame.level, decision)
+        updateHearing(hearing, if (hearing == Hearing.CLEAR) runMean else hearingTracker.levelMean)
         summary.add(frame, decision)
         if (summary.frames >= SUMMARY_FRAMES) logSummary()
         logReadingIfChanged()
@@ -180,13 +193,17 @@ class TunerViewModel @Inject constructor(
         val frequency = frame.frequency ?: return onUnpitchedFrame(frame, FrameDecision.SILENT)
         if (frame.probability < MIN_PROBABILITY) return onUnpitchedFrame(frame, FrameDecision.LOW_PROBABILITY)
 
-        silentFrames = 0
         recentFrequencies.addLast(frequency)
         while (recentFrequencies.size > SMOOTHING_WINDOW) recentFrequencies.removeFirst()
         if (!isSteady()) {
-            _state.update { it.copy(level = frame.level) }
+            // Counts towards the hold like silence: a wandering pitch must not keep the last reading up for as long as it lasts.
+            silentFrames++
+            _state.update {
+                it.copy(reading = if (silentFrames >= HOLD_FRAMES) null else it.reading, level = frame.level)
+            }
             return FrameDecision.UNSTEADY
         }
+        silentFrames = 0
         val median = recentFrequencies.sorted()[recentFrequencies.size / 2]
         _state.update { it.copy(reading = NoteMath.frequencyToNote(median, it.referenceA4), level = frame.level) }
         return FrameDecision.SHOWN
@@ -204,12 +221,30 @@ class TunerViewModel @Inject constructor(
         return decision
     }
 
+    /**
+     * Mirrors the tracker's verdict into the state; `tuner.hearing` is logged only when it changes,
+     * with [levelMean]: the mean that decided it, and for [Hearing.CLEAR] the run's mean as it ended.
+     */
+    private fun updateHearing(hearing: Hearing, levelMean: Double) {
+        if (hearing == _state.value.hearing) return
+        _state.update { it.copy(hearing = hearing) }
+        logger.d(LogTags.TUNER, "tuner.hearing", "hearing" to hearing, "levelMean" to levelMean)
+    }
+
+    /** Ends any unclear-sound run, for when the listening starts afresh or the microphone is not the child's. */
+    private fun clearHearing() {
+        val runMean = hearingTracker.levelMean
+        hearingTracker.reset()
+        updateHearing(Hearing.CLEAR, runMean)
+    }
+
     private fun logSummary() {
         val s = _state.value
         logger.d(
             LogTags.TUNER, "tuner.summary",
             *summary.fields(), "gate" to MIN_PROBABILITY,
             "reading" to s.reading?.midi, "cents" to s.reading?.cents, "target" to s.targetMidi, "mode" to s.mode,
+            "hearing" to s.hearing,
         )
         summary.reset()
     }
@@ -263,7 +298,11 @@ class TunerViewModel @Inject constructor(
          * target-note spec, revision 4).
          */
         const val MIN_PROBABILITY = 0.85
-        /** ~0.9 s at 43 ms per frame. */
+        /**
+         * ~0.9 s at 43 ms per frame. The last reading is held through this many silent,
+         * uncertain or unsteady frames in a row; a steady note (a shown frame) resets the count,
+         * so a glissando or speech after a note clears the reading too instead of holding it.
+         */
         const val HOLD_FRAMES = 20
         const val MIN_A4 = 415.0
         const val MAX_A4 = 466.0

@@ -1,0 +1,172 @@
+<style>
+  .phones { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
+  .phone { background: #FFF9F0; color: #2B2D42; border-radius: 28px; border: 6px solid #2B2D42; padding: 18px 14px 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; min-height: 480px; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .phone .cap { font-size: 0.8rem; color: #6B5A4E; text-align: center; min-height: 2.4em; }
+  .band { width: 100%; background: #FFDFC4; border-radius: 18px; padding: 6px 10px; display: grid; grid-template-columns: 1fr 44px; align-items: center; }
+  .band .notes { text-align: center; line-height: 1; }
+  .band .faded { color: #6B5A4E; opacity: 0.5; font-size: 1rem; }
+  .band .big { font-size: 3.2rem; font-weight: 700; margin: 2px 0; }
+  .band .big.green { color: #178F4B; }
+  .speaker { width: 40px; height: 40px; border-radius: 50%; background: #F4543A; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+  .fing { display: flex; gap: 5px; align-items: center; justify-content: center; padding: 2px 0; }
+  .fing span { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #B89E8C; display: inline-block; box-sizing: border-box; }
+  .fing span.on { background: #F4543A; border-color: #F4543A; }
+  .fing span.lift { border: 3px solid #C62828; background: #FFDCD1; }
+  .fing span.sep { width: 6px; height: 6px; border: none; background: #B89E8C; opacity: 0.5; }
+  .gauge { width: 190px; height: 105px; }
+  .status { font-size: 1.1rem; font-weight: 600; text-align: center; min-height: 1.5em; padding: 0 4px; }
+  .hint { font-size: 0.9rem; color: #6B5A4E; text-align: center; margin-top: -6px; }
+  .status.green { color: #178F4B; } .status.amber { color: #B86A00; } .status.red { color: #C62828; } .status.grey { color: #6B5A4E; }
+  .pills { display: flex; gap: 8px; width: 100%; margin-top: auto; }
+  .pill { flex: 1; height: 40px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; background: #FFDFC4; color: #6B5A4E; }
+  .pill.on { background: #1FA8A0; color: white; }
+  .ears { display: flex; gap: 3px; align-items: flex-end; height: 18px; }
+  .ears i { width: 6px; background: #B89E8C; border-radius: 2px; opacity: 0.35; display: block; }
+  .ears i.on { background: #1FA8A0; opacity: 1; }
+  .state-title { font-weight: 700; font-size: 0.95rem; text-align: center; color: var(--text-primary); }
+  .note { font-size: 0.9rem; color: var(--text-secondary); margin: 0.25rem 0 1rem; }
+</style>
+
+<h2>Guidance in the tuner: where should it live?</h2>
+<p class="subtitle">"Tune to a note" with h1 chosen. Each phone is one moment. English shown; the Croatian line is under each screen.</p>
+
+<h3>A · Everything in the one status line</h3>
+<p class="note">No new element. The line that today says "Too low" now also says what to do. One new state when the phone hears sound but no clear note: "Come closer".</p>
+<div class="phones">
+
+  <div class="phone">
+    <div class="state-title">Nothing heard</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="100" y2="40" stroke="#2B2D42" stroke-opacity=".3" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42" fill-opacity=".3"/></svg>
+    <div class="status grey">👂 Play h1</div>
+    <div class="cap">👂 Odsviraj h1<br><em>as today</em></div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+
+  <div class="phone">
+    <div class="state-title">Sound, but no clear note</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="100" y2="40" stroke="#2B2D42" stroke-opacity=".3" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42" fill-opacity=".3"/></svg>
+    <div class="status grey">👂 Come closer</div>
+    <div class="cap">👂 Dođi bliže<br><em>new: after about a second of sound the phone cannot read</em></div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+
+  <div class="phone">
+    <div class="state-title">Right note, a bit low</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="58" y2="58" stroke="#2B2D42" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42"/></svg>
+    <div class="status amber">⬇️ Too low: roll out a little</div>
+    <div class="cap">⬇️ Prenisko: zakreni flautu malo van<br><em>changed: adds what to do</em></div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+
+  <div class="phone">
+    <div class="state-title">Right note, too high</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="156" y2="68" stroke="#2B2D42" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42"/></svg>
+    <div class="status red">⬆️ Too high: roll in a little</div>
+    <div class="cap">⬆️ Previsoko: zakreni flautu malo k sebi<br><em>changed: adds what to do</em></div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+
+  <div class="phone">
+    <div class="state-title">A different note (a1)</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="42" y2="96" stroke="#2B2D42" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42"/></svg>
+    <div class="status red">🖐️ That's a1, check your fingers</div>
+    <div class="cap">🖐️ To je a1, provjeri prste<br><em>changed: was "Too low, that's a1"</em></div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+
+  <div class="phone">
+    <div class="state-title">In tune</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big green">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="104" y2="40" stroke="#2B2D42" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42"/></svg>
+    <div class="status green">🎉 Perfect!</div>
+    <div class="cap">🎉 Savršeno!<br><em>as today</em></div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+</div>
+
+<h3>B · Same words, plus a small "hearing" meter</h3>
+<p class="note">The only way to show distance from the microphone as a picture: three bars next to the ear that fill as the sound gets louder. Always visible while listening. A new element on the screen, but no number.</p>
+<div class="phones">
+  <div class="phone">
+    <div class="state-title">Far away</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="100" y2="40" stroke="#2B2D42" stroke-opacity=".3" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42" fill-opacity=".3"/></svg>
+    <div class="status grey" style="display:flex;gap:10px;align-items:center;justify-content:center">👂 Come closer <span class="ears"><i class="on" style="height:6px"></i><i style="height:12px"></i><i style="height:18px"></i></span></div>
+    <div class="cap">one bar: the phone barely hears the flute</div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+  <div class="phone">
+    <div class="state-title">Close enough</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="58" y2="58" stroke="#2B2D42" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42"/></svg>
+    <div class="status amber" style="display:flex;gap:10px;align-items:center;justify-content:center">⬇️ Too low: roll out a little <span class="ears"><i class="on" style="height:6px"></i><i class="on" style="height:12px"></i><i class="on" style="height:18px"></i></span></div>
+    <div class="cap">three bars: a strong, clear sound</div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+</div>
+
+<h3>C · Short status, the advice on its own quieter line</h3>
+<p class="note">The status line stays as short as today; a second, smaller line underneath says what to do. More to read, but the big line never gets long.</p>
+<div class="phones">
+  <div class="phone">
+    <div class="state-title">Right note, a bit low</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="58" y2="58" stroke="#2B2D42" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42"/></svg>
+    <div class="status amber">⬇️ Too low</div>
+    <div class="hint">Roll the flute out a little</div>
+    <div class="cap">Zakreni flautu malo van</div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+  <div class="phone">
+    <div class="state-title">A different note (a1)</div>
+    <div class="band"><div class="notes"><div class="faded">b1</div><div class="big">h1</div><div class="faded">c2</div></div><div class="speaker">🔊</div></div>
+    <div class="fing"><span class="on"></span><span class="sep"></span><span class="on"></span><span class="lift"></span><span></span><span class="sep"></span><span></span><span></span><span></span></div>
+    <svg class="gauge" viewBox="0 0 200 110"><path d="M20 100 A80 80 0 0 1 36 52" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><path d="M36 52 A80 80 0 0 1 64 28" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M64 28 A80 80 0 0 1 136 28" stroke="#2ECC71" stroke-width="22" fill="none"/><path d="M136 28 A80 80 0 0 1 164 52" stroke="#F5A623" stroke-opacity=".6" stroke-width="22" fill="none"/><path d="M164 52 A80 80 0 0 1 180 100" stroke="#E74C3C" stroke-opacity=".45" stroke-width="22" fill="none"/><line x1="100" y1="100" x2="42" y2="96" stroke="#2B2D42" stroke-width="5" stroke-linecap="round"/><circle cx="100" cy="100" r="9" fill="#2B2D42"/></svg>
+    <div class="status red">🖐️ That's a1</div>
+    <div class="hint">Lift the ringed finger</div>
+    <div class="cap">Extra idea, works with A too: the key that differs from the chosen note gets a red ring on the fingering diagram</div>
+    <div class="pills"><div class="pill">🔍 Which note?</div><div class="pill on">🎯 Tune to a note</div></div>
+  </div>
+</div>
+
+<h3>Pick a direction</h3>
+<div class="options">
+  <div class="option" data-choice="A" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content"><h3>One line says it all</h3><p>No new element. "Come closer" covers the microphone distance in words. My recommendation: the least to look at.</p></div>
+  </div>
+  <div class="option" data-choice="B" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content"><h3>One line plus hearing bars</h3><p>Shows the distance as a picture the whole time. One more thing on the screen.</p></div>
+  </div>
+  <div class="option" data-choice="C" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content"><h3>Short status, advice underneath</h3><p>Two lines of text where there was one.</p></div>
+  </div>
+</div>
+
+<h3 style="margin-top:1.5rem">Wrong note: ring the finger that differs?</h3>
+<div class="options">
+  <div class="option" data-choice="ring-yes" onclick="toggleSelect(this)">
+    <div class="letter">Y</div>
+    <div class="content"><h3>Yes, ring it on the diagram</h3><p>When the heard note is one finger away from the chosen one, the key to lift or press gets a red ring. Nothing to read.</p></div>
+  </div>
+  <div class="option" data-choice="ring-no" onclick="toggleSelect(this)">
+    <div class="letter">N</div>
+    <div class="content"><h3>No, words only</h3><p>"That's a1, check your fingers" and the chosen note's fingering, as drawn today.</p></div>
+  </div>
+</div>

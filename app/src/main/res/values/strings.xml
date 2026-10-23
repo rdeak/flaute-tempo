@@ -71,10 +71,18 @@
     <string name="in_tune">🎉 Perfect!</string>
     <string name="too_low">⬇️ Too low</string>
     <string name="too_high">⬆️ Too high</string>
-    <string name="too_low_heard">⬇️ Too low, that\'s %1$s</string>
-    <string name="too_high_heard">⬆️ Too high, that\'s %1$s</string>
-    <string name="octave_too_low">⬇️ An octave too low: faster air</string>
-    <string name="octave_too_high">⬆️ An octave too high: gentler air</string>
+    <!-- Target mode, a note that is not the chosen one; the argument is the heard note, e.g. "A4" -->
+    <string name="heard_other_note">🖐️ That\'s %1$s</string>
+    <string name="octave_too_low">⬇️ An octave too low</string>
+    <string name="octave_too_high">⬆️ An octave too high</string>
+    <!-- Advice line under the status (ui/tuner/TunerScreen.kt) -->
+    <string name="advice_come_closer">Come closer to the phone</string>
+    <string name="advice_clear_note">Play one long, clear note</string>
+    <string name="advice_roll_out">Roll the flute out a little</string>
+    <string name="advice_roll_in">Roll the flute in a little</string>
+    <string name="advice_faster_air">Faster air</string>
+    <string name="advice_gentler_air">Gentler air</string>
+    <string name="advice_check_fingers">Check your fingers</string>
     <string name="mic_permission_title">Can I use the microphone?</string>
     <string name="mic_permission_body">I need to hear your flute to help you tune. Nothing is recorded or sent anywhere.</string>
     <string name="allow_microphone">Yes, allow</string>

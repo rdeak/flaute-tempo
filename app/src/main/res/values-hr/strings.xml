@@ -63,10 +63,17 @@
     <string name="in_tune">🎉 Savršeno!</string>
     <string name="too_low">⬇️ Prenisko</string>
     <string name="too_high">⬆️ Previsoko</string>
-    <string name="too_low_heard">⬇️ Prenisko, to je %1$s</string>
-    <string name="too_high_heard">⬆️ Previsoko, to je %1$s</string>
-    <string name="octave_too_low">⬇️ Oktavu prenisko: brži zrak</string>
-    <string name="octave_too_high">⬆️ Oktavu previsoko: nježniji zrak</string>
+    <string name="heard_other_note">🖐️ To je %1$s</string>
+    <string name="octave_too_low">⬇️ Oktavu prenisko</string>
+    <string name="octave_too_high">⬆️ Oktavu previsoko</string>
+    <!-- Advice line under the status (ui/tuner/TunerScreen.kt) -->
+    <string name="advice_come_closer">Dođi bliže mobitelu</string>
+    <string name="advice_clear_note">Odsviraj jedan dug, čist ton</string>
+    <string name="advice_roll_out">Zakreni flautu malo od sebe</string>
+    <string name="advice_roll_in">Zakreni flautu malo k sebi</string>
+    <string name="advice_faster_air">Brži zrak</string>
+    <string name="advice_gentler_air">Nježniji zrak</string>
+    <string name="advice_check_fingers">Provjeri prste</string>
     <string name="mic_permission_title">Smijem li koristiti mikrofon?</string>
     <string name="mic_permission_body">Trebam čuti tvoju flautu da ti pomognem ugoditi. Ništa se ne snima niti šalje.</string>
     <string name="allow_microphone">Da, dopusti</string>
