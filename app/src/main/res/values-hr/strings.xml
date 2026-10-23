@@ -3,6 +3,7 @@
     <string name="tab_metronome">Metronom</string>
     <string name="tab_tuner">Štimer</string>
     <string name="tab_notes">Note</string>
+    <string name="tab_flute">Flauta</string>
 
     <!-- Metronome -->
     <string name="play">Idemo!</string>
@@ -97,6 +98,16 @@
     <string name="choose_notes_title">Koje note?</string>
     <string name="practice_notes">Note za vježbanje</string>
     <string name="note_sound">Odsviraj pogođenu notu</string>
+    <!-- Digital flute -->
+    <string name="flute_hint">Dodirni notu i složi pjesmicu</string>
+    <string name="flute_play">Odsviraj moju pjesmicu</string>
+    <string name="flute_erase">Obriši zadnju notu</string>
+    <string name="flute_keys">Tipke flaute</string>
+    <plurals name="flute_tune_line">
+        <item quantity="one">Tvoja pjesmica, %1$d nota</item>
+        <item quantity="few">Tvoja pjesmica, %1$d note</item>
+        <item quantity="other">Tvoja pjesmica, %1$d nota</item>
+    </plurals>
     <!-- Croatian music schools name octaves c1, c2, c3 (jednocrtna, dvocrtna, trocrtna), with
          the one-lined octave starting at middle C -->
     <bool name="note_octaves_helmholtz">true</bool>

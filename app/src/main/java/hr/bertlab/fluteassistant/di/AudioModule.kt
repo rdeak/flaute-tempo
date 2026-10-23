@@ -7,6 +7,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import hr.bertlab.fluteassistant.audio.metronome.AudioTrackMetronomePlayer
+import hr.bertlab.fluteassistant.audio.flute.AudioTrackFluteTonePlayer
+import hr.bertlab.fluteassistant.audio.flute.FluteTonePlayer
 import hr.bertlab.fluteassistant.audio.metronome.MetronomePlayer
 import hr.bertlab.fluteassistant.audio.tuner.AudioRecordTunerEngine
 import hr.bertlab.fluteassistant.audio.tuner.AudioTrackReferenceTonePlayer
@@ -30,6 +32,10 @@ abstract class AudioModule {
     @Binds
     @Singleton
     abstract fun bindReferenceTonePlayer(impl: AudioTrackReferenceTonePlayer): ReferenceTonePlayer
+
+    @Binds
+    @Singleton
+    abstract fun bindFluteTonePlayer(impl: AudioTrackFluteTonePlayer): FluteTonePlayer
 
     companion object {
         @Provides

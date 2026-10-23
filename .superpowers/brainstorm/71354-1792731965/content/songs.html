@@ -1,0 +1,151 @@
+<h2>Guided songs: how much to show?</h2>
+<p class="subtitle">Both have the song stepper pill at the bottom and a glowing ring on the next note's button. In each, the child is in "Twinkle, twinkle", has just lifted <b>g1</b>, and <b>a1</b> is next. The left phone of each pair is "Just play".</p>
+
+<style>
+  .phone { width: 280px; height: 580px; border-radius: 28px; background: #FFF9F0; color: #2B2D42; display: flex; flex-direction: column; overflow: hidden; border: 6px solid #2B2D42; font-family: -apple-system, system-ui, sans-serif; }
+  .pair { display: flex; gap: 14px; justify-content: center; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; font-weight: 700; font-size: 15px; }
+  .topbar span { font-size: 16px; }
+  .body { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 0 14px; }
+  .bigname { font-size: 56px; font-weight: 700; line-height: 1; margin: 6px 0 10px; color: #2B2D42; }
+  .bigname.faint { color: rgba(43,45,66,0.35); }
+  .flute { width: 100%; height: 60px; margin-bottom: 8px; }
+  .songline { height: 34px; display: flex; align-items: center; gap: 10px; font-size: 18px; color: rgba(43,45,66,0.45); font-weight: 600; margin-bottom: 10px; }
+  .songline b { color: #F4543A; font-size: 26px; }
+  .tabs { display: flex; justify-content: space-around; padding: 8px 0 10px; background: #FFDFC4; font-size: 11px; color: #6B5A4E; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tab.on { color: #F4543A; font-weight: 700; }
+  .tab i { font-style: normal; font-size: 18px; }
+  .grid { display: grid; width: 100%; gap: 6px; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 64px; }
+  .key { border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 15px; background: #FFDFC4; color: #6B5A4E; box-sizing: border-box; }
+  .key.o2 { background: #D3F3F1; color: #00403D; }
+  .key.o3 { background: #FFF0C2; color: #3D2A00; }
+  .key.down { background: #F4543A; color: #fff; }
+  .key.hint { border: 4px solid #F4543A; }
+  .stepper { margin-top: auto; margin-bottom: 12px; width: 100%; height: 50px; border-radius: 999px; background: #1FA8A0; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 18px; box-sizing: border-box; font-weight: 700; font-size: 15px; }
+  .stepper.quiet { background: #FFDFC4; color: #6B5A4E; }
+  .cards .card-image { padding: 12px 0; background: #e8e3dc; }
+  .cards .card { max-width: 640px; }
+</style>
+
+<svg style="display:none">
+  <symbol id="flute-g1" viewBox="0 0 320 64">
+    <rect x="2" y="26" width="316" height="12" rx="6" fill="#FFDFC4"/>
+    <rect x="8" y="17" width="13" height="30" rx="5" fill="#F4543A"/>
+    <circle cx="43" cy="32" r="12" fill="#F4543A"/>
+    <circle cx="72" cy="32" r="12" fill="#F4543A"/>
+    <circle cx="101" cy="32" r="12" fill="#F4543A"/>
+    <circle cx="130" cy="40" r="7.5" fill="none" stroke="#6B5A4E" stroke-width="2"/>
+    <circle cx="176" cy="32" r="12" fill="none" stroke="#6B5A4E" stroke-width="2"/>
+    <circle cx="205" cy="32" r="12" fill="none" stroke="#6B5A4E" stroke-width="2"/>
+    <circle cx="234" cy="32" r="12" fill="none" stroke="#6B5A4E" stroke-width="2"/>
+    <circle cx="262" cy="40" r="7.5" fill="#F4543A"/>
+    <rect x="280" y="31" width="10" height="17" rx="4" fill="none" stroke="#6B5A4E" stroke-width="2"/>
+    <rect x="300" y="31" width="10" height="17" rx="4" fill="none" stroke="#6B5A4E" stroke-width="2"/>
+  </symbol>
+  <symbol id="flute-open" viewBox="0 0 320 64">
+    <rect x="2" y="26" width="316" height="12" rx="6" fill="#FFDFC4"/>
+    <g fill="none" stroke="#6B5A4E" stroke-opacity="0.35" stroke-width="2">
+      <rect x="8" y="17" width="13" height="30" rx="5"/>
+      <circle cx="43" cy="32" r="12"/><circle cx="72" cy="32" r="12"/><circle cx="101" cy="32" r="12"/>
+      <circle cx="130" cy="40" r="7.5"/>
+      <circle cx="176" cy="32" r="12"/><circle cx="205" cy="32" r="12"/><circle cx="234" cy="32" r="12"/>
+      <circle cx="262" cy="40" r="7.5"/>
+      <rect x="280" y="31" width="10" height="17" rx="4"/><rect x="300" y="31" width="10" height="17" rx="4"/>
+    </g>
+  </symbol>
+</svg>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-with-note-line" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="pair">
+        <div class="phone">
+          <div class="topbar">Flute Assistant <span>🇬🇧 🇭🇷</span></div>
+          <div class="body">
+            <div class="bigname faint">…</div>
+            <svg class="flute"><use href="#flute-open"/></svg>
+            <div class="songline">&nbsp;</div>
+            <div class="grid">
+              <div class="key">c1</div><div class="key">d1</div><div class="key">e1</div><div class="key">f1</div><div class="key">g1</div><div class="key">a1</div><div class="key">h1</div>
+              <div class="key o2">c2</div><div class="key o2">d2</div><div class="key o2">e2</div><div class="key o2">f2</div><div class="key o2">g2</div><div class="key o2">a2</div><div class="key o2">h2</div>
+              <div class="key o3">c3</div>
+            </div>
+            <div class="stepper quiet"><span>◀</span><span>🎶 Just play</span><span>▶</span></div>
+          </div>
+          <div class="tabs">
+            <div class="tab"><i>⏱</i>Metronome</div><div class="tab"><i>🎯</i>Tuner</div><div class="tab"><i>🎼</i>Notes</div><div class="tab on"><i>🪈</i>Flute</div>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="topbar">Flute Assistant <span>🇬🇧 🇭🇷</span></div>
+          <div class="body">
+            <div class="bigname">g1</div>
+            <svg class="flute"><use href="#flute-g1"/></svg>
+            <div class="songline"><b>a1</b><span>a1</span><span>g1</span><span>f1</span><span>f1</span><span>e1</span><span>e1</span><span>d1</span></div>
+            <div class="grid">
+              <div class="key">c1</div><div class="key">d1</div><div class="key">e1</div><div class="key">f1</div><div class="key">g1</div><div class="key hint">a1</div><div class="key">h1</div>
+              <div class="key o2">c2</div><div class="key o2">d2</div><div class="key o2">e2</div><div class="key o2">f2</div><div class="key o2">g2</div><div class="key o2">a2</div><div class="key o2">h2</div>
+              <div class="key o3">c3</div>
+            </div>
+            <div class="stepper"><span>◀</span><span>🎵 Twinkle, twinkle</span><span>▶</span></div>
+          </div>
+          <div class="tabs">
+            <div class="tab"><i>⏱</i>Metronome</div><div class="tab"><i>🎯</i>Tuner</div><div class="tab"><i>🎼</i>Notes</div><div class="tab on"><i>🪈</i>Flute</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. Ring on the next button, plus the song's next notes in a line (recommended)</h3>
+      <p>The line under the flute reads the song ahead: the next note big and coral, then the ones after it. The child sees a song as a row of notes, not just a trail of lights. Empty in "Just play".</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b-ring-only" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="pair">
+        <div class="phone">
+          <div class="topbar">Flute Assistant <span>🇬🇧 🇭🇷</span></div>
+          <div class="body">
+            <div class="bigname faint">…</div>
+            <svg class="flute"><use href="#flute-open"/></svg>
+            <div class="grid" style="margin-top:16px">
+              <div class="key">c1</div><div class="key">d1</div><div class="key">e1</div><div class="key">f1</div><div class="key">g1</div><div class="key">a1</div><div class="key">h1</div>
+              <div class="key o2">c2</div><div class="key o2">d2</div><div class="key o2">e2</div><div class="key o2">f2</div><div class="key o2">g2</div><div class="key o2">a2</div><div class="key o2">h2</div>
+              <div class="key o3">c3</div>
+            </div>
+            <div class="stepper quiet"><span>◀</span><span>🎶 Just play</span><span>▶</span></div>
+          </div>
+          <div class="tabs">
+            <div class="tab"><i>⏱</i>Metronome</div><div class="tab"><i>🎯</i>Tuner</div><div class="tab"><i>🎼</i>Notes</div><div class="tab on"><i>🪈</i>Flute</div>
+          </div>
+        </div>
+        <div class="phone">
+          <div class="topbar">Flute Assistant <span>🇬🇧 🇭🇷</span></div>
+          <div class="body">
+            <div class="bigname">g1</div>
+            <svg class="flute"><use href="#flute-g1"/></svg>
+            <div class="grid" style="margin-top:16px">
+              <div class="key">c1</div><div class="key">d1</div><div class="key">e1</div><div class="key">f1</div><div class="key">g1</div><div class="key hint">a1</div><div class="key">h1</div>
+              <div class="key o2">c2</div><div class="key o2">d2</div><div class="key o2">e2</div><div class="key o2">f2</div><div class="key o2">g2</div><div class="key o2">a2</div><div class="key o2">h2</div>
+              <div class="key o3">c3</div>
+            </div>
+            <div class="stepper"><span>◀</span><span>🎵 Twinkle, twinkle</span><span>▶</span></div>
+          </div>
+          <div class="tabs">
+            <div class="tab"><i>⏱</i>Metronome</div><div class="tab"><i>🎯</i>Tuner</div><div class="tab"><i>🎼</i>Notes</div><div class="tab on"><i>🪈</i>Flute</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. Ring on the next button only</h3>
+      <p>The lightest version: follow the glow. Nothing to read. The song is only visible as the pill's title.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="margin-top:24px">Tap the one you prefer and tell me in the terminal. If neither, or if the whole song idea feels like too much, say so.</p>

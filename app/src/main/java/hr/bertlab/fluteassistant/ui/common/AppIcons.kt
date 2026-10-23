@@ -62,6 +62,24 @@ object AppIcons {
         stroked("metronome", "M8.5,3 L15.5,3 L19.5,21 L4.5,21 Z", "M12,20 L16.5,7.5", "M6.5,16 L17.5,16")
     }
 
+    /** A key with a cross in it: the flute tab's erase button (Material `backspace`). */
+    val Backspace: ImageVector by lazy {
+        filled(
+            "backspace",
+            "M22,3H7C6.31,3 5.77,3.35 5.41,3.88L0,12l5.41,8.11C5.77,20.64 6.31,21 7,21h15c1.1,0 2,-0.9 2,-2V5c0,-1.1 -0.9,-2 -2,-2z" +
+                "M19,15.59L17.59,17 14,13.41 10.41,17 9,15.59 12.59,12 9,8.41 10.41,7 14,10.59 17.59,7 19,8.41 15.41,12 19,15.59z",
+        )
+    }
+
+    /** A slanted tube with four holes: the flute tab. */
+    val Flute: ImageVector by lazy {
+        stroked(
+            "flute",
+            "M3,17.5 L17.5,3 L20.5,6 L6,20.5 Z",
+            "M9.5,14 L9.7,13.8", "M11.7,11.8 L11.9,11.6", "M13.9,9.6 L14.1,9.4", "M16.4,7.1 L16.6,6.9",
+        )
+    }
+
     /** U-shaped tuning fork with a stem and foot. */
     val TuningFork: ImageVector by lazy {
         stroked("tuning_fork", "M8,2 V8 a4,4 0 0 0 8,0 V2", "M12,12 V22", "M9,22 H15")

@@ -3,6 +3,8 @@ package hr.bertlab.fluteassistant.data.settings
 import android.content.Context
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
+import hr.bertlab.fluteassistant.domain.flute.Tune
+import hr.bertlab.fluteassistant.domain.flute.TuneNote
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.SoundProfile
 import hr.bertlab.fluteassistant.domain.model.Subdivision
@@ -67,6 +69,10 @@ class SharedPreferencesSettingsStore @Inject constructor(
 
     override fun saveNoteSound(enabled: Boolean) = prefs.edit { putBoolean(KEY_NOTE_SOUND, enabled) }
 
+    override fun loadTune(): List<TuneNote> = Tune.decode(prefs.getString(KEY_TUNE, null) ?: "")
+
+    override fun saveTune(notes: List<TuneNote>) = prefs.edit { putString(KEY_TUNE, Tune.encode(notes)) }
+
     private inline fun <reified T : Enum<T>> enumOrDefault(name: String?, default: T): T =
         enumValues<T>().firstOrNull { it.name == name } ?: default
 
@@ -82,6 +88,7 @@ class SharedPreferencesSettingsStore @Inject constructor(
         const val KEY_TUNER_MODE = "tuner_mode"
         const val KEY_PRACTICE_NOTES = "practice_notes"
         const val KEY_NOTE_SOUND = "note_sound"
+        const val KEY_TUNE = "tune"
         const val DEFAULT_VOLUME = 0.8f
     }
 }

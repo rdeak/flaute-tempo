@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Flute Assistant: a single-module Android app (metronome, chromatic tuner and a note reading
-game) for primary-school children learning the flute. Package and applicationId are `hr.bertlab.fluteassistant`; the
+Flute Assistant: a single-module Android app (metronome, chromatic tuner, a note reading
+game and a digital flute) for primary-school children learning the flute. Package and applicationId are `hr.bertlab.fluteassistant`; the
 project folder keeps the old name FluteTempo. Kotlin, Jetpack Compose + Material 3, Hilt, Room,
 coroutines/Flow. Shipped languages: English (default resources) and Croatian (`values-hr`).
 
@@ -29,6 +29,7 @@ configuration cache is on.
 ./gradlew :app:connectedDebugAndroidTest                  # Compose UI + resource tests (app/src/androidTest)
 ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=hr.bertlab.fluteassistant.ui.tuner.TunerScreenTest
 ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=hr.bertlab.fluteassistant.ui.notes.NotesScreenTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=hr.bertlab.fluteassistant.ui.flute.FluteScreenTest
 ./gradlew testDebugUnitTest lintRelease bundleRelease     # pre-upload check (docs/release/README.md)
 ```
 
@@ -188,19 +189,51 @@ inside its own tap strip and a miss never hides the place next to it) under a co
 are "Staff position N" counted from the bottom, never the note, so a screen reader does not
 give the answer away. The name above the staff is 64 sp (not the tuner's 84) to make room.
 
+### Digital flute path
+
+`Tune` (`domain/flute/`) is the child's tune: `TuneNote(midi, heldMs)`, at most `MAX_NOTES`
+(200), each held length clamped to `MIN_NOTE_MS`..`MAX_NOTE_MS` (300 to 2000 ms) and played
+back with `GAP_MS` (80) of silence between notes so a repeated note is heard twice. Pauses
+between presses are not recorded (a child hunting for the next key would make the tune
+halting), but the stored string (`"60:450,67:300"`; `decode` is lenient and `sanitize` keeps
+only `StaffNotes.ALL`) tolerates an optional third field per note so pauses can be added
+without a migration; `SettingsStore.saveTune` keeps it under `tune` across restarts. Sound:
+`FluteTimbre` (`audio/flute/`, the harmonics the tuner's `ReferenceToneSynth` now shares)
+under `SustainedToneSynth`, a phase-continuous oscillator with an attack (30 ms) / sustain /
+release (120 ms) envelope and a retrigger fade (10 ms), so a note on, a note off or a takeover
+never clicks; `AudioTrackFluteTonePlayer` (`FluteTonePlayer`) streams it from an URGENT_AUDIO
+thread like the metronome (float PCM, low latency, media attributes, no audio focus), writing
+silence while nothing is held and every block written in full (`writeFully`, retried through
+a route rebuild so a sustained tone never skips samples); on `close()` the thread
+(`ToneRenderLoop`, the loop body kept pure Kotlin so the close path is unit-tested) lets a
+sounding note release and plays the track buffer out before it gives the track back, never
+touches the command queue once retired (after a rotation the successor thread is already
+serving the keys), and a new `open()` meanwhile starts its own track at once, so two tracks
+overlap for the fade rather than the first press after a rotation waiting for it. `FluteViewModel` (Activity-scoped; spec:
+`docs/superpowers/specs/2026-10-23-digital-flute-design.md`) opens the player in `enterTab()`
+and closes it in `leaveTab()` (`FluteScreen`'s `LifecycleStartEffect`, so the first press is
+never late and nothing plays off screen); `onKeyPressed(midi)` sounds the key at once, shows
+it (`shownMidi`) and appends it with `MIN_NOTE_MS` (not at the cap, where it only sounds);
+`onKeyReleased(midi)` silences it and records the held length from `MonotonicClock`, ignored
+unless that key is the one held (the newest press wins; sliding off a key releases it);
+`onKeyActivated(midi)` is the screen-reader path (`ACTIVATED_MS` 500); `togglePlayback()`
+plays the tune from the start, each note for its held length then the gap, lighting it in the
+line, on its key and on the fingering diagram, and stops at once on the pill, on a key press
+or on `eraseLast()`, which drops the last note (the erase button repeats while held).
+
 ### UI conventions
 
 - One Activity, which sets `volumeControlStream` to the media stream so the volume keys adjust
   the app's sound even while nothing is playing. `MainScreen` hosts a top app bar (app name plus the `LanguageSwitch`: two flag
   buttons over `ui/common/AppLanguage`; selecting one calls
   `AppCompatDelegate.setApplicationLocales`, which re-creates the Activity) and a bottom bar
-  switching between the three tabs (`AppTab`: metronome, tuner, notes). All ViewModels are
+  switching between the four tabs (`AppTab`: metronome, tuner, notes, flute). All ViewModels are
   Activity-scoped so state and playback survive tab switches, rotation and that re-creation;
   the one exception is the game's round, which the tab bar resets (`NotesViewModel.resetRound`)
   when the notes tab is left, so the child always comes back to a zero score.
-- Each screen is split into a stateful `MetronomeScreen` / `TunerScreen` / `NotesScreen`
-  (ViewModel, permissions, lifecycle) and a stateless `MetronomeContent` / `TunerContent` /
-  `NotesContent` taking state plus callbacks. The `*Content` composables are what the Compose
+- Each screen is split into a stateful `MetronomeScreen` / `TunerScreen` / `NotesScreen` /
+  `FluteScreen` (ViewModel, permissions, lifecycle) and a stateless `MetronomeContent` /
+  `TunerContent` / `NotesContent` / `FluteContent` taking state plus callbacks. The `*Content` composables are what the Compose
   UI tests render, wrapped in the test-only `LocaleProvider` to pin the language.
 - Every user-visible string is a resource in both `values/strings.xml` and
   `values-hr/strings.xml`. Domain enums stay language-free; `ui/common/Labels.kt` maps them to
@@ -233,7 +266,12 @@ under a divider the "Play the note you find" switch row, and a big OK button tha
 closes it (the checklist button hides meanwhile, so OK is the one way back), the staff, one feedback line, then ten round
 dots at the bottom (score and accuracy without a number, plus a "🔥 3" streak badge from
 two in a row), and the numbers (score out of 10, best streak, accuracy) only in the
-end-of-round summary. The user rejected a wider layout (−/+ beside the ring,
+end-of-round summary; the flute tab shows the huge note name, the fingering diagram, one
+scrolling line of the notes played (small pills in the colour of their octave row), the
+fifteen keys in three octave rows (c1 to h1 peach, c2 to h2 teal, c3 yellow; a key sounds
+for as long as it is held) and, at the bottom, one big Play pill ("Play my tune" / "Stop")
+with a round erase button beside it (teal-filled while held, repeating like a keyboard's
+backspace): no record button, no clear-all, no tempo, no note lengths as a control. The user rejected a wider layout (−/+ beside the ring,
 a ten-button signature scroller, flags in the content area) as too packed: keep the screen
 this sparse. Tap tempo, subdivisions, click sounds, volume, presets and the A4 reference still
 exist in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`
@@ -248,7 +286,7 @@ is the intended home for those features.
 `core/log/Logger` (Hilt-provided, `AndroidLogger` in production, `FakeLogger` in tests) is the
 one way to log. Every line is a dotted event name plus `key=value` fields built by `LogLine`
 (two decimals for floating point, `none` for null, quoted text), under one tag per subsystem
-(`LogTags`: `FA.Tuner`, `FA.Metronome`, `FA.Playback`), so lines are greppable and a script
+(`LogTags`: `FA.Tuner`, `FA.Metronome`, `FA.Playback`, `FA.Flute`), so lines are greppable and a script
 can split them on spaces. Levels: `v` per-frame detail, off unless switched on per tag at
 runtime; `d` periodic summaries and state changes, on in debug builds; `i` lifecycle; `w`/`e`
 failures with the exception. Guard costly `v` calls with `logger.isVerbose(tag)`. Never log
@@ -261,10 +299,14 @@ Tuner events: `mic.open` (source, rate, buffer), `mic.close`, `tuner.permission`
 levelMean, reading, target, mode), `tuner.reading` when the shown note changes,
 `tuner.target`, `tuner.mode`, `tuner.reference`, `tuner.error`, `reference.error`. Metronome:
 `metronome.start` / `stop` / `ended` / `focus_lost` / `noisy` / `track_open` / `track_closed`
-(underruns) / `error`; playback: `playback.error`.
+(underruns) / `error`; playback: `playback.error`. Flute: `tone.track_open` (rate, block and
+buffer frames) / `tone.track_closed` (underruns) / `tone.error`, `flute.note` (midi, heldMs,
+added: false at the cap, per note ended), `flute.play` (notes), `flute.play_done`, `flute.stop`
+(reason: pill, key, erase or leave, so every `flute.play` has a closing line), `flute.erase`
+(left).
 
 ```sh
-adb logcat -s FA.Tuner FA.Metronome FA.Playback         # everything structured, debug build
+adb logcat -s FA.Tuner FA.Metronome FA.Playback FA.Flute   # everything structured, debug build
 adb shell setprop log.tag.FA.Tuner VERBOSE               # per-frame tuner lines (any build)
 adb logcat -v time -s FA.Tuner | grep tuner.summary     # one line a second: did frames pass the gate?
 ```
@@ -273,8 +315,8 @@ adb logcat -v time -s FA.Tuner | grep tuner.summary     # one line a second: did
 
 Unit tests use hand-written fakes from `app/src/test/.../fakes/Fakes.kt` (`FakeMetronomePlayer`,
 `FakeTunerEngine`, `FakeSettingsStore`, `FakePresetRepository`, `FakeClock`,
-`FakeBackgroundPlayback`, `FakeReferenceTonePlayer`); there is no mocking library. ViewModel tests run under
+`FakeBackgroundPlayback`, `FakeReferenceTonePlayer`, `FakeFluteTonePlayer`); there is no mocking library. ViewModel tests run under
 `StandardTestDispatcher` with `Dispatchers.setMain` and drive time with `advanceTimeBy` /
 `advanceUntilIdle`. Instrumented tests cover the `*Content` composables (`MetronomeScreenTest`, `TunerScreenTest`,
-`NotesScreenTest`) and locale-dependent resources (`LabelsTest`). The `config_summary`, `subdivision_*` and `sound_*` strings must stay
+`NotesScreenTest`, `FluteScreenTest`) and locale-dependent resources (`LabelsTest`). The `config_summary`, `subdivision_*` and `sound_*` strings must stay
 even though the screens no longer show them: the playback notification and `LabelsTest` use them.

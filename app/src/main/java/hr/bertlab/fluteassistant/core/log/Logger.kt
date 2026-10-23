@@ -24,4 +24,5 @@ object LogTags {
     const val TUNER = "FA.Tuner"
     const val METRONOME = "FA.Metronome"
     const val PLAYBACK = "FA.Playback"
+    const val FLUTE = "FA.Flute"
 }

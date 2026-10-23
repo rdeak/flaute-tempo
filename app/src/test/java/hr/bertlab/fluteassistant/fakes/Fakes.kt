@@ -1,5 +1,6 @@
 package hr.bertlab.fluteassistant.fakes
 
+import hr.bertlab.fluteassistant.audio.flute.FluteTonePlayer
 import hr.bertlab.fluteassistant.audio.metronome.BeatEvent
 import hr.bertlab.fluteassistant.audio.metronome.MetronomePlayer
 import hr.bertlab.fluteassistant.audio.metronome.PlaybackState
@@ -8,6 +9,7 @@ import hr.bertlab.fluteassistant.audio.tuner.ReferenceTonePlayer
 import hr.bertlab.fluteassistant.audio.tuner.TunerEngine
 import hr.bertlab.fluteassistant.core.MonotonicClock
 import hr.bertlab.fluteassistant.core.log.Logger
+import hr.bertlab.fluteassistant.domain.flute.TuneNote
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.Preset
 import hr.bertlab.fluteassistant.domain.notes.StaffNotes
@@ -125,6 +127,39 @@ class FakeReferenceTonePlayer : ReferenceTonePlayer {
     override fun stop() { stopCount++ }
 }
 
+/** Counts every call; [sounding] is the note a real player would be holding right now. */
+class FakeFluteTonePlayer : FluteTonePlayer {
+    data class NoteOn(val frequencyHz: Double, val volume: Float)
+
+    val notesOn = mutableListOf<NoteOn>()
+    var sounding: NoteOn? = null
+    var offCount = 0
+    var openCount = 0
+    var closeCount = 0
+    var isOpen = false
+
+    override fun open() {
+        openCount++
+        isOpen = true
+    }
+
+    override fun noteOn(frequencyHz: Double, volume: Float) {
+        if (!isOpen) open()
+        sounding = NoteOn(frequencyHz, volume).also { notesOn += it }
+    }
+
+    override fun noteOff() {
+        offCount++
+        sounding = null
+    }
+
+    override fun close() {
+        closeCount++
+        isOpen = false
+        sounding = null
+    }
+}
+
 class FakeSettingsStore(
     var config: MetronomeConfig = MetronomeConfig(),
     var volume: Float = 0.8f,
@@ -133,6 +168,7 @@ class FakeSettingsStore(
     var tunerMode: TunerMode = TunerMode.IDENTIFY,
     var practiceNotes: Set<Int> = StaffNotes.DEFAULT_PRACTICE,
     var noteSound: Boolean = true,
+    var tune: List<TuneNote> = emptyList(),
 ) : SettingsStore {
     override fun loadMetronomeConfig() = config
     override fun saveMetronomeConfig(config: MetronomeConfig) { this.config = config }
@@ -148,6 +184,8 @@ class FakeSettingsStore(
     override fun savePracticeNotes(notes: Set<Int>) { practiceNotes = notes }
     override fun loadNoteSound() = noteSound
     override fun saveNoteSound(enabled: Boolean) { noteSound = enabled }
+    override fun loadTune() = tune
+    override fun saveTune(notes: List<TuneNote>) { tune = notes }
 }
 
 class FakeClock(var now: Long = 0L) : MonotonicClock {

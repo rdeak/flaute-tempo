@@ -3,6 +3,7 @@
     <string name="tab_metronome">Metronome</string>
     <string name="tab_tuner">Tuner</string>
     <string name="tab_notes">Notes</string>
+    <string name="tab_flute">Flute</string>
 
     <!-- Metronome -->
     <string name="play">Let\'s play!</string>
@@ -110,6 +111,16 @@
     <string name="practice_notes">Notes to practise</string>
     <!-- Switch row under the note picker: sound the note when it is found (the speaker emoji is added in code by state) -->
     <string name="note_sound">Play the note you find</string>
+    <!-- Digital flute (ui/flute): keys that sound while held, a line of the notes played, one Play button -->
+    <string name="flute_hint">Tap a note to start your tune</string>
+    <string name="flute_play">Play my tune</string>
+    <string name="flute_erase">Erase the last note</string>
+    <string name="flute_keys">Flute keys</string>
+    <!-- Accessibility name of the tune line; the argument is how many notes it holds -->
+    <plurals name="flute_tune_line">
+        <item quantity="one">Your tune, %1$d note</item>
+        <item quantity="other">Your tune, %1$d notes</item>
+    </plurals>
     <!-- Octave naming for noteLabel(): false = scientific pitch notation (C4 is middle C), true = the
          Helmholtz-style names Croatian music schools use (c1 is middle C, c2 above it). -->
     <bool name="note_octaves_helmholtz">false</bool>

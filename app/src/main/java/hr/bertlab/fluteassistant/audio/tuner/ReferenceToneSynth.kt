@@ -1,27 +1,16 @@
 package hr.bertlab.fluteassistant.audio.tuner
 
+import hr.bertlab.fluteassistant.audio.flute.FluteTimbre
 import kotlin.math.PI
-import kotlin.math.abs
 import kotlin.math.min
-import kotlin.math.sin
 
 /**
- * Renders a flute-like reference tone: a sine with a soft second and third harmonic, a short
- * fade in and a longer fade out so it neither clicks nor stops dead. Pure Kotlin.
+ * Renders a flute-like reference tone ([FluteTimbre]) with a short fade in and a longer fade
+ * out so it neither clicks nor stops dead. Pure Kotlin.
  */
 object ReferenceToneSynth {
     private const val ATTACK_MS = 30
     private const val RELEASE_MS = 120
-    private val HARMONICS = doubleArrayOf(1.0, 0.3, 0.1)
-
-    /** Peak of one cycle of the harmonic sum, so the output can be scaled to peak exactly at the amplitude. */
-    private val cyclePeak: Double = (0 until 2048).maxOf { i -> abs(waveform(2 * PI * i / 2048)) }
-
-    private fun waveform(phase: Double): Double {
-        var v = 0.0
-        for (k in HARMONICS.indices) v += HARMONICS[k] * sin((k + 1) * phase)
-        return v
-    }
 
     /** [durationMs] of mono float PCM at [sampleRate], peaking at [amplitude] (0..1). */
     fun render(frequencyHz: Double, sampleRate: Int, durationMs: Int, amplitude: Float): FloatArray {
@@ -32,10 +21,10 @@ object ReferenceToneSynth {
         if (count == 0 || amplitude <= 0f) return out
         val attack = (sampleRate * ATTACK_MS / 1000).coerceAtLeast(1)
         val release = (sampleRate * RELEASE_MS / 1000).coerceAtLeast(1)
-        val gain = amplitude / cyclePeak
+        val gain = amplitude / FluteTimbre.cyclePeak
         for (i in 0 until count) {
             val envelope = min(1.0, min(i.toDouble() / attack, (count - 1 - i).toDouble() / release))
-            out[i] = (gain * envelope * waveform(2 * PI * frequencyHz * i / sampleRate)).toFloat()
+            out[i] = (gain * envelope * FluteTimbre.waveform(2 * PI * frequencyHz * i / sampleRate)).toFloat()
         }
         return out
     }

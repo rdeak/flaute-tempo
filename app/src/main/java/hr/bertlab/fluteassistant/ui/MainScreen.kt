@@ -36,6 +36,8 @@ import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.common.AppLanguage
 import hr.bertlab.fluteassistant.ui.common.KeepScreenOn
 import hr.bertlab.fluteassistant.ui.common.LanguageSwitch
+import hr.bertlab.fluteassistant.ui.flute.FluteScreen
+import hr.bertlab.fluteassistant.ui.flute.FluteViewModel
 import hr.bertlab.fluteassistant.ui.metronome.MetronomeMessage
 import hr.bertlab.fluteassistant.ui.metronome.MetronomeScreen
 import hr.bertlab.fluteassistant.ui.metronome.MetronomeViewModel
@@ -45,39 +47,45 @@ import hr.bertlab.fluteassistant.ui.tuner.TunerScreen
 import hr.bertlab.fluteassistant.ui.tuner.TunerViewModel
 import java.util.Locale
 
-/** The three top-level destinations shown in the bottom navigation bar. */
+/** The four top-level destinations shown in the bottom navigation bar. */
 enum class AppTab(@StringRes val labelRes: Int) {
     METRONOME(R.string.tab_metronome),
     TUNER(R.string.tab_tuner),
-    NOTES(R.string.tab_notes);
+    NOTES(R.string.tab_notes),
+    FLUTE(R.string.tab_flute);
 
     val icon: ImageVector
         get() = when (this) {
             METRONOME -> AppIcons.Metronome
             TUNER -> AppIcons.TuningFork
             NOTES -> AppIcons.MusicNote
+            FLUTE -> AppIcons.Flute
         }
 }
 
 /**
  * Root of the UI: a [Scaffold] with the language switch in the top corner and a bottom
- * [NavigationBar] that switches between the metronome, the tuner and the note reading game.
- * All three ViewModels are scoped to the Activity, so settings and playback survive switching
- * tabs, rotation and the re-creation that a language change triggers. The game's round is the
- * exception: leaving its tab resets the score, so the child always comes back to a fresh start.
+ * [NavigationBar] that switches between the metronome, the tuner, the note reading game and
+ * the digital flute. All four ViewModels are scoped to the Activity, so settings, playback and
+ * the flute's tune survive switching tabs, rotation and the re-creation that a language change
+ * triggers. The game's round is the exception: leaving its tab resets the score, so the child
+ * always comes back to a fresh start.
  */
 @Composable
 fun MainScreen(
     metronomeViewModel: MetronomeViewModel = hiltViewModel(),
     tunerViewModel: TunerViewModel = hiltViewModel(),
     notesViewModel: NotesViewModel = hiltViewModel(),
+    fluteViewModel: FluteViewModel = hiltViewModel(),
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(AppTab.METRONOME) }
     val metronomeState by metronomeViewModel.state.collectAsStateWithLifecycle()
     val tunerState by tunerViewModel.state.collectAsStateWithLifecycle()
     val notesState by notesViewModel.state.collectAsStateWithLifecycle()
+    val fluteState by fluteViewModel.state.collectAsStateWithLifecycle()
 
-    KeepScreenOn(enabled = metronomeState.isPlaying || tunerState.isListening)
+    // A tune plays back untouched for up to a minute or two: the screen must not time out under it.
+    KeepScreenOn(enabled = metronomeState.isPlaying || tunerState.isListening || fluteState.isPlaying)
 
     // One-shot messages (audio unavailable, persistence failures) as a snackbar.
     val snackbarHostState = remember { SnackbarHostState() }
@@ -126,6 +134,7 @@ fun MainScreen(
                 AppTab.METRONOME -> MetronomeScreen(state = metronomeState, viewModel = metronomeViewModel)
                 AppTab.TUNER -> TunerScreen(state = tunerState, viewModel = tunerViewModel)
                 AppTab.NOTES -> NotesScreen(state = notesState, viewModel = notesViewModel)
+                AppTab.FLUTE -> FluteScreen(state = fluteState, viewModel = fluteViewModel)
             }
         }
     }

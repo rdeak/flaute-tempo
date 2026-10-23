@@ -1,12 +1,13 @@
 package hr.bertlab.fluteassistant.domain.repository
 
+import hr.bertlab.fluteassistant.domain.flute.TuneNote
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 
 /**
  * Small key-value persistence for "where the user left off": the last metronome settings,
  * the volume, the tuner's reference pitch and the note it tunes to, the notes the reading
- * game asks. Synchronous by design
+ * game asks, the flute tab's tune. Synchronous by design
  * (tiny values, read once at ViewModel creation).
  */
 interface SettingsStore {
@@ -27,4 +28,7 @@ interface SettingsStore {
     /** Whether the reading game sounds the note when it is found; true by default. */
     fun loadNoteSound(): Boolean
     fun saveNoteSound(enabled: Boolean)
+    /** The flute tab's tune, as stored (decoded leniently, see Tune.decode); the caller sanitises. */
+    fun loadTune(): List<TuneNote>
+    fun saveTune(notes: List<TuneNote>)
 }
