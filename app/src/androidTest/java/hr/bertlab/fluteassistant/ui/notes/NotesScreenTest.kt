@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -15,6 +16,12 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import hr.bertlab.fluteassistant.domain.notes.StaffNotes
 import hr.bertlab.fluteassistant.ui.common.LocaleProvider
+import hr.bertlab.fluteassistant.ui.theme.InTuneGreen
+import hr.bertlab.fluteassistant.ui.theme.InTuneGreenText
+import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRed
+import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRedText
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
@@ -24,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Locale
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class NotesScreenTest {
@@ -133,6 +141,40 @@ class NotesScreenTest {
     }
 
     @Test
+    fun marks_stay_inside_their_own_place() {
+        // D4 tapped by mistake right under the asked E4: the red mark and the green hint ring are
+        // neighbours, and neither may reach into the other's strip, or the child has nothing to aim at.
+        show(asking(64).copy(wrongTaps = setOf(62), taps = 1))
+        val staff = compose.onNodeWithContentDescription("Staff, tap where the note goes")
+        val staffTop = staff.getBoundsInRoot().top
+        fun stripRows(position: Int): IntRange {
+            val b = compose.onNodeWithContentDescription("Staff position $position").getBoundsInRoot()
+            return with(compose.density) { (b.top - staffTop).roundToPx()..(b.bottom - staffTop).roundToPx() }
+        }
+        val pixels = staff.captureToImage().toPixelMap()
+        fun rowsPainted(shades: List<Color>): IntRange {
+            var first = Int.MAX_VALUE
+            var last = -1
+            for (y in 0 until pixels.height) for (x in 0 until pixels.width) {
+                val c = pixels[x, y]
+                val near = shades.any { abs(c.red - it.red) < 0.08f && abs(c.green - it.green) < 0.08f && abs(c.blue - it.blue) < 0.08f }
+                if (near) {
+                    first = minOf(first, y)
+                    last = maxOf(last, y)
+                }
+            }
+            assertTrue("no pixels painted in $shades", last >= 0)
+            return first..last
+        }
+        val red = rowsPainted(listOf(OutOfTuneRed, OutOfTuneRedText))
+        val green = rowsPainted(listOf(InTuneGreen, InTuneGreenText))
+        val d4 = stripRows(2)
+        val e4 = stripRows(3)
+        assertTrue("red mark rows $red should stay inside D4's strip $d4", red.first >= d4.first && red.last <= d4.last)
+        assertTrue("green ring rows $green should stay inside E4's strip $e4", green.first >= e4.first && green.last <= e4.last)
+    }
+
+    @Test
     fun a_right_tap_says_so() {
         show(asking(60).copy(solved = true, results = listOf(true), taps = 1, streak = 1))
         compose.onNodeWithText("🎉 That's it!").assertIsDisplayed()
@@ -175,21 +217,35 @@ class NotesScreenTest {
         compose.onNodeWithText("C6").assertIsNotSelected()
         compose.onNodeWithText("C6").performClick()
         assertEquals(listOf(84), toggled)
-        compose.onNodeWithContentDescription("Done").performClick()
+        compose.onNodeWithContentDescription("Choose notes").assertDoesNotExist() // one way out: the OK button
+        compose.onNodeWithText("OK").performClick()
         compose.onNodeWithContentDescription("Staff, tap where the note goes").assertExists()
+        compose.onNodeWithContentDescription("Choose notes").assertExists()
+    }
+
+    @Test
+    fun the_ok_button_is_big_and_sits_under_the_sound_switch() {
+        show(asking(60))
+        compose.onNodeWithContentDescription("Choose notes").performClick()
+        val lastPill = compose.onNodeWithText("C6").getBoundsInRoot()
+        val sound = compose.onNodeWithText("🔊 Play the note you find").getBoundsInRoot()
+        val ok = compose.onNodeWithText("OK").getBoundsInRoot()
+        assertTrue("sound row $sound should sit under the grid $lastPill", sound.top >= lastPill.bottom)
+        assertTrue("OK $ok should sit under the sound row $sound", ok.top >= sound.bottom)
+        assertTrue("OK $ok should be a big full-width button", ok.width >= 300.dp && ok.height >= 56.dp)
     }
 
     @Test
     fun the_sound_toggle_lives_with_the_note_picker() {
         show(asking(60))
-        compose.onNodeWithText("🔊 Hear the note").assertDoesNotExist() // not on the game screen itself
+        compose.onNodeWithText("🔊 Play the note you find").assertDoesNotExist() // not on the game screen itself
         compose.onNodeWithContentDescription("Choose notes").performClick()
-        compose.onNodeWithText("🔊 Hear the note").assertIsOn()
-        compose.onNodeWithText("🔊 Hear the note").performClick()
+        compose.onNodeWithText("🔊 Play the note you find").assertIsOn()
+        compose.onNodeWithText("🔊 Play the note you find").performClick()
         assertEquals(1, soundToggles)
 
         compose.runOnIdle { state.value = state.value.copy(soundOn = false) }
-        compose.onNodeWithText("🔇 Hear the note").assertIsOff()
+        compose.onNodeWithText("🔇 Play the note you find").assertIsOff()
     }
 
     @Test
@@ -208,7 +264,7 @@ class NotesScreenTest {
         compose.onNodeWithContentDescription("Mjesto 1 u crtovlju").assertExists()
         compose.onNodeWithContentDescription("Odaberi note").performClick()
         compose.onNodeWithText("Koje note?").assertIsDisplayed()
-        compose.onNodeWithText("🔊 Poslušaj ton").assertIsOn()
-        compose.onNodeWithContentDescription("Gotovo").assertExists()
+        compose.onNodeWithText("🔊 Odsviraj pogođenu notu").assertIsOn()
+        compose.onNodeWithText("U redu").assertIsDisplayed()
     }
 }

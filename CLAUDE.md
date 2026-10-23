@@ -173,16 +173,18 @@ every tap so `accuracyPercent` (right taps over all taps) differs from `score`; 
 is the time from the round's first tap to the tenth note found (`MonotonicClock`, so tests use
 `FakeClock`), shown in the summary as m:ss by `formatRoundTime`. The chosen
 notes persist through `SettingsStore.savePracticeNotes` (`practice_notes`, a string set), the last one cannot be switched off, and any change to them starts a fresh round; the sound of
-a found note can be switched off (`toggleSound`, `SettingsStore.saveNoteSound`, a pill under
-the picker's grid); `resetRound()` (also behind `playAgain`) throws the round away and is
+a found note can be switched off (`toggleSound`, `SettingsStore.saveNoteSound`, a switch row
+under a divider below the picker's grid); `resetRound()` (also behind `playAgain`) throws the round away and is
 called by the tab bar when the tab is left, and `stopSound()` when the screen is disposed, so
 the tuner's microphone does not hear the tone. A `Random` is passed through an internal
 secondary constructor for deterministic tests. `NoteStaff` draws the staff on a Canvas
 (it takes all the height left in the column and sizes the places from it; it shows the staff
 and its two neighbouring spaces, d1 to g2, plus the ledger-line places c1, a2, h2, c3 only as
 far as a chosen note needs them, `StaffNotes.visiblePositions`; a hand-built stroked clef
-path in staff spaces; small faint circles in one column at 60 % of the width, after the user
-rejected a two-column split) under a column of fifteen full-width tap strips whose accessibility names
+path in staff spaces; faint circles in one column at 60 % of the width, after the user
+rejected a two-column split; every mark, red for a miss, green filled for the found note, a
+green ring as the hint, is that same circle at `MARK_RADIUS` 0.4 of the pitch, so it stays
+inside its own tap strip and a miss never hides the place next to it) under a column of fifteen full-width tap strips whose accessibility names
 are "Staff position N" counted from the bottom, never the note, so a screen reader does not
 give the answer away. The name above the staff is 64 sp (not the tuner's 84) to make room.
 
@@ -226,8 +228,9 @@ neighbours and a speaker button that sounds it; spec:
 for that note, a numberless gauge, one status line and, at the bottom, the two mode pills
 ("Which note?" / "Tune to a note"); the notes tab shows one row with the huge note name (the whole
 question; the score once the round is over) and a small round checklist button at its end
-that swaps the staff for a grid of fifteen note pills plus the sound toggle in place (no
-dialog; the button becomes a tick to close), the staff, one feedback line, then ten round
+that swaps the staff for the picker in place (no dialog): a grid of fifteen note pills,
+under a divider the "Play the note you find" switch row, and a big OK button that
+closes it (the checklist button hides meanwhile, so OK is the one way back), the staff, one feedback line, then ten round
 dots at the bottom (score and accuracy without a number, plus a "🔥 3" streak badge from
 two in a row), and the numbers (score out of 10, best streak, accuracy) only in the
 end-of-round summary. The user rejected a wider layout (−/+ beside the ring,

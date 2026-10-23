@@ -328,3 +328,56 @@ on a `BoxWithConstraints`, with `practiceNotes`, given `weight(1f)` by `NotesCon
 Tests: `StaffNotesTest.visible places stretch from the staff to the chosen ledger notes`;
 `NotesScreenTest.ledger_places_outside_the_staff_appear_only_for_chosen_notes` and
 `the_staff_takes_the_height_left_on_the_screen`.
+
+## Revision: an OK button closes the picker; the sound setting looks like a setting
+
+The user: "settings in note view does not have great UX, user can't find how to confirm
+notes and what play the note means, improve UX, maybe it's good idea to replace checkmark
+icon with ok button and somehow signal play the note is not related to selected notes".
+
+Two readings went wrong for the same reason: the way out was a 48 dp tick at the end of
+the title row, and the sound toggle was a pill with the same shape and teal fill as a chosen
+note, straight under the grid, labelled "Hear the note", so it passed for a sixteenth note
+or for a button that plays something now.
+
+- **OK button.** Under the picker, one big full-width coral button, "✓ OK" / "✓ U redu",
+  the same shape as the summary's "Play again", closes the picker. Choices still apply as
+  they are tapped, so OK only brings the game back. While the picker is open the title row
+  is "Which notes?" alone: the checklist button hides, so there is one way out, not two.
+- **Sound setting.** Under the grid, past a divider, one settings row of the shape every
+  phone uses: "🔊 Play the note you find" / "🔊 Odsviraj pogođenu notu" with a
+  switch at its end (🔇 while off). A different control in its own section says "this is a
+  setting, not a note", and the label now says what it does. *My call* on a switch rather
+  than another pill: the pill was the problem.
+
+Code: `PracticeNotePicker` (`SoundSettingRow`, `onDone`), `NotesScreen.kt` (`HeroRow`
+without the tick), strings `choose_notes_done`, `note_sound`. Tests:
+`NotesScreenTest.choosing_notes_toggles_them`,
+`the_ok_button_is_big_and_sits_under_the_sound_switch`,
+`the_sound_toggle_lives_with_the_note_picker`, `croatian_names_and_copy`.
+
+## Revision: marks fit their place (2026-10-23)
+
+The user: "circles that shows miss or hit of note is bigger than placeholder and if user pick
+adjacent note second pick is hard to hit because red circle overlap placeholder, analyze how
+to improve UX and make placeholders easier to precisely hit without any overlap".
+
+The tap strips were never the problem (full width, one pitch tall, a tap anywhere in a strip
+counts); what the child could see was. The red and green marks were real-size note heads,
+1.7 pitches tall, and the hint ring 2 pitches, so after a miss directly under the asked note
+the red head and the green ring overlapped by a third and buried the placeholder to aim at.
+
+Of four options (marks that fit the place; oval marks that fit; keep the heads and fade the
+miss after a moment; keep the heads and show the strips as bands) the user chose the first:
+
+- Every mark is the place's own circle. The placeholder grew from 0.3 to `MARK_RADIUS` 0.4
+  of the pitch (80 % of the strip), a miss fills it red, the found note fills it green, the
+  hint rings it green with the ring's outer edge at the same radius. Nothing crosses a strip
+  boundary; 20 % of the pitch stays clear between neighbours. Ledger lines shrank to match
+  (`LEDGER_HALF` 0.9 pitches). The marks no longer look like oval note heads; the big name
+  above is the question and the staff is the answer board, so "tap a circle, it turns red or
+  green" is the whole model.
+
+Code: `NoteStaff.kt` (`MARK_RADIUS`, `LEDGER_HALF`, `mark()`). Test:
+`NotesScreenTest.marks_stay_inside_their_own_place` reads the rendered pixels and checks that
+the red rows stay inside the missed place's strip and the green rows inside the asked one's.

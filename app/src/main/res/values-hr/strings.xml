@@ -93,10 +93,10 @@
     <string name="round_time">⏱️ Vrijeme: %1$s</string>
     <string name="play_again">Igraj opet</string>
     <string name="choose_notes">Odaberi note</string>
-    <string name="choose_notes_done">Gotovo</string>
+    <string name="choose_notes_done">U redu</string>
     <string name="choose_notes_title">Koje note?</string>
     <string name="practice_notes">Note za vježbanje</string>
-    <string name="note_sound">Poslušaj ton</string>
+    <string name="note_sound">Odsviraj pogođenu notu</string>
     <!-- Croatian music schools name octaves c1, c2, c3 (jednocrtna, dvocrtna, trocrtna), with
          the one-lined octave starting at middle C -->
     <bool name="note_octaves_helmholtz">true</bool>

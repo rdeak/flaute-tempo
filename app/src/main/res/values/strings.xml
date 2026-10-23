@@ -102,13 +102,14 @@
     <!-- The argument is minutes:seconds, e.g. "1:23" -->
     <string name="round_time">⏱️ Time: %1$s</string>
     <string name="play_again">Play again</string>
-    <!-- The round button beside the note name (accessibility names), and the row's title while choosing -->
+    <!-- The round button beside the note name (accessibility name), the row's title while choosing,
+         and the big button under the picker that closes it -->
     <string name="choose_notes">Choose notes</string>
-    <string name="choose_notes_done">Done</string>
+    <string name="choose_notes_done">OK</string>
     <string name="choose_notes_title">Which notes?</string>
     <string name="practice_notes">Notes to practise</string>
-    <!-- Toggle beside the note picker: sound the note when it is found (the emoji is added in code by state) -->
-    <string name="note_sound">Hear the note</string>
+    <!-- Switch row under the note picker: sound the note when it is found (the speaker emoji is added in code by state) -->
+    <string name="note_sound">Play the note you find</string>
     <!-- Octave naming for noteLabel(): false = scientific pitch notation (C4 is middle C), true = the
          Helmholtz-style names Croatian music schools use (c1 is middle C, c2 above it). -->
     <bool name="note_octaves_helmholtz">false</bool>

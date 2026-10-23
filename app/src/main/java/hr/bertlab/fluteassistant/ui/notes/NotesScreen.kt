@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,10 +70,11 @@ fun NotesScreen(
 /**
  * The whole game, top to bottom: one row holding the hero of the moment (the note's name,
  * which is the whole question; the score once the round is over; "Which notes?" while
- * choosing) with the single round button at its end that opens the note picker and, while
- * it is open, closes it; then the staff, which takes all the height left, with its feedback
- * line, or the round summary, or the picker; and at the bottom the round's dots. Choosing
- * notes pauses the question in place; it comes back untouched.
+ * choosing) with the single round button at its end that opens the note picker; then the
+ * staff, which takes all the height left, with its feedback line, or the round summary, or
+ * the picker, whose own big OK button closes it (the round button hides meanwhile, so there
+ * is one way out); and at the bottom the round's dots. Choosing notes pauses the question
+ * in place; it comes back untouched.
  */
 @Composable
 fun NotesContent(
@@ -114,8 +113,8 @@ fun NotesContent(
                 state.solved -> right
                 else -> MaterialTheme.colorScheme.onSurface
             },
-            choosing = choosingNotes,
-            onToggleChoosing = { choosingNotes = !choosingNotes },
+            showChooseButton = !choosingNotes,
+            onChoose = { choosingNotes = true },
         )
         when {
             choosingNotes -> {
@@ -124,6 +123,7 @@ fun NotesContent(
                     onToggle = onTogglePracticeNote,
                     soundOn = state.soundOn,
                     onToggleSound = onToggleSound,
+                    onDone = { choosingNotes = false },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.weight(1f))
@@ -147,18 +147,19 @@ private val HeroRowHeight = 72.dp
 private val HeroButtonSize = 48.dp
 
 /**
- * The hero [text] centred across the width, with the picker button at the end of the row:
- * a soft checklist button that opens the picker, replaced while [choosing] by a filled tick
- * that closes it. The text keeps clear of the button's end of the row; the longest hero,
- * "10 / 10", still fits a 360 dp phone.
+ * The hero [text] centred across the width and, while [showChooseButton], a soft checklist
+ * button at the end of the row that opens the picker ([onChoose]). While the picker is open
+ * the row is text alone: the picker's OK button is the way back. The text keeps clear of
+ * the button's end of the row either way, so it never shifts; the longest hero, "10 / 10",
+ * still fits a 360 dp phone.
  */
 @Composable
 private fun HeroRow(
     text: String,
     style: TextStyle,
     color: Color,
-    choosing: Boolean,
-    onToggleChoosing: () -> Unit,
+    showChooseButton: Boolean,
+    onChoose: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -175,22 +176,9 @@ private fun HeroRow(
             overflow = TextOverflow.Visible,
             modifier = Modifier.padding(horizontal = HeroButtonSize + 8.dp),
         )
-        if (choosing) {
-            FilledIconButton(
-                onClick = onToggleChoosing,
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary,
-                ),
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .size(HeroButtonSize),
-            ) {
-                Icon(AppIcons.Check, contentDescription = stringResource(R.string.choose_notes_done))
-            }
-        } else {
+        if (showChooseButton) {
             FilledTonalIconButton(
-                onClick = onToggleChoosing,
+                onClick = onChoose,
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .size(HeroButtonSize),
