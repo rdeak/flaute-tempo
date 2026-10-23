@@ -64,7 +64,8 @@ gitignored `keystore.properties`; without either the release build is produced u
 read or print the keystore password. Release builds use whole-app R8 (a package-scoped
 optimisation crashed at startup inside androidx.startup). Process, Play Console answers and the
 Secrets Manager backup recipe are in `docs/release/`. Launcher PNGs and store graphics come from
-`java -Djava.awt.headless=true tools/IconGen.java /tmp/icons`.
+`java -Djava.awt.headless=true tools/IconGen.java /tmp/icons`. Store screenshots (one per tab, en and hr,
+padded to 9:16) come from `tools/play-screenshots.sh` with the emulator up and a debug APK built.
 
 ## Build wiring (AGP 9)
 

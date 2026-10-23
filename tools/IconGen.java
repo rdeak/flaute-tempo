@@ -6,7 +6,7 @@ import javax.imageio.ImageIO;
 
 /**
  * Usage (JDK 11+): java -Djava.awt.headless=true tools/IconGen.java <output dir>
- * Then copy mipmap-*/ic_launcher*.png into app/src/main/res and play-listing/* into docs/release.
+ * Then copy the mipmap-DENSITY/ic_launcher*.png files into app/src/main/res and play-listing/* into docs/release.
  *
  * Renders the Flute Assistant launcher icon to PNG at every density, plus the Play Store
  * listing assets. The geometry mirrors the adaptive-icon vector drawables (108x108 canvas,
@@ -87,9 +87,9 @@ public class IconGen {
         g.setColor(FG);
         g.setFont(fit(g, "Flute Assistant", Font.BOLD, 86, maxWidth));
         g.drawString("Flute Assistant", textX, 232);
-        g.setFont(fit(g, "Metronome and chromatic tuner", Font.PLAIN, 38, maxWidth));
+        g.setFont(fit(g, "Metronome, tuner, notes and flute", Font.PLAIN, 38, maxWidth));
         g.setColor(new Color(255, 255, 255, 220));
-        g.drawString("Metronome and chromatic tuner", textX + 2, 296);
+        g.drawString("Metronome, tuner, notes and flute", textX + 2, 296);
         g.dispose();
         return img;
     }

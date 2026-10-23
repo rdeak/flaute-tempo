@@ -1,34 +1,70 @@
 # Play Console answers for Flute Assistant
 
 Facts the answers rest on: the app is made for primary-school children learning the flute and
-runs entirely on the device. The microphone is used only while the Tuner tab is open; audio is
-analysed in memory for pitch and never stored, logged or transmitted. There is no account, no
-network access, no analytics, no ads, no SDK that collects data. Settings are stored locally on
-the device.
+runs entirely on the device. It has four tabs: a metronome, a tuner, a note reading game and a
+digital flute. The microphone is used only while the Tuner tab is open; audio is analysed in
+memory for pitch and never stored, logged or transmitted. The other tabs only play sound. There
+is no account, no network access, no analytics, no ads, no SDK that collects data. Settings and
+the child's tune are stored locally on the device.
 
 ## Store listing
 
 | Field | Value |
 |---|---|
 | App name | Flute Assistant |
-| Short description | A simple, friendly metronome and tuner for young flute players. |
+| Short description | Metronome, tuner, note game and a digital flute for young flute players. |
 | Full description | See below |
 | App icon | `play-listing/icon-512.png` (512x512) |
-| Feature graphic | `play-listing/feature-graphic-1024x500.png` |
-| Screenshots | At least 2 phone screenshots (metronome, tuner); 16:9 or 9:16, 320 to 3840 px |
+| Feature graphic | `play-listing/feature-graphic-1024x500.png` (subtitle "Metronome, tuner, notes and flute", text in `tools/IconGen.java`) |
+| Screenshots | `play-listing/screenshots/en/` and `hr/`: one per tab, 1080x1920 JPEG (9:16, the ratio Play asks for), made by `tools/play-screenshots.sh` on the emulator |
 | Category | Music & Audio |
-| Languages | English (default) and Croatian; the UI follows the system language and Android 13+ per-app language settings. Add a Croatian store listing translation if you want the listing localised too. |
+| Languages | English (default) and Croatian; the UI follows the system language and Android 13+ per-app language settings. Add a Croatian listing translation (draft below) with the `hr/` screenshots so Croatian users see the listing in their language. |
 | Contact email | Required; shown publicly |
 | Privacy policy URL | Required; host `privacy-policy.md` (for example on GitHub Pages) |
 
-Full description draft:
+Full description, English:
 
-> Made for children in primary school who are learning the flute. Two big, friendly screens
-> and nothing to read: a metronome with a tempo ring, one play button, bouncing beat dots and
-> 2/4, 3/4 or 4/4; and a tuner that shows the note in big letters and says "Perfect!", "Too
-> low" or "Too high". The metronome keeps running while you read sheet music in another app,
-> with a notification to stop it. In English and Croatian. No account, no ads, no data leaves
-> your device.
+> Made for children in primary school who are learning the flute. Four big, friendly screens
+> and nothing to read.
+>
+> METRONOME. A tempo ring, four levels from Beginner to Master, bouncing beat dots and one play
+> button. Ten time signatures, from 2/4 to 12/8. The click keeps going while you read sheet
+> music in another app, with a notification to stop it.
+>
+> TUNER. Play a note and see its name in big letters, with "Perfect!", "Too low" or "Too high"
+> and a tip on what to change. Or pick the note you want to play: hear it, see its fingering
+> and tune to it.
+>
+> NOTES. A note reading game. A note name appears and you tap its place on the staff. Ten notes
+> a round, a streak for every hit in a row and the score at the end. Choose which notes to
+> practise.
+>
+> FLUTE. Fifteen note keys in three octave rows. Press a key to hear the note and see its
+> fingering, play a tune, then hear it played back.
+>
+> In English and Croatian. No account, no ads, no data leaves your device.
+
+Full description, Croatian (short description: "Metronom, štimer, igra čitanja nota i
+digitalna flauta za male flautiste."):
+
+> Napravljeno za djecu u osnovnoj školi koja uče svirati flautu. Četiri velika, vesela ekrana i
+> ništa za čitanje.
+>
+> METRONOM. Krug za tempo, četiri razine od Početnika do Majstora, točkice koje skaču u ritmu i
+> jedna tipka za sviranje. Deset mjera, od 2/4 do 12/8. Metronom kuca i dok u drugoj
+> aplikaciji gledaš note, a obavijest ga zaustavlja.
+>
+> ŠTIMER. Odsviraj ton i vidi njegovo ime velikim slovima uz „Savršeno!“, „Prenisko“ ili
+> „Previsoko“ i savjet što promijeniti. Ili odaberi ton koji želiš svirati: poslušaj ga,
+> pogledaj prstomet i ugodi flautu prema njemu.
+>
+> NOTE. Igra čitanja nota. Pojavi se ime note, a ti dodirni njezino mjesto na crtovlju. Deset
+> nota po krugu, niz za svaki pogodak zaredom i rezultat na kraju. Sam biraš koje note vježbaš.
+>
+> FLAUTA. Petnaest tipki u tri reda. Pritisni tipku da čuješ ton i vidiš prstomet, odsviraj
+> pjesmicu, a zatim je poslušaj.
+>
+> Na hrvatskom i engleskom. Bez računa, bez oglasa, nikakvi podaci ne napuštaju uređaj.
 
 ## App content
 
@@ -62,9 +98,10 @@ optional "Teacher Approved" badge can be applied for after launch.
 - Does your app collect or share any of the required user data types? **No.**
   Play defines collection as transmitting data off the device. Microphone audio is processed
   on the device in memory and discarded; nothing is stored or sent, so no data type is
-  collected or shared.
+  collected or shared. Settings, the chosen practice notes and the child's tune stay in the
+  app's private storage on the device.
 - Encryption in transit and deletion requests are not asked when nothing is collected.
-  Uninstalling removes presets and settings.
+  Uninstalling removes everything.
 
 Resulting public label: "No data collected" and "No data shared with third parties".
 
@@ -105,7 +142,8 @@ Not requested. **No.**
 | `POST_NOTIFICATIONS` | Playback notification with Stop (runtime permission on Android 13+) |
 
 None of these needs a separate sensitive-permission declaration form, apart from the
-foreground service type above.
+foreground service type above. The Notes and Flute tabs need no permission: they only play
+tones through the speaker.
 
 ## Testing requirement for newer personal developer accounts
 

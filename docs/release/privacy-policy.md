@@ -1,10 +1,10 @@
 # Privacy Policy for Flute Assistant
 
-Last updated: 22 October 2026
+Last updated: 23 October 2026
 
-Flute Assistant (the "app") is a metronome and tuner for Android made for children learning
-the flute, published by bertlab. This policy explains what the app does with information on
-your device.
+Flute Assistant (the "app") is a metronome, tuner, note reading game and digital flute for
+Android made for children learning the flute, published by bertlab. This policy explains what
+the app does with information on your device.
 
 ## Summary
 
@@ -16,15 +16,17 @@ system, no analytics, no advertising and does not use the internet.
 The tuner feature uses the microphone to detect the pitch of the note you are playing. Audio
 is analysed in real time in the device's memory only. It is never recorded, saved to storage,
 or sent anywhere. The microphone is active only while the Tuner tab is open and the app is on
-screen, and you can revoke the permission at any time in Android Settings. The metronome does
-not use the microphone.
+screen, and you can revoke the permission at any time in Android Settings. The metronome, the
+note reading game and the digital flute do not use the microphone; they only play sound.
 
 ## Data stored on your device
 
-Your metronome settings (tempo and beats in a bar) are stored locally in the app's private
-storage so they are there the next time you open the app. They never leave the device.
-Uninstalling the app deletes them. If you use Android's device backup, this data may be
-included in your own backup managed by Google or your device maker, under their terms.
+Your settings are stored locally in the app's private storage so they are there the next time
+you open the app: the metronome tempo and beats in a bar, the tuner mode and the note you chose
+to tune to, the notes you chose to practise in the reading game, whether a found note is played,
+and the tune you played on the digital flute. None of this identifies you and it never leaves
+the device. Uninstalling the app deletes it. If you use Android's device backup, this data may
+be included in your own backup managed by Google or your device maker, under their terms.
 
 ## Notifications
 

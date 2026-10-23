@@ -106,7 +106,7 @@ Before uploading, run the full check: `./gradlew testDebugUnitTest lintRelease b
 See `play-console.md` for the store listing, data safety, permission and content rating
 answers, and `privacy-policy.md` for the policy text to host.
 
-## 5. Launcher icon and store graphics
+## 5. Launcher icon, store graphics and screenshots
 
 The icon is a vector adaptive icon (`res/drawable/ic_launcher_*.xml`) plus legacy PNGs for
 Android 7 (`res/mipmap-*/`). `tools/IconGen.java` renders the PNGs, the 512 px Play icon and the
@@ -115,3 +115,8 @@ Android 7 (`res/mipmap-*/`). `tools/IconGen.java` renders the PNGs, the 512 px P
 ```sh
 java -Djava.awt.headless=true tools/IconGen.java /tmp/icons
 ```
+
+Phone screenshots come from the emulator: with the AVD running (`-no-audio`, see CLAUDE.md) and
+a debug APK built, `tools/play-screenshots.sh` drives the four tabs in English and Croatian and
+writes one 1080x1920 JPEG per tab (Play asks for 9:16) into `docs/release/play-listing/screenshots/`.
+Re-run it after any visible change before uploading.
