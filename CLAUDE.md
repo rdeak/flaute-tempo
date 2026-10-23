@@ -57,8 +57,17 @@ The notification-permission dialog appears on the first metronome start (API 33+
 
 ### Release
 
-Versions live in `gradle.properties` (`fluteAssistant.versionCode` must increase on every Play
-upload; CI can pass `-PfluteAssistant.versionCode=N`). Release signing reads the
+Versions live in `gradle.properties`. Pushing a new `fluteAssistant.versionName` to `main` makes
+`.github/workflows/release.yml` tag `v<name>` and publish a GitHub Release with the signed bundle,
+APK and mapping file; every push to `main` runs the full check and keeps those outputs as a
+workflow artifact. `tools/release.sh` derives the versionCode from the name (major * 10000 +
+minor * 100 + patch), checks both outputs carry the upload certificate (a build without the
+secrets comes out unsigned on purpose, so the check is what stops it being published), writes
+the notes from the git log, and `tools/release.sh secrets` sets the four signing secrets from
+`keystore.properties` without showing them. A release also uploads the bundle to the Play
+internal testing track through Workload Identity Federation (no key file; repository variables
+`PLAY_WORKLOAD_IDENTITY_PROVIDER` and `PLAY_SERVICE_ACCOUNT`, skipped while unset); closed test
+and production stay manual. Release signing reads the
 `FLUTE_ASSISTANT_STORE_FILE / STORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD` env vars, then the
 gitignored `keystore.properties`; without either the release build is produced unsigned. Never
 read or print the keystore password. Release builds use whole-app R8 (a package-scoped

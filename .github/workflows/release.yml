@@ -1,0 +1,158 @@
+# Every push to main: unit tests, release lint, a signed bundle and APK kept as an artifact.
+# When fluteAssistant.versionName in gradle.properties has no v<name> tag yet, the same run also
+# tags the commit and publishes a GitHub Release with the bundle, the APK and the R8 mapping file,
+# after sending the bundle to the Play internal testing track (Workload Identity Federation, no key
+# file; skipped with a notice while the two PLAY_* repository variables are unset).
+# So a release is: bump the version line, push to main. Design and the reasons for each step:
+# docs/superpowers/specs/2026-10-23-release-workflow-design.md. Secrets: docs/release/README.md.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run at a time and none cancelled: two quick pushes must not race on the same tag.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Check, build and release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write # the tag and the release
+      id-token: write # the identity token Google trades for a short-lived access token
+    steps:
+      - name: Check out with history and tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Work out the version
+        id: version
+        run: tools/release.sh version | tee -a "$GITHUB_OUTPUT"
+
+      - name: Install the upload keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FLUTE_ASSISTANT_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::Repository secret FLUTE_ASSISTANT_KEYSTORE_BASE64 is not set; run tools/release.sh secrets (docs/release/README.md)"
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          echo "FLUTE_ASSISTANT_STORE_FILE=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+
+      - name: Test, lint and build the signed release
+        env:
+          FLUTE_ASSISTANT_STORE_PASSWORD: ${{ secrets.FLUTE_ASSISTANT_STORE_PASSWORD }}
+          FLUTE_ASSISTANT_KEY_ALIAS: ${{ secrets.FLUTE_ASSISTANT_KEY_ALIAS }}
+          FLUTE_ASSISTANT_KEY_PASSWORD: ${{ secrets.FLUTE_ASSISTANT_KEY_PASSWORD }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: >
+          ./gradlew testDebugUnitTest lintRelease bundleRelease assembleRelease
+          -PfluteAssistant.versionCode="$VERSION_CODE"
+
+      - name: Verify the upload signature
+        run: >
+          tools/release.sh verify
+          app/build/outputs/apk/release/app-release.apk
+          app/build/outputs/bundle/release/app-release.aab
+
+      - name: Collect the outputs
+        env:
+          NAME: ${{ steps.version.outputs.name }}
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/bundle/release/app-release.aab "dist/flute-assistant-$NAME.aab"
+          cp app/build/outputs/apk/release/app-release.apk "dist/flute-assistant-$NAME.apk"
+          cp app/build/outputs/mapping/release/mapping.txt "dist/flute-assistant-$NAME-mapping.txt"
+
+      - name: Keep the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: flute-assistant-${{ steps.version.outputs.name }}-${{ steps.version.outputs.code }}
+          path: dist/
+          if-no-files-found: error
+
+      - name: Keep the test and lint reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+          if-no-files-found: ignore
+
+      - name: Decide whether the release goes to Play
+        id: target
+        env:
+          RELEASE: ${{ steps.version.outputs.release }}
+          PROVIDER: ${{ vars.PLAY_WORKLOAD_IDENTITY_PROVIDER }}
+          ACCOUNT: ${{ vars.PLAY_SERVICE_ACCOUNT }}
+        run: |
+          play=false
+          if [ "$RELEASE" = true ] && [ "$GITHUB_REF" = refs/heads/main ]; then
+            if [ -n "$PROVIDER" ] && [ -n "$ACCOUNT" ]; then
+              play=true
+            else
+              echo "::notice::Play upload skipped: set the repository variables PLAY_WORKLOAD_IDENTITY_PROVIDER and PLAY_SERVICE_ACCOUNT (docs/release/README.md)"
+            fi
+          fi
+          echo "play=$play" >> "$GITHUB_OUTPUT"
+
+      # Play goes before the GitHub release on purpose: if Google refuses, no tag exists yet and
+      # the same run can simply be repeated. The reverse order would leave a tag and a release
+      # that skip every retry.
+      - name: Authenticate to Google Cloud
+        id: play-auth
+        if: steps.target.outputs.play == 'true'
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.PLAY_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.PLAY_SERVICE_ACCOUNT }}
+
+      # The bundle already carries the R8 mapping file (BUNDLE-METADATA/.../proguard.map), so
+      # Play gets it from there.
+      - name: Upload to Play internal testing
+        if: steps.target.outputs.play == 'true'
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJson: ${{ steps.play-auth.outputs.credentials_file_path }}
+          packageName: hr.bertlab.fluteassistant
+          releaseFiles: dist/flute-assistant-${{ steps.version.outputs.name }}.aab
+          tracks: internal
+          status: completed
+          releaseName: ${{ steps.version.outputs.name }}
+
+      - name: Publish the release
+        if: steps.version.outputs.release == 'true' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NAME: ${{ steps.version.outputs.name }}
+          CODE: ${{ steps.version.outputs.code }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          tools/release.sh notes "$NAME" "$CODE" > "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "Flute Assistant $NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            dist/*

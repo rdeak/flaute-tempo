@@ -8,11 +8,13 @@ with the **upload key**; Google holds the app signing key (Play App Signing).
 Edit `gradle.properties`:
 
 ```
-fluteAssistant.versionCode=1      # must increase on every upload
-fluteAssistant.versionName=1.0.0  # shown to people
+fluteAssistant.versionName=1.0.0  # shown to people; a new value pushed to main is a release
+fluteAssistant.versionCode=1      # local builds only: CI derives the code from the name
 ```
 
-CI can override both: `./gradlew bundleRelease -PfluteAssistant.versionCode=42`.
+CI passes `-PfluteAssistant.versionCode=<major * 10000 + minor * 100 + patch>`, so 1.0.0 uploads
+as code 10000 and 1.1.0 as 10100, always increasing as long as the name increases (keep minor and
+patch below 100). `tools/release.sh version` prints what CI will use.
 
 ## 2. Signing credentials
 
@@ -25,6 +27,7 @@ CI can override both: `./gradlew bundleRelease -PfluteAssistant.versionCode=42`.
    `keyAlias`, `keyPassword`.
 
 Without either, the release build is produced **unsigned** so the project still compiles anywhere.
+CI gets the environment variables from repository secrets (section 3).
 
 The upload keystore lives at `keystore/flute-assistant-upload.jks` (PKCS12, RSA 2048, alias
 `upload`, valid until 2054). Both the keystore directory and `keystore.properties` are
@@ -88,7 +91,103 @@ asm-exec \
 If the upload key is ever lost, Play Console lets you request an upload key reset
 (Setup > App signing); the app signing key held by Google is unaffected.
 
-## 3. Build and verify
+## 3. Release from CI
+
+`.github/workflows/release.yml` runs on every push to `main` (design:
+`docs/superpowers/specs/2026-10-23-release-workflow-design.md`). Each run does the full check
+(`testDebugUnitTest lintRelease bundleRelease assembleRelease`) signed with the upload key, checks
+that both the APK and the bundle carry the upload certificate (`tools/release.sh verify`; a build
+without the secrets comes out unsigned and must never be published) and keeps the bundle, APK and
+mapping file as a workflow artifact, so any commit can be sideloaded. When
+`fluteAssistant.versionName` has no `v<name>` tag yet, the run also tags the commit and publishes
+GitHub Release `v<name>` with those three files and notes listing the commits since the previous
+release. A release is therefore: bump the version line, push to `main`. A push that does not bump
+just runs the check.
+
+### Secrets, set once
+
+The workflow signs with four repository secrets: `FLUTE_ASSISTANT_KEYSTORE_BASE64` (the PKCS12
+file), `FLUTE_ASSISTANT_STORE_PASSWORD`, `FLUTE_ASSISTANT_KEY_ALIAS` and
+`FLUTE_ASSISTANT_KEY_PASSWORD`. From the machine that has `keystore.properties` and the keystore,
+with `gh` logged in to the repository:
+
+```sh
+tools/release.sh secrets   # pipes the values into gh secret set; nothing is shown or typed
+gh secret list
+```
+
+After an upload key reset, run it again and update `UPLOAD_CERT_SHA256` in `tools/release.sh`
+with the new certificate's SHA-256 from `apksigner verify --print-certs`.
+
+### Redoing a release
+
+An existing tag is skipped. To publish a version again, delete the release together with its tag
+(`gh release delete v1.0.1 --cleanup-tag`) and re-run the workflow or push again. Play never
+accepts the same version code twice, so after a Play upload bump the patch version instead.
+
+### Play upload from CI
+
+When a release is published, the same run first uploads the bundle to the **internal testing**
+track. There is no key file: GitHub's identity token is traded for credentials of the service
+account `github-play-upload@flute-assistent-ci.iam.gserviceaccount.com` (Workload Identity
+Federation; Google Cloud warns against downloaded keys, so never use Add key on that account).
+The Play API only works once a first bundle has been uploaded by hand, which is done.
+
+One-time setup:
+
+1. Play Console, users and permissions: the account above is invited with permission to release
+   to testing tracks. It needs no Google Cloud roles for Play.
+2. Google Cloud, project `flute-assistent-ci`:
+
+```sh
+PROJECT_ID=flute-assistent-ci
+REPO=rdeak/flaute-tempo
+SA=github-play-upload@${PROJECT_ID}.iam.gserviceaccount.com
+
+gcloud services enable androidpublisher.googleapis.com --project="$PROJECT_ID"
+
+gcloud iam workload-identity-pools create github \
+  --project="$PROJECT_ID" --location=global --display-name="GitHub Actions"
+
+# Only this repository's main branch is admitted: forks of the public repo get nothing.
+gcloud iam workload-identity-pools providers create-oidc flute-assistant \
+  --project="$PROJECT_ID" --location=global --workload-identity-pool=github \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref" \
+  --attribute-condition="assertion.repository == '$REPO' && assertion.ref == 'refs/heads/main'"
+
+POOL=$(gcloud iam workload-identity-pools describe github \
+  --project="$PROJECT_ID" --location=global --format="value(name)")
+gcloud iam service-accounts add-iam-policy-binding "$SA" --project="$PROJECT_ID" \
+  --role=roles/iam.workloadIdentityUser \
+  --member="principalSet://iam.googleapis.com/$POOL/attribute.repository/$REPO"
+
+# The provider's resource name goes into the repository variable below. The project number of
+# flute-assistent-ci is 213106687720, so it is
+# projects/213106687720/locations/global/workloadIdentityPools/github/providers/flute-assistant
+gcloud iam workload-identity-pools providers describe flute-assistant \
+  --project="$PROJECT_ID" --location=global --workload-identity-pool=github \
+  --format="value(name)"
+```
+
+3. Repository variables (not secrets, neither value is sensitive), run from the repository:
+
+```sh
+gh variable set PLAY_SERVICE_ACCOUNT --body "github-play-upload@flute-assistent-ci.iam.gserviceaccount.com"
+gh variable set PLAY_WORKLOAD_IDENTITY_PROVIDER --body "projects/213106687720/locations/global/workloadIdentityPools/github/providers/flute-assistant"
+```
+
+While either variable is unset the Play step is skipped with a notice in the run and the GitHub
+release still goes out. The upload goes before the tag, so a Google failure leaves no tag and the
+run can be repeated; if Play accepted the bundle but the GitHub release failed, create the release
+by hand with `gh release create`, because Play never takes the same version code twice.
+
+### What CI does not do
+
+Moving a build from internal testing to a closed test or production stays in Play Console.
+Instrumented tests do not run in CI.
+
+## 4. Build and verify by hand
 
 ```sh
 ./gradlew bundleRelease     # app/build/outputs/bundle/release/app-release.aab (upload this)
@@ -101,12 +200,12 @@ Play Console > Setup > App signing after the first upload.
 
 Before uploading, run the full check: `./gradlew testDebugUnitTest lintRelease bundleRelease`.
 
-## 4. Play Console
+## 5. Play Console
 
 See `play-console.md` for the store listing, data safety, permission and content rating
 answers, and `privacy-policy.md` for the policy text to host.
 
-## 5. Launcher icon, store graphics and screenshots
+## 6. Launcher icon, store graphics and screenshots
 
 The icon is a vector adaptive icon (`res/drawable/ic_launcher_*.xml`) plus legacy PNGs for
 Android 7 (`res/mipmap-*/`). `tools/IconGen.java` renders the PNGs, the 512 px Play icon and the
