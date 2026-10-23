@@ -47,4 +47,4 @@ date.
 
 ## Contact
 
-Questions about this policy: [contact email]
+Questions about this policy: robert.deak@bertlab.hr
