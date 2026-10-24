@@ -14,10 +14,9 @@
 .cxx
 local.properties
 
-# Release signing: the upload keystore and its credentials never enter the repo
 /keystore/
 keystore.properties
 *.jks
 *.keystore
 
-/.superpowers/
+/docs/superpowers/

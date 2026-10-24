@@ -179,10 +179,9 @@ music-school convention (c1) and German H and B in Croatian.
 
 ## How features are built
 
-Each feature has a design spec and an implementation plan in [
-`docs/superpowers/`](docs/superpowers/), written before the code and revised as decisions changed,
-including the layouts that were tried and rejected. They are written and implemented with an AI
-coding agent. [`CLAUDE.md`](CLAUDE.md) holds the working rules for that agent and the most detailed
+Each feature has a design spec and an implementation plan, written before the code and revised as
+decisions changed, including the layouts that were tried and rejected. They are kept outside the
+repository. Features are written and implemented with an AI coding agent. [`CLAUDE.md`](CLAUDE.md) holds the working rules for that agent and the most detailed
 description of the internals, kept in step with the code.
 
 ## Known limits
