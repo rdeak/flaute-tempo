@@ -40,8 +40,11 @@ import hr.bertlab.fluteassistant.ui.common.noteColor
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
 import hr.bertlab.fluteassistant.ui.theme.Sun
 
-/** Where the note column sits, as a fraction of the width; the clef takes the left. */
-private const val NOTE_COLUMN = 0.67f
+/**
+ * Where the note column sits, as a fraction of the width: the middle, clear of the clef on the
+ * left and of a right-handed finger sliding on the right, so the see-through note stays in view.
+ */
+private const val NOTE_COLUMN = 0.5f
 
 /**
  * Room kept above the highest place and below the lowest, in places, so the clef's loop and

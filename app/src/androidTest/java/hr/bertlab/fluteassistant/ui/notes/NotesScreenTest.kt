@@ -177,7 +177,7 @@ class NotesScreenTest {
         val before = staff.captureToImage().toPixelMap()
         compose.runOnIdle { state.value = state.value.copy(wrongTaps = setOf(62), lastWrongTap = 62, taps = 1) }
         val after = staff.captureToImage().toPixelMap()
-        val columns = (after.width * 0.6f).toInt()..(after.width * 0.74f).toInt()
+        val columns = (after.width * 0.42f).toInt()..(after.width * 0.58f).toInt()
         val changed = (0 until after.height).filter { y -> columns.any { x -> before[x, y] != after[x, y] } }
         assertTrue("no cross painted", changed.isNotEmpty())
         val d4 = compose.onNodeWithContentDescription("Staff position 2").getBoundsInRoot()

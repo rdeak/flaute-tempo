@@ -210,8 +210,8 @@ secondary constructor for deterministic tests. `NoteStaff` draws the staff on a 
 and its two neighbouring spaces, d1 to g2, plus the ledger-line places c1, a2, h2, c3 only as
 far as a chosen note needs them, `StaffNotes.visiblePositions`, their ledger lines dashed; every
 place a full-width band, the spaces tinted, the lines thick; a small, faint hand-built clef whose
-curl sits on the G line; one note column at 67 % of the width, after the user rejected a
-two-column split). The child answers by touch and slide: a finger down shows a see-through note
+curl sits on the G line; one note column in the middle of the width, clear of a right-handed
+finger sliding on the right, after the user rejected a two-column split). The child answers by touch and slide: a finger down shows a see-through note
 on the nearest place and turns its band yellow (`placing`, hoisted to `NotesContent` for the
 "Slide, let go" line), it follows the finger with a haptic tick per place, lifting it answers,
 sliding off the staff cancels. A miss is a cross inside its own place (`CROSS_RADIUS` 0.45 of the
