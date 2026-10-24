@@ -6,6 +6,7 @@ import hr.bertlab.fluteassistant.domain.model.BeatStrength
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.Preset
 import hr.bertlab.fluteassistant.domain.model.TimeSignature
+import kotlin.math.roundToInt
 
 /** One-shot messages the screen shows in a snackbar (mapped to string resources in the UI). */
 enum class MetronomeMessage { AUDIO_UNAVAILABLE, SAVE_FAILED, DELETE_FAILED }
@@ -28,47 +29,65 @@ data class MetronomeUiState(
 )
 
 /**
- * How a tempo feels, in words a child understands: an emoji plus a localised word
- * ("🐢 Slow") instead of BPM figures or Italian markings.
+ * The ring's five speeds, each an animal a child knows to be slow or fast instead of a BPM
+ * figure or an Italian marking. A band runs from [fromBpm] to the next band's start; each
+ * takes a fifth of the ring however many tempos it spans ([dialFraction]), so the slow
+ * tempos a beginner lives in get as much room as the fast ones.
  */
-enum class TempoFeel(val emoji: String, @StringRes val labelRes: Int) {
-    VERY_SLOW("\uD83D\uDC0C", R.string.feel_very_slow), // snail
-    SLOW("\uD83D\uDC22", R.string.feel_slow), // turtle
-    MEDIUM("\uD83D\uDEB6", R.string.feel_medium), // person walking
-    FAST("\uD83C\uDFC3", R.string.feel_fast), // person running
-    SUPER_FAST("\uD83D\uDE80", R.string.feel_super_fast), // rocket
+enum class TempoBand(val fromBpm: Int, val emoji: String, @StringRes val labelRes: Int) {
+    SNAIL(40, "\uD83D\uDC0C", R.string.band_snail), // snail
+    TURTLE(60, "\uD83D\uDC22", R.string.band_turtle), // turtle
+    DUCK(80, "\uD83E\uDD86", R.string.band_duck), // duck
+    RABBIT(100, "\uD83D\uDC07", R.string.band_rabbit), // rabbit
+    CHEETAH(130, "\uD83D\uDC06", R.string.band_cheetah); // leopard
+
+    /** Tempo a tap on the band jumps to: its start, except that a second tap on the rabbit goes on to 120. */
+    fun jumpFrom(bpm: Int): Int = if (this == RABBIT && bpm == fromBpm) RABBIT_SECOND_BPM else fromBpm
+
+    companion object {
+        /** The ring's range: slower than a snail or faster than a cheetah is not for a child's practice. */
+        const val MIN_BPM = 40
+        const val MAX_BPM = 200
+        private const val RABBIT_SECOND_BPM = 120
+    }
 }
 
-fun tempoFeel(bpm: Int): TempoFeel = when {
-    bpm < 60 -> TempoFeel.VERY_SLOW
-    bpm < 90 -> TempoFeel.SLOW
-    bpm < 120 -> TempoFeel.MEDIUM
-    bpm < 160 -> TempoFeel.FAST
-    else -> TempoFeel.SUPER_FAST
+fun tempoBand(bpm: Int): TempoBand = TempoBand.entries.lastOrNull { bpm >= it.fromBpm } ?: TempoBand.SNAIL
+
+/** Where [bpm] sits along the ring, 0 at the slow end to 1 at the fast end. */
+fun dialFraction(bpm: Int): Float {
+    val clamped = bpm.coerceIn(TempoBand.MIN_BPM, TempoBand.MAX_BPM)
+    val band = tempoBand(clamped)
+    val bandEnd = TempoBand.entries.getOrNull(band.ordinal + 1)?.fromBpm ?: TempoBand.MAX_BPM
+    val within = (clamped - band.fromBpm).toFloat() / (bandEnd - band.fromBpm)
+    return (band.ordinal + within) / TempoBand.entries.size
 }
 
-/**
- * Practice tempos a primary-school flute student grows through, so a child can jump straight
- * to "where I should be" instead of counting up with − / +. Labelled with an emoji and a word,
- * never the number; the ring shows that. The ladder is a teaching convention, not engine data,
- * which is why it lives here beside [TempoFeel].
- */
-enum class SkillLevel(val bpm: Int, val emoji: String, @StringRes val labelRes: Int) {
-    BEGINNER(60, "\uD83C\uDF31", R.string.level_beginner), // seedling
-    LEARNER(80, "\uD83C\uDF3F", R.string.level_learner), // herb
-    STAR(100, "\u2B50", R.string.level_star), // star
-    MASTER(120, "\uD83C\uDFC6", R.string.level_master), // trophy
+/** The tempo at [fraction] of the way along the ring; the inverse of [dialFraction]. */
+fun bpmAtDialFraction(fraction: Float): Int {
+    val scaled = fraction.coerceIn(0f, 1f) * TempoBand.entries.size
+    val band = TempoBand.entries[scaled.toInt().coerceAtMost(TempoBand.entries.size - 1)]
+    val bandEnd = TempoBand.entries.getOrNull(band.ordinal + 1)?.fromBpm ?: TempoBand.MAX_BPM
+    return (band.fromBpm + (scaled - band.ordinal) * (bandEnd - band.fromBpm)).roundToInt()
+        .coerceIn(TempoBand.MIN_BPM, TempoBand.MAX_BPM)
 }
-
-/** The level whose tempo is exactly [bpm], or null when the child has nudged in between. */
-fun skillLevelFor(bpm: Int): SkillLevel? = SkillLevel.entries.firstOrNull { it.bpm == bpm }
 
 /*
- * The beats-in-a-bar stepper walks the engine's display order and wraps at both ends, so
- * the signatures at the far end are a couple of taps backwards instead of nine forwards.
+ * The − / + beat buttons step through one bar per beat count, two to six: a child counts
+ * bubbles, not fractions, so 3/8 and 2/2 are not offered (they click like 3/4 and 2/4) and
+ * six beats are the lilting 6/8. The longer bars stay in the engine for an advanced mode; a
+ * stored one still shows, and the buttons step from it onto this ladder.
  */
-fun TimeSignature.next(): TimeSignature =
-    TimeSignature.entries[(ordinal + 1) % TimeSignature.entries.size]
+private val BEAT_LADDER = listOf(
+    TimeSignature.TWO_FOUR,
+    TimeSignature.THREE_FOUR,
+    TimeSignature.FOUR_FOUR,
+    TimeSignature.FIVE_FOUR,
+    TimeSignature.SIX_EIGHT,
+)
 
-fun TimeSignature.previous(): TimeSignature =
-    TimeSignature.entries[(ordinal - 1 + TimeSignature.entries.size) % TimeSignature.entries.size]
+/** One beat fewer, or null at two. */
+fun TimeSignature.fewerBeats(): TimeSignature? = BEAT_LADDER.lastOrNull { it.beatsPerBar < beatsPerBar }
+
+/** One beat more, or null at six. */
+fun TimeSignature.moreBeats(): TimeSignature? = BEAT_LADDER.firstOrNull { it.beatsPerBar > beatsPerBar }

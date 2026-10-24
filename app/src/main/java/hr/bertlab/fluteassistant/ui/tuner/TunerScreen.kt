@@ -10,13 +10,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,45 +28,45 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.tuner.FluteFingerings
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
-import hr.bertlab.fluteassistant.ui.common.AppIcons
+import hr.bertlab.fluteassistant.ui.common.BigActionButton
+import hr.bertlab.fluteassistant.ui.common.ChunkyButton
+import hr.bertlab.fluteassistant.ui.common.Emoji
+import hr.bertlab.fluteassistant.ui.common.NoteBubble
+import hr.bertlab.fluteassistant.ui.common.OutlineWidth
+import hr.bertlab.fluteassistant.ui.common.Stage
+import hr.bertlab.fluteassistant.ui.common.chunky
+import hr.bertlab.fluteassistant.ui.common.fitOrScroll
 import hr.bertlab.fluteassistant.ui.common.labelRes
+import hr.bertlab.fluteassistant.ui.common.noteColor
 import hr.bertlab.fluteassistant.ui.common.noteLabel
-import hr.bertlab.fluteassistant.ui.theme.InTuneGreen
-import hr.bertlab.fluteassistant.ui.theme.InTuneGreenText
-import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRed
-import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRedText
-import hr.bertlab.fluteassistant.ui.theme.SlightlyOffAmber
-import hr.bertlab.fluteassistant.ui.theme.SlightlyOffAmberText
-import kotlin.math.abs
+import hr.bertlab.fluteassistant.ui.theme.FluteTheme
+import hr.bertlab.fluteassistant.ui.theme.Go
+import hr.bertlab.fluteassistant.ui.theme.Sun
 
 /**
  * Stateful entry point: handles the RECORD_AUDIO permission and starts / stops the microphone
@@ -121,13 +124,13 @@ fun TunerScreen(
 }
 
 /**
- * The whole tuner: either the name of the note being played ([TunerMode.IDENTIFY]) or the
- * wheel with the note the child chose to play ([TunerMode.TARGET], with a speaker button to
- * hear it), that note's fingering, the gauge measuring against it, one friendly status line
- * (which names the heard note when it is not the chosen one), under it one quieter advice
- * line saying what to change (always present, empty when there is nothing to say, so
- * nothing moves), and the two mode pills at the bottom. No numbers beyond the octave in the
- * note name: a child only needs to know whether to go up or down.
+ * The whole tuner: the two mode pills on top, then a stage with either the note the child
+ * chose to play ([TunerMode.TARGET], with ‹ › to change it and a button to hear it) or the
+ * note being played ([TunerMode.IDENTIFY]) beside the face meter measuring against it, that
+ * note's fingering, one friendly status line (which names the heard note when it is not the
+ * chosen one) and under it one quieter advice line saying what to change (always present,
+ * empty when there is nothing to say, so nothing moves). No numbers beyond the octave in
+ * the note name: a child only needs to know whether to go up or down.
  */
 @Composable
 fun TunerContent(
@@ -139,118 +142,106 @@ fun TunerContent(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Spacer(Modifier.height(24.dp))
-
-        if (!state.permissionGranted) {
-            PermissionCard(onRequestPermission = onRequestPermission, onOpenSettings = onOpenSettings)
-        } else {
-            val cents = state.gaugeCents
-            val status = state.status
-            // The gauge keeps the bright zone colours; text uses darker ones on the light
-            // surface so "Perfect!" stays readable.
-            val dark = isSystemInDarkTheme()
-            val inTune = if (dark) InTuneGreen else InTuneGreenText
-            val slightlyOff = if (dark) SlightlyOffAmber else SlightlyOffAmberText
-            val farOff = if (dark) OutOfTuneRed else OutOfTuneRedText
-            val statusColor = when (status) {
-                TuningStatus.NONE -> MaterialTheme.colorScheme.onSurfaceVariant
-                TuningStatus.IN_TUNE -> inTune
-                TuningStatus.LOW, TuningStatus.HIGH ->
-                    if (abs(cents ?: 0.0) <= TunerUiState.SLIGHTLY_OFF_CENTS) slightlyOff else farOff
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fitOrScroll(fits = maxHeight >= TunerMinHeight, minHeight = TunerMinHeight)
+                .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            if (!state.permissionGranted) {
+                PermissionCard(
+                    onRequestPermission = onRequestPermission,
+                    onOpenSettings = onOpenSettings,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                )
+                return@Column
             }
 
-            // Same height in both modes so the gauge does not jump when switching.
-            Box(
+            TunerModeChoice(mode = state.mode, onSelect = onModeChange)
+
+            Stage(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(NoteWheelHeight),
-                contentAlignment = Alignment.Center,
+                    .weight(1f),
             ) {
-                when (state.mode) {
-                    TunerMode.TARGET -> NoteWheel(
-                        targetMidi = state.targetMidi,
-                        onTargetChange = onTargetNoteChange,
-                        inTune = status == TuningStatus.IN_TUNE,
-                        onPlay = onPlayNote,
-                        isPlaying = state.isPlayingReference,
-                        modifier = Modifier.fillMaxWidth(),
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .height(300.dp),
+                ) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
+                        when (state.mode) {
+                            TunerMode.TARGET -> TargetNote(
+                                targetMidi = state.targetMidi,
+                                onTargetChange = onTargetNoteChange,
+                                onPlay = onPlayNote,
+                                isPlaying = state.isPlayingReference,
+                            )
+                            TunerMode.IDENTIFY -> NoteBubble(
+                                midi = state.reading?.midi,
+                                size = 140.dp,
+                                fontSize = 68.sp,
+                                placeholder = "\u2026",
+                            )
+                        }
+                    }
+                    TuningGauge(cents = state.gaugeCents, modifier = Modifier.fillMaxHeight())
+                }
+
+                // Which keys to press: for the chosen note, or for whatever is being played.
+                val fingeredMidi = when (state.mode) {
+                    TunerMode.TARGET -> state.targetMidi
+                    TunerMode.IDENTIFY -> state.reading?.midi
+                }
+                FingeringDiagram(
+                    keys = fingeredMidi?.let(FluteFingerings::keysFor),
+                    noteLabel = fingeredMidi?.let { noteLabel(it) },
+                    color = fingeredMidi?.let(::noteColor) ?: FluteTheme.colors.raised,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(FINGERING_ASPECT_RATIO),
+                )
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    StatusLine(
+                        status = state.status,
+                        targetNote = noteLabel(state.targetMidi).takeIf { state.mode == TunerMode.TARGET },
+                        mismatch = state.mismatch,
+                        heardNote = state.reading?.let { noteLabel(it.midi) },
+                        playing = state.isPlayingReference,
                     )
-                    TunerMode.IDENTIFY -> Text(
-                        text = state.reading?.let { noteLabel(it.midi) } ?: "…",
-                        style = MaterialTheme.typography.displayLarge,
-                        color = when (status) {
-                            TuningStatus.IN_TUNE -> inTune
-                            TuningStatus.NONE -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                            else -> MaterialTheme.colorScheme.onSurface
-                        },
-                    )
+                    AdviceLine(state.advice)
+                    state.errorMessage?.let { message ->
+                        Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
+                    }
                 }
             }
-
-            // Which keys to press: for the chosen note, or for whatever is being played.
-            val fingeredMidi = when (state.mode) {
-                TunerMode.TARGET -> state.targetMidi
-                TunerMode.IDENTIFY -> state.reading?.midi
-            }
-            Spacer(Modifier.height(8.dp))
-            FingeringDiagram(
-                keys = fingeredMidi?.let(FluteFingerings::keysFor),
-                noteLabel = fingeredMidi?.let { noteLabel(it) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp),
-            )
-
-            Spacer(Modifier.height(8.dp))
-            TuningGauge(
-                cents = cents,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1.9f),
-            )
-
-            Spacer(Modifier.height(20.dp))
-            StatusLine(
-                status = status,
-                color = statusColor,
-                targetNote = noteLabel(state.targetMidi).takeIf { state.mode == TunerMode.TARGET },
-                mismatch = state.mismatch,
-                heardNote = state.reading?.let { noteLabel(it.midi) },
-                playing = state.isPlayingReference,
-            )
-            Spacer(Modifier.height(4.dp))
-            AdviceLine(state.advice)
-
-            state.errorMessage?.let { message ->
-                Spacer(Modifier.height(16.dp))
-                Text(message, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-            }
-
-            Spacer(Modifier.height(20.dp))
-            TunerModeChoice(mode = state.mode, onSelect = onModeChange)
         }
-        Spacer(Modifier.height(24.dp))
     }
 }
 
+/**
+ * The note and the meter shrink to fit a small phone; only below this height (split screen, a
+ * tiny phone) does the tab scroll instead.
+ */
+private val TunerMinHeight = 440.dp
+
 private val TunerMode.emoji: String
     get() = when (this) {
-        TunerMode.IDENTIFY -> "🔍"
-        TunerMode.TARGET -> "🎯"
+        TunerMode.IDENTIFY -> "\uD83D\uDD0D" // magnifying glass
+        TunerMode.TARGET -> "\uD83C\uDFAF" // direct hit
     }
 
 /**
- * Two pills at the bottom of the tuner, an emoji and a few words each: "Which note?" names
- * whatever is played, "Tune to a note" measures against the note in the wheel. The chosen
- * one is filled.
+ * Two chunky pills on top of the tuner, an emoji and a word each: "Which?" names whatever
+ * is played, "Tune" measures against the note the child chose. The chosen one is yellow.
  */
 @Composable
 private fun TunerModeChoice(mode: TunerMode, onSelect: (TunerMode) -> Unit) {
@@ -258,27 +249,27 @@ private fun TunerModeChoice(mode: TunerMode, onSelect: (TunerMode) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(bottom = 5.dp)
             .selectableGroup()
             .semantics { contentDescription = groupLabel },
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         TunerMode.entries.forEach { entry ->
             val isSelected = entry == mode
-            Surface(
-                selected = isSelected,
+            ChunkyButton(
                 onClick = { onSelect(entry) },
-                shape = CircleShape,
-                color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant,
+                selected = isSelected,
+                color = if (isSelected) Sun else FluteTheme.colors.raised,
+                depth = 5.dp,
                 modifier = Modifier
                     .weight(1f)
-                    .height(56.dp)
-                    .semantics { role = Role.RadioButton },
+                    .height(64.dp),
             ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Emoji(entry.emoji, fontSize = 26)
                     Text(
-                        text = "${entry.emoji} ${stringResource(entry.labelRes())}",
-                        style = MaterialTheme.typography.labelLarge,
+                        text = stringResource(entry.labelRes()),
+                        style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -293,12 +284,12 @@ private fun TunerModeChoice(mode: TunerMode, onSelect: (TunerMode) -> Unit) {
  * asks for any note, and while the reference note is [playing] it says to listen. When the
  * child plays a different note from the chosen one ([mismatch]) the line says which note it
  * was ([heardNote]), or that it is the octave above or below. What to change about it is
- * the advice line's business ([AdviceLine]). It bounces in when the note comes into tune.
+ * the advice line's business ([AdviceLine]). It bounces in when the note comes into tune,
+ * and shrinks rather than wraps when the words are long.
  */
 @Composable
 private fun StatusLine(
     status: TuningStatus,
-    color: Color,
     targetNote: String?,
     mismatch: TargetMismatch,
     heardNote: String?,
@@ -330,74 +321,101 @@ private fun StatusLine(
                 else -> stringResource(R.string.too_high)
             }
         },
-        style = MaterialTheme.typography.titleLarge,
-        color = color,
-        modifier = Modifier.graphicsLayer {
-            scaleX = scale.value
-            scaleY = scale.value
-        },
+        style = MaterialTheme.typography.headlineMedium,
+        textAlign = TextAlign.Center,
+        maxLines = 1,
+        autoSize = TextAutoSize.StepBased(minFontSize = 18.sp, maxFontSize = 32.sp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(40.dp)
+            .graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+            },
     )
 }
 
 /**
  * The quieter line under the status saying what to change: roll the flute, the air, the
  * fingers, come closer, or play a clear note. Empty text for [TunerAdvice.NONE] keeps the
- * line's height, so the gauge and the mode pills never move when advice comes and goes.
+ * line's height, so nothing above it moves when advice comes and goes.
  */
 @Composable
 private fun AdviceLine(advice: TunerAdvice) {
     Text(
         text = advice.labelRes()?.let { stringResource(it) } ?: "",
         style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = FluteTheme.colors.mutedText,
         textAlign = TextAlign.Center,
-        minLines = 1,
         maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.fillMaxWidth(),
+        autoSize = TextAutoSize.StepBased(minFontSize = 14.sp, maxFontSize = 22.sp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(28.dp),
     )
 }
 
+/**
+ * Shown until the microphone may be used: a big friendly microphone, one question, one
+ * reassuring line, a big "Yes" that asks the phone, and a quieter way to the app's settings
+ * for when the phone will not ask again.
+ */
 @Composable
-private fun PermissionCard(onRequestPermission: () -> Unit, onOpenSettings: () -> Unit) {
-    Card(
-        shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+private fun PermissionCard(onRequestPermission: () -> Unit, onOpenSettings: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = FluteTheme.colors
+    Stage(modifier = modifier) {
         Column(
-            modifier = Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterVertically),
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(rememberScrollState()),
         ) {
-            Icon(
-                AppIcons.Mic,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(64.dp),
-            )
-            Spacer(Modifier.height(16.dp))
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(160.dp)
+                    .chunky(CircleShape, Sun, colors.outline, depth = 8.dp),
+            ) {
+                Emoji(MICROPHONE_EMOJI, fontSize = 80)
+            }
             Text(
                 text = stringResource(R.string.mic_permission_title),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 34.sp, lineHeight = 42.sp),
                 textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 12.dp),
             )
-            Spacer(Modifier.height(8.dp))
             Text(
                 text = stringResource(R.string.mic_permission_body),
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 30.sp),
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.mutedText,
             )
-            Spacer(Modifier.height(20.dp))
-            Button(
-                onClick = onRequestPermission,
-                shape = CircleShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-            ) {
-                Text(stringResource(R.string.allow_microphone), style = MaterialTheme.typography.titleMedium)
-            }
-            TextButton(onClick = onOpenSettings) { Text(stringResource(R.string.open_settings)) }
+        }
+        Spacer(Modifier.height(12.dp))
+        BigActionButton(
+            emoji = THUMBS_UP_EMOJI,
+            text = stringResource(R.string.allow_microphone),
+            color = Go,
+            onClick = onRequestPermission,
+        )
+        Spacer(Modifier.height(20.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .height(56.dp)
+                .clip(CircleShape)
+                .border(OutlineWidth, colors.border, CircleShape)
+                .clickable(role = Role.Button, onClick = onOpenSettings)
+                .padding(horizontal = 24.dp),
+        ) {
+            Emoji(GEAR_EMOJI, fontSize = 22)
+            Text(stringResource(R.string.open_settings), style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp))
         }
     }
 }
+
+private const val MICROPHONE_EMOJI = "\uD83C\uDFA4" // microphone
+private const val THUMBS_UP_EMOJI = "\uD83D\uDC4D" // thumbs up
+private const val GEAR_EMOJI = "\u2699\uFE0F" // gear

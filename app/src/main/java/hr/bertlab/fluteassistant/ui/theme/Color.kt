@@ -1,59 +1,100 @@
 package hr.bertlab.fluteassistant.ui.theme
 
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 /*
- * A fixed, playful palette for a children's app: coral, teal and sunny yellow on cream
- * (light) or deep navy (dark). Wallpaper-based dynamic colour is deliberately not used so
- * the app looks the same on every child's phone.
+ * A fixed, playful palette for a children's app, taken from the Claude Design canvas: white
+ * cards on sky blue (light) or deep navy (dark), thick ink outlines, and bright fills that
+ * mean the same thing everywhere (yellow = chosen, green = go, coral = stop, one colour per
+ * note letter). Wallpaper-based dynamic colour is deliberately not used so the app looks the
+ * same on every child's phone. Text on a bright fill is always [InkOnFill], in both themes.
  */
 
-// Light
-val CoralLight = Color(0xFFF4543A)
-val OnCoralLight = Color(0xFFFFFFFF)
-val CoralContainerLight = Color(0xFFFFDCD1)
-val OnCoralContainerLight = Color(0xFF5A1A08)
-val TealLight = Color(0xFF1FA8A0)
-val OnTealLight = Color(0xFFFFFFFF)
-val TealContainerLight = Color(0xFFD3F3F1)
-val OnTealContainerLight = Color(0xFF00403D)
-val SunLight = Color(0xFFFFC43D)
-val OnSunLight = Color(0xFF3D2A00)
-val SunContainerLight = Color(0xFFFFF0C2)
-val OnSunContainerLight = Color(0xFF3D2A00)
-val CreamSurface = Color(0xFFFFF9F0)
-val OnCreamSurface = Color(0xFF2B2D42)
-val PeachSurfaceVariant = Color(0xFFFFDFC4)
-val OnPeachSurfaceVariant = Color(0xFF6B5A4E)
-val OutlineLight = Color(0xFFB89E8C)
-val StopRedLight = Color(0xFFC62828)
+// Bright fills, the same in both themes.
+val Sun = Color(0xFFFFD93D)
+val Go = Color(0xFF5BE07E)
+val Stop = Color(0xFFFF8A80)
+val InkOnFill = Color(0xFF1F2440)
 
-// Dark
-val CoralDark = Color(0xFFFF8F73)
-val OnCoralDark = Color(0xFF4A1507)
-val CoralContainerDark = Color(0xFF7A2A14)
-val OnCoralContainerDark = Color(0xFFFFDCD1)
-val TealDark = Color(0xFF5ED3CB)
-val OnTealDark = Color(0xFF00403D)
-val TealContainerDark = Color(0xFF0E5A56)
-val OnTealContainerDark = Color(0xFFD3F3F1)
-val SunDark = Color(0xFFFFD66B)
-val OnSunDark = Color(0xFF3D2A00)
-val SunContainerDark = Color(0xFF5C4300)
-val OnSunContainerDark = Color(0xFFFFF0C2)
-val NavySurface = Color(0xFF1E1B2E)
-val OnNavySurface = Color(0xFFF4EFEA)
-val NavySurfaceVariant = Color(0xFF3A3550)
-val OnNavySurfaceVariant = Color(0xFFCFC6DA)
-val OutlineDark = Color(0xFF8F86A3)
-val StopRedDark = Color(0xFFE5453A)
+/**
+ * One colour per note letter (C red to B pink, the order of a rainbow), used for a note
+ * wherever it appears: name bubbles, fingering keys, the staff, the flute keys and the tune.
+ */
+val NoteLetterColors = listOf(
+    Color(0xFFFF6B6B), // C
+    Color(0xFFFFA047), // D
+    Color(0xFFFFD93D), // E
+    Color(0xFF7BD67B), // F
+    Color(0xFF5FD3C8), // G
+    Color(0xFFB39DDB), // A
+    Color(0xFFF7A1C4), // B (H in Croatian)
+)
 
-// Semantic colours shared by the metronome flasher and the tuner gauge.
-val InTuneGreen = Color(0xFF2ECC71)
-val SlightlyOffAmber = Color(0xFFF5A623)
-val OutOfTuneRed = Color(0xFFE74C3C)
+/** Everything that changes between light and dark; read it through [FluteTheme.colors]. */
+@Immutable
+data class FluteColors(
+    /** Behind everything. */
+    val page: Color,
+    /** The big rounded stage each tab draws on, and the bars. */
+    val card: Color,
+    /** A plain (white in light mode) button. */
+    val raised: Color,
+    /** Quiet fills inside a card: the dial's centre, idle beat bubbles, the fingering track. */
+    val track: Color,
+    /** Thin borders of cards and of things that cannot be pressed. */
+    val border: Color,
+    /** The thick outline and the solid shadow of everything that can be pressed. */
+    val outline: Color,
+    val text: Color,
+    val mutedText: Color,
+    /** The tint of the staff's spaces in the note game. */
+    val staffSpace: Color,
+    /** The metronome ring's five speed bands, slowest first. */
+    val tempoBands: List<Color>,
+    /** The tuner meter: the green "in tune" band and the two "off" ends. */
+    val gaugeInTune: Color,
+    val gaugeOff: Color,
+)
 
-// Darker versions of the same meanings for text on the light cream surface.
-val InTuneGreenText = Color(0xFF178F4B)
-val SlightlyOffAmberText = Color(0xFFB86A00)
-val OutOfTuneRedText = Color(0xFFC62828)
+val LightFluteColors = FluteColors(
+    page = Color(0xFFEAF4FF),
+    card = Color(0xFFFFFFFF),
+    raised = Color(0xFFFFFFFF),
+    track = Color(0xFFE3ECF8),
+    border = Color(0xFFC3D2E8),
+    outline = Color(0xFF1F2440),
+    text = Color(0xFF1F2440),
+    mutedText = Color(0xFF4F5878),
+    staffSpace = Color(0xFFF1F6FD),
+    tempoBands = listOf(
+        Color(0xFFBCD7FF),
+        Color(0xFFB2E7C0),
+        Color(0xFFFFE58A),
+        Color(0xFFFFC690),
+        Color(0xFFFFA0A0),
+    ),
+    gaugeInTune = Color(0xFF7EE3A0),
+    gaugeOff = Color(0xFFFFC48A),
+)
+
+val DarkFluteColors = FluteColors(
+    page = Color(0xFF171A2E),
+    card = Color(0xFF23284A),
+    raised = Color(0xFF2F365C),
+    track = Color(0xFF2F365C),
+    border = Color(0xFF3E4670),
+    outline = Color(0xFF090B18),
+    text = Color(0xFFF4F6FF),
+    mutedText = Color(0xFFBAC2E0),
+    staffSpace = Color(0xFF2A3055),
+    tempoBands = listOf(
+        Color(0xFF5C7FC0),
+        Color(0xFF4E9B67),
+        Color(0xFFC9A93A),
+        Color(0xFFC9854A),
+        Color(0xFFC25C5C),
+    ),
+    gaugeInTune = Color(0xFF2E9E5B),
+    gaugeOff = Color(0xFFB8743A),
+)

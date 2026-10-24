@@ -2,36 +2,31 @@ package hr.bertlab.fluteassistant.ui.notes
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import hr.bertlab.fluteassistant.domain.notes.StaffNotes
-import hr.bertlab.fluteassistant.ui.common.LocaleProvider
-import hr.bertlab.fluteassistant.ui.theme.InTuneGreen
-import hr.bertlab.fluteassistant.ui.theme.InTuneGreenText
-import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRed
-import hr.bertlab.fluteassistant.ui.theme.OutOfTuneRedText
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import hr.bertlab.fluteassistant.domain.notes.StaffNotes
+import hr.bertlab.fluteassistant.ui.common.LocaleProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Locale
-import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class NotesScreenTest {
@@ -63,35 +58,37 @@ class NotesScreenTest {
     /** A round in progress asking [midi], with the default notes chosen. */
     private fun asking(midi: Int = 60) = NotesUiState(practiceNotes = StaffNotes.DEFAULT_PRACTICE, currentMidi = midi)
 
-        @Test
+    private val staffDescription = "Staff, press where the note goes and let go"
+
+    @Test
     fun shows_the_note_name_as_the_whole_question() {
         show(asking(60))
+        compose.onNodeWithText("🔎 Find").assertIsDisplayed()
         compose.onNodeWithText("C4").assertIsDisplayed()
-        compose.onNodeWithText("👆 Where is C4?").assertDoesNotExist() // the name says it already
         compose.onNodeWithText("🎉 That's it!").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Staff, tap where the note goes").assertExists()
+        compose.onNodeWithContentDescription(staffDescription).assertExists()
         compose.onNodeWithContentDescription("Round progress, 0 of 10 notes").assertExists()
     }
 
     @Test
-    fun the_choose_button_sits_beside_the_note_name() {
+    fun the_pick_button_sits_beside_the_note_name() {
         show(asking(60))
         val name = compose.onNodeWithText("C4").getBoundsInRoot()
         val button = compose.onNodeWithContentDescription("Choose notes").getBoundsInRoot()
         assertTrue("button $button should be right of the name $name", button.left >= name.right)
         val nameMiddle = (name.top + name.bottom) / 2
         assertTrue("button $button should share the name's row $name", button.top <= nameMiddle && button.bottom >= nameMiddle)
-        compose.onNodeWithText("🎵 Choose notes").assertDoesNotExist() // the old bottom pill is gone
+        compose.onNodeWithText("Pick").assertIsDisplayed()
     }
 
     @Test
-    fun the_round_dots_sit_below_the_staff_and_its_feedback() {
-        show(asking(60).copy(wrongTaps = setOf(62), taps = 1))
-        val staff = compose.onNodeWithContentDescription("Staff, tap where the note goes").getBoundsInRoot()
-        val feedback = compose.onNodeWithText("🙈 Not there, try again").getBoundsInRoot()
-        val dots = compose.onNodeWithContentDescription("Round progress, 0 of 10 notes").getBoundsInRoot()
+    fun the_round_stars_sit_below_the_staff_and_its_feedback() {
+        show(asking(60).copy(wrongTaps = setOf(62), lastWrongTap = 62, taps = 1))
+        val staff = compose.onNodeWithContentDescription(staffDescription).getBoundsInRoot()
+        val feedback = compose.onNodeWithText("🙈 Try again").getBoundsInRoot()
+        val stars = compose.onNodeWithContentDescription("Round progress, 0 of 10 notes").getBoundsInRoot()
         assertTrue("feedback $feedback should be under the staff $staff", feedback.top >= staff.bottom)
-        assertTrue("dots $dots should be under the feedback $feedback", dots.top >= feedback.bottom)
+        assertTrue("stars $stars should be under the feedback $feedback", stars.top >= feedback.bottom)
     }
 
     @Test
@@ -100,6 +97,35 @@ class NotesScreenTest {
         compose.onNodeWithContentDescription("Staff position 1").performClick()
         compose.onNodeWithContentDescription("Staff position 15").performClick()
         assertEquals(listOf(60, 84), tapped)
+    }
+
+    @Test
+    fun a_finger_on_the_staff_places_the_note_and_letting_go_answers() {
+        show(asking(60))
+        val c4 = compose.onNodeWithContentDescription("Staff position 1").getBoundsInRoot()
+        val d4 = compose.onNodeWithContentDescription("Staff position 2").getBoundsInRoot()
+        val staff = compose.onNodeWithContentDescription(staffDescription)
+        val top = staff.getBoundsInRoot().top
+        val x = with(compose.density) { 100.dp.toPx() }
+        fun yOf(place: DpRect) = with(compose.density) { ((place.top + place.bottom) / 2 - top).toPx() }
+
+        staff.performTouchInput { down(Offset(x, yOf(d4))) }
+        compose.onNodeWithText("👆 Slide, let go").assertIsDisplayed()
+        assertTrue("nothing is answered while the finger is down", tapped.isEmpty())
+        staff.performTouchInput { moveTo(Offset(x, yOf(c4))) }
+        staff.performTouchInput { up() }
+        assertEquals(listOf(60), tapped)
+        compose.onNodeWithText("👆 Slide, let go").assertDoesNotExist()
+    }
+
+    @Test
+    fun sliding_off_the_staff_answers_nothing() {
+        show(asking(60))
+        val staff = compose.onNodeWithContentDescription(staffDescription)
+        staff.performTouchInput { down(center) }
+        staff.performTouchInput { moveTo(Offset(centerX, -200f)) }
+        staff.performTouchInput { up() }
+        assertTrue("a slide off the staff is a change of mind", tapped.isEmpty())
     }
 
     @Test
@@ -119,10 +145,10 @@ class NotesScreenTest {
     @Test
     fun the_staff_takes_the_height_left_on_the_screen() {
         show(asking(60))
-        val staff = compose.onNodeWithContentDescription("Staff, tap where the note goes").getBoundsInRoot()
-        val dots = compose.onNodeWithContentDescription("Round progress, 0 of 10 notes").getBoundsInRoot()
+        val staff = compose.onNodeWithContentDescription(staffDescription).getBoundsInRoot()
+        val stars = compose.onNodeWithContentDescription("Round progress, 0 of 10 notes").getBoundsInRoot()
         assertTrue("staff $staff should be far taller than a fixed 390 dp", staff.height >= 450.dp)
-        assertTrue("dots $dots should sit at the bottom, under the staff $staff", dots.top >= staff.bottom)
+        assertTrue("stars $stars should sit at the bottom, under the staff $staff", stars.top >= staff.bottom)
     }
 
     @Test
@@ -141,54 +167,42 @@ class NotesScreenTest {
     }
 
     @Test
-    fun marks_stay_inside_their_own_place() {
-        // D4 tapped by mistake right under the asked E4: the red mark and the green hint ring are
-        // neighbours, and neither may reach into the other's strip, or the child has nothing to aim at.
-        show(asking(64).copy(wrongTaps = setOf(62), taps = 1))
-        val staff = compose.onNodeWithContentDescription("Staff, tap where the note goes")
-        val staffTop = staff.getBoundsInRoot().top
-        fun stripRows(position: Int): IntRange {
-            val b = compose.onNodeWithContentDescription("Staff position $position").getBoundsInRoot()
-            return with(compose.density) { (b.top - staffTop).roundToPx()..(b.bottom - staffTop).roundToPx() }
-        }
-        val pixels = staff.captureToImage().toPixelMap()
-        fun rowsPainted(shades: List<Color>): IntRange {
-            var first = Int.MAX_VALUE
-            var last = -1
-            for (y in 0 until pixels.height) for (x in 0 until pixels.width) {
-                val c = pixels[x, y]
-                val near = shades.any { abs(c.red - it.red) < 0.08f && abs(c.green - it.green) < 0.08f && abs(c.blue - it.blue) < 0.08f }
-                if (near) {
-                    first = minOf(first, y)
-                    last = maxOf(last, y)
-                }
-            }
-            assertTrue("no pixels painted in $shades", last >= 0)
-            return first..last
-        }
-        val red = rowsPainted(listOf(OutOfTuneRed, OutOfTuneRedText))
-        val green = rowsPainted(listOf(InTuneGreen, InTuneGreenText))
-        val d4 = stripRows(2)
-        val e4 = stripRows(3)
-        assertTrue("red mark rows $red should stay inside D4's strip $d4", red.first >= d4.first && red.last <= d4.last)
-        assertTrue("green ring rows $green should stay inside E4's strip $e4", green.first >= e4.first && green.last <= e4.last)
+    fun a_wrong_place_is_crossed_inside_its_own_place() {
+        // D4 answered by mistake right under the asked E4: the cross may not reach into E4's
+        // place, or the child has nothing clear to aim at next. Whatever the miss changed in
+        // the note column is the cross (the arrow beside it is drawn further right).
+        show(asking(64))
+        val staff = compose.onNodeWithContentDescription(staffDescription)
+        val staffBounds = staff.getBoundsInRoot()
+        val before = staff.captureToImage().toPixelMap()
+        compose.runOnIdle { state.value = state.value.copy(wrongTaps = setOf(62), lastWrongTap = 62, taps = 1) }
+        val after = staff.captureToImage().toPixelMap()
+        val columns = (after.width * 0.6f).toInt()..(after.width * 0.74f).toInt()
+        val changed = (0 until after.height).filter { y -> columns.any { x -> before[x, y] != after[x, y] } }
+        assertTrue("no cross painted", changed.isNotEmpty())
+        val d4 = compose.onNodeWithContentDescription("Staff position 2").getBoundsInRoot()
+        val d4Rows = with(compose.density) { (d4.top - staffBounds.top).roundToPx()..(d4.bottom - staffBounds.top).roundToPx() }
+        assertTrue(
+            "cross rows ${changed.first()}..${changed.last()} should stay inside D4's place $d4Rows",
+            changed.first() >= d4Rows.first && changed.last() <= d4Rows.last,
+        )
     }
 
     @Test
-    fun a_right_tap_says_so() {
+    fun a_right_answer_says_so() {
         show(asking(60).copy(solved = true, results = listOf(true), taps = 1, streak = 1))
         compose.onNodeWithText("🎉 That's it!").assertIsDisplayed()
     }
 
     @Test
-    fun a_wrong_tap_says_try_again() {
-        show(asking(60).copy(wrongTaps = setOf(62), taps = 1))
-        compose.onNodeWithText("🙈 Not there, try again").assertIsDisplayed()
+    fun a_wrong_answer_says_try_again() {
+        show(asking(60).copy(wrongTaps = setOf(62), lastWrongTap = 62, taps = 1))
+        compose.onNodeWithText("🙈 Try again").assertIsDisplayed()
         compose.onNodeWithText("C4").assertIsDisplayed() // the question stays
     }
 
     @Test
-    fun the_summary_shows_the_numbers_and_plays_again() {
+    fun the_summary_shows_stars_and_animals_but_no_numbers() {
         show(
             asking(60).copy(
                 roundOver = true,
@@ -199,12 +213,13 @@ class NotesScreenTest {
             ),
         )
         compose.onNodeWithText("🌟 Great job!").assertIsDisplayed()
-        compose.onNodeWithText("⏱️ Time: 1:23").assertIsDisplayed()
-        compose.onNodeWithText("8 / 10").assertIsDisplayed()
-        compose.onNodeWithText("🔥 Best streak: 5").assertIsDisplayed()
-        compose.onNodeWithText("🎯 Accuracy: 77 %").assertIsDisplayed()
-                compose.onNodeWithContentDescription("Staff, tap where the note goes").assertDoesNotExist()
-        compose.onNodeWithText("Play again").performClick()
+        compose.onNodeWithContentDescription("Right first time: 8 of 10").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Streak of 5").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Aim: 2 of 3 stars").assertIsDisplayed() // 77 %
+        compose.onNodeWithContentDescription("Speed: Turtle").assertIsDisplayed() // 8.3 s a note
+        compose.onNodeWithText("8 / 10").assertDoesNotExist()
+        compose.onNodeWithContentDescription(staffDescription).assertDoesNotExist()
+        compose.onNodeWithText("Again").performClick()
         assertEquals(1, playAgainRequests)
     }
 
@@ -213,24 +228,36 @@ class NotesScreenTest {
         show(asking(60))
         compose.onNodeWithContentDescription("Choose notes").performClick()
         compose.onNodeWithText("Which notes?").assertIsDisplayed()
-        compose.onNodeWithText("C4").assertIsSelected()
-        compose.onNodeWithText("C6").assertIsNotSelected()
+        compose.onNodeWithText("C4").assertIsOn()
+        compose.onNodeWithText("C6").assertIsOff()
         compose.onNodeWithText("C6").performClick()
         assertEquals(listOf(84), toggled)
         compose.onNodeWithContentDescription("Choose notes").assertDoesNotExist() // one way out: the OK button
         compose.onNodeWithText("OK").performClick()
-        compose.onNodeWithContentDescription("Staff, tap where the note goes").assertExists()
+        compose.onNodeWithContentDescription(staffDescription).assertExists()
         compose.onNodeWithContentDescription("Choose notes").assertExists()
+    }
+
+    @Test
+    fun the_picker_rows_run_from_c6_on_top_to_c4_at_the_bottom() {
+        show(asking(60))
+        compose.onNodeWithContentDescription("Choose notes").performClick()
+        val c6 = compose.onNodeWithText("C6").getBoundsInRoot()
+        val c5 = compose.onNodeWithText("C5").getBoundsInRoot()
+        val c4 = compose.onNodeWithText("C4").getBoundsInRoot()
+        assertTrue("C6 $c6 should be above C5 $c5", c6.bottom <= c5.top)
+        assertTrue("C5 $c5 should be above C4 $c4", c5.bottom <= c4.top)
+        assertEquals(c6.left, c4.left)
     }
 
     @Test
     fun the_ok_button_is_big_and_sits_under_the_sound_switch() {
         show(asking(60))
         compose.onNodeWithContentDescription("Choose notes").performClick()
-        val lastPill = compose.onNodeWithText("C6").getBoundsInRoot()
-        val sound = compose.onNodeWithText("🔊 Play the note you find").getBoundsInRoot()
+        val lastPill = compose.onNodeWithText("B4").getBoundsInRoot()
+        val sound = compose.onNodeWithText("Sound").getBoundsInRoot()
         val ok = compose.onNodeWithText("OK").getBoundsInRoot()
-        assertTrue("sound row $sound should sit under the grid $lastPill", sound.top >= lastPill.bottom)
+        assertTrue("sound row $sound should sit under the pills $lastPill", sound.top >= lastPill.bottom)
         assertTrue("OK $ok should sit under the sound row $sound", ok.top >= sound.bottom)
         assertTrue("OK $ok should be a big full-width button", ok.width >= 300.dp && ok.height >= 56.dp)
     }
@@ -238,33 +265,35 @@ class NotesScreenTest {
     @Test
     fun the_sound_toggle_lives_with_the_note_picker() {
         show(asking(60))
-        compose.onNodeWithText("🔊 Play the note you find").assertDoesNotExist() // not on the game screen itself
+        compose.onNodeWithText("Sound").assertDoesNotExist() // not on the game screen itself
         compose.onNodeWithContentDescription("Choose notes").performClick()
-        compose.onNodeWithText("🔊 Play the note you find").assertIsOn()
-        compose.onNodeWithText("🔊 Play the note you find").performClick()
+        compose.onNodeWithText("Sound").assertIsOn()
+        compose.onNodeWithText("Sound").performClick()
         assertEquals(1, soundToggles)
 
         compose.runOnIdle { state.value = state.value.copy(soundOn = false) }
-        compose.onNodeWithText("🔇 Play the note you find").assertIsOff()
+        compose.onNodeWithText("Sound").assertIsOff()
     }
 
     @Test
-    fun streak_badge_appears_from_two() {
+    fun the_streak_shows_as_flames_from_one() {
         show(asking(60).copy(streak = 3, results = listOf(true, true, true), taps = 3))
-        compose.onNodeWithText("🔥 3").assertIsDisplayed()
-        compose.runOnIdle { state.value = state.value.copy(streak = 1) }
-        compose.onNodeWithText("🔥 1").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Streak of 3").assertIsDisplayed()
+        compose.onNodeWithText("🔥 3").assertDoesNotExist()
+        compose.runOnIdle { state.value = state.value.copy(streak = 0) }
+        compose.onNodeWithContentDescription("Streak of 0").assertDoesNotExist()
     }
 
     @Test
     fun croatian_names_and_copy() {
         show(asking(60), Locale("hr"))
-                compose.onNodeWithText("c1").assertIsDisplayed()
+        compose.onNodeWithText("c1").assertIsDisplayed()
+        compose.onNodeWithText("🔎 Nađi").assertIsDisplayed()
         compose.onNodeWithContentDescription("Odaberi note").assertExists()
         compose.onNodeWithContentDescription("Mjesto 1 u crtovlju").assertExists()
         compose.onNodeWithContentDescription("Odaberi note").performClick()
         compose.onNodeWithText("Koje note?").assertIsDisplayed()
-        compose.onNodeWithText("🔊 Odsviraj pogođenu notu").assertIsOn()
+        compose.onNodeWithText("Zvuk").assertIsOn()
         compose.onNodeWithText("U redu").assertIsDisplayed()
     }
 }

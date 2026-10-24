@@ -155,14 +155,15 @@ disagreeing frame freezes the reading instead of moving it, median-smooths a 5-f
 holds the last reading for about 0.9 s of silence or unsteadiness before clearing;
 `NoteMath.frequencyToNote` turns the median into a `NoteReading`. Two modes (`TunerMode`,
 remembered through `SettingsStore.saveTunerMode`, default `IDENTIFY`): `IDENTIFY` names the
-nearest note and measures against it; `TARGET` lets the child pick the note to play in a
-`NoteWheel` (`FluteRange`: c1 to c4, MIDI 60 to 96, default a1 / A4, remembered through
+nearest note and measures against it; `TARGET` lets the child pick the note to play with the
+‹ › half-step buttons of `TargetNote` (`FluteRange`: c1 to c4, MIDI 60 to 96, default a1 / A4, remembered through
 `SettingsStore.saveTargetNote` and clamped on load) and measures against it with
-`TunerUiState.centsOffTarget` (`NoteMath.centsBetween`), so a wrong note pegs the needle
-instead of being relabelled. `TunerUiState.gaugeCents` picks by mode and is what the gauge
-and status line show; `TunerUiState.status` judges it against `IN_TUNE_CENTS` (10, a child's
-wobble, deliberately wider than a professional tuner's 5) and `SLIGHTLY_OFF_CENTS` (20), the one
-place those thresholds live (the gauge draws its zones from them). There is no tolerance
+`TunerUiState.centsOffTarget` (`NoteMath.centsBetween`), so a wrong note pins the meter's face
+at an end instead of being relabelled. `TunerUiState.gaugeCents` picks by mode and is what the
+face meter (`TuningGauge`) and status line show; `TunerUiState.status` judges it against
+`IN_TUNE_CENTS` (10, a child's wobble, deliberately wider than a professional tuner's 5), the one
+place that threshold lives (the meter's green band is drawn from it, so the face's centre is in
+the green exactly when the status says "Perfect!"). There is no tolerance
 setting on purpose: one good default beats a control. In target mode a reading within
 `NEAR_TARGET_CENTS` (70) of the chosen note or of its octaves is still that note or that octave
 (`TargetMismatch.NONE`, `OCTAVE_UP` / `OCTAVE_DOWN`), so a1 played sixty cents flat reads
@@ -188,29 +189,37 @@ notes whose index in `ALL` is their place on the treble staff (0 = the ledger li
 `ledgerLinesFor` and `sanitize` (unknown or empty stored sets fall back to `DEFAULT_PRACTICE`,
 c1 to g1) live there too. `NotesViewModel` (Activity-scoped; spec:
 `docs/superpowers/specs/2026-10-22-note-reading-game-design.md`) runs one round of
-`NotesUiState.ROUND_LENGTH` (10) notes: `onNoteTapped(midi)` judges a tap (ignored while
+`NotesUiState.ROUND_LENGTH` (10) notes: `onNoteTapped(midi)` judges an answer (ignored while
 `solved` or `roundOver`), a right tap sets `solved`, appends to `results` (true = first tap),
 plays the note through the tuner's `ReferenceTonePlayer` at `REFERENCE_TONE_VOLUME` and after
 `FEEDBACK_MS` (1200) draws the next note (never the same twice in a row unless only one is
-chosen) or ends the round; a wrong tap joins `wrongTaps` and zeroes the streak. `taps` counts
+chosen) or ends the round; a wrong tap joins `wrongTaps`, becomes `lastWrongTap` (the cross that
+gets the arrow) and zeroes the streak. `taps` counts
 every tap so `accuracyPercent` (right taps over all taps) differs from `score`; `roundMillis`
 is the time from the round's first tap to the tenth note found (`MonotonicClock`, so tests use
-`FakeClock`), shown in the summary as m:ss by `formatRoundTime`. The chosen
+`FakeClock`), shown in the summary only as one of the metronome's animals (`NotesUiState.speed`,
+the time per note: cheetah up to 2 s, rabbit 3.5 s, duck 6 s, turtle 10 s, then the snail), as the
+accuracy is only one to three stars (`aimStars`: 90 % and 70 %). The chosen
 notes persist through `SettingsStore.savePracticeNotes` (`practice_notes`, a string set), the last one cannot be switched off, and any change to them starts a fresh round; the sound of
 a found note can be switched off (`toggleSound`, `SettingsStore.saveNoteSound`, a switch row
-under a divider below the picker's grid); `resetRound()` (also behind `playAgain`) throws the round away and is
+under the picker's rows); `resetRound()` (also behind `playAgain`) throws the round away and is
 called by the tab bar when the tab is left, and `stopSound()` when the screen is disposed, so
 the tuner's microphone does not hear the tone. A `Random` is passed through an internal
 secondary constructor for deterministic tests. `NoteStaff` draws the staff on a Canvas
-(it takes all the height left in the column and sizes the places from it; it shows the staff
+(it takes all the height left in the stage and sizes the places from it; it shows the staff
 and its two neighbouring spaces, d1 to g2, plus the ledger-line places c1, a2, h2, c3 only as
-far as a chosen note needs them, `StaffNotes.visiblePositions`; a hand-built stroked clef
-path in staff spaces; faint circles in one column at 60 % of the width, after the user
-rejected a two-column split; every mark, red for a miss, green filled for the found note, a
-green ring as the hint, is that same circle at `MARK_RADIUS` 0.4 of the pitch, so it stays
-inside its own tap strip and a miss never hides the place next to it) under a column of fifteen full-width tap strips whose accessibility names
-are "Staff position N" counted from the bottom, never the note, so a screen reader does not
-give the answer away. The name above the staff is 64 sp (not the tuner's 84) to make room.
+far as a chosen note needs them, `StaffNotes.visiblePositions`, their ledger lines dashed; every
+place a full-width band, the spaces tinted, the lines thick; a small, faint hand-built clef whose
+curl sits on the G line; one note column at 67 % of the width, after the user rejected a
+two-column split). The child answers by touch and slide: a finger down shows a see-through note
+on the nearest place and turns its band yellow (`placing`, hoisted to `NotesContent` for the
+"Slide, let go" line), it follows the finger with a haptic tick per place, lifting it answers,
+sliding off the staff cancels. A miss is a cross inside its own place (`CROSS_RADIUS` 0.45 of the
+pitch, so it never hides the place next to it), the latest with a ⬆️/⬇️ arrow towards the right
+place; the found note is a head in its letter's colour with sparkles. Over the canvas sits a
+column of fifteen full-width places that take no touches but are buttons for accessibility,
+named "Staff position N" counted from the bottom, never the note, so a screen reader does not
+give the answer away; their semantic click answers at once.
 
 ### Digital flute path
 
@@ -247,7 +256,7 @@ or on `eraseLast()`, which drops the last note (the erase button repeats while h
 ### UI conventions
 
 - One Activity, which sets `volumeControlStream` to the media stream so the volume keys adjust
-  the app's sound even while nothing is playing. `MainScreen` hosts a top app bar (app name plus the `LanguageSwitch`: two flag
+  the app's sound even while nothing is playing. `MainScreen` hosts a top bar (the open tab's emoji and name plus the `LanguageSwitch`: two flag
   buttons over `ui/common/AppLanguage`; selecting one calls
   `AppCompatDelegate.setApplicationLocales`, which re-creates the Activity) and a bottom bar
   switching between the four tabs (`AppTab`: metronome, tuner, notes, flute). All ViewModels are
@@ -264,44 +273,64 @@ or on `eraseLast()`, which drops the last note (the erase button repeats while h
   `values-hr/strings.xml`. Domain enums stay language-free; `ui/common/Labels.kt` maps them to
   string resources and builds note names from the `note_names` array (Croatian uses the German
   H / B convention). Croatian copy addresses the child in the informal singular.
-- Fixed coral / teal / yellow palette with dynamic colour off. Icons are hand-built
-  `ImageVector`s in `AppIcons` so the extended Material icon set is not a dependency.
-- `ui/common/ValueWheel` is the snapping three-row drum behind both the metronome's
-  `TempoWheel` and the tuner's `NoteWheel`. Its content description stays on the `LazyColumn`
-  node: the UI tests scroll it with `performScrollToIndex`.
+- The look comes from the Claude Design canvas (see `.superpowers/design/flute-assistant-screens/`):
+  white cards (`Stage`) on sky blue, or navy in dark mode, with dynamic colour off; the tokens that
+  change with the theme are `FluteColors` (read through `FluteTheme.colors`), the bright fills that
+  never change are `Sun` (yellow = chosen), `Go`, `Stop` and `NoteLetterColors`, one per letter,
+  which `noteColor(midi)` applies wherever a note appears (a sharp takes the letter below). Text on a
+  bright fill is always `InkOnFill`. Everything pressable is a `ChunkyButton` / `Modifier.chunky`
+  (thick ink outline, solid shadow, sinks 3 dp when pressed); big actions are `BigActionButton`.
+  The font is Nunito (three static weights in `res/font`, licence in `docs/licenses/`); the canvas
+  used Fredoka, which has no č, ć or đ. Icons are emoji (`Emoji`, hidden from accessibility), plus
+  two chevrons in `AppIcons`. Note names are shown with the octave raised (`noteText`, built from
+  `noteLabelParts`) in a round `NoteBubble`; English keeps scientific octaves (C⁴), Croatian the
+  school ones (c¹), and accessibility and tests still read the plain `noteLabel`.
+- On a short screen (360 x 640 dp, large text) the ring, the tuner's target note and its meter
+  face shrink to fit, so Play and the status line stay in view; only below a tab's minimum height
+  does `Modifier.fitOrScroll` make it scroll (a fixed-height column, so weights still work). The
+  notes tab scrolls a little on such phones rather than shrink the staff's places, and the flute
+  scrolls below its own `FitsHeight` as before.
+- `ui/common/ValueWheel` is the snapping three-row drum behind the metronome's `TempoWheel`. Its
+  content description stays on the `LazyColumn` node: the UI tests scroll it with
+  `performScrollToIndex`.
 
 ### Kid-friendly UI constraint
 
 The UI was deliberately reduced (spec: `docs/superpowers/specs/2026-10-22-kid-friendly-ui-design.md`,
-follow-up: `docs/superpowers/specs/2026-10-22-metronome-controls-and-language-design.md`)
-to beat dots, a tempo ring (drag it, or tap the number to get an in-place three-value
-`TempoWheel`; there are no −/+ buttons), four "level" pills (`SkillLevel` in
-`MetronomeUiState.kt`: Beginner 60, Learner 80, Star 100, Master 120; emoji plus a word, never
-the number, filled only when the tempo matches exactly), one beats-in-a-bar stepper pill
-(◀ 4/4 ▶, wrapping through every `TimeSignature` in enum order; the beat dots shrink above
-six beats) and one play button (no volume control: the phone's buttons set loudness); the tuner shows either the huge name of the
-heard note or the note wheel (the note the child chose to play, on a peach band with faded
-neighbours and a speaker button that sounds it; spec:
-`docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`), the fingering diagram
-for that note, a numberless gauge, one status line and, under it, one quieter advice line that
-says what to change (roll the flute, air, fingers, come closer, a clear note), never a number,
-and, at the bottom, the two mode pills ("Which note?" / "Tune to a note"); the notes tab shows
-one row with the huge note name (the whole question; the score once the round is over) and a small round checklist button at its end
-that swaps the staff for the picker in place (no dialog): a grid of fifteen note pills,
-under a divider the "Play the note you find" switch row, and a big OK button that
-closes it (the checklist button hides meanwhile, so OK is the one way back), the staff, one feedback line, then ten round
-dots at the bottom (score and accuracy without a number, plus a "🔥 3" streak badge from
-two in a row), and the numbers (score out of 10, best streak, accuracy) only in the
-end-of-round summary; the flute tab shows the huge note name, the fingering diagram, one
-scrolling line of the notes played (small pills in the colour of their octave row), the
-fifteen keys in three octave rows (c1 to h1 peach, c2 to h2 teal, c3 yellow; a key sounds
-for as long as it is held) and, at the bottom, one big Play pill ("Play my tune" / "Stop")
-with a round erase button beside it (teal-filled while held, repeating like a keyboard's
-backspace): no record button, no clear-all, no tempo, no note lengths as a control. The user rejected a wider layout (−/+ beside the ring,
-a ten-button signature scroller, flags in the content area) as too packed: keep the screen
-this sparse. Tap tempo, subdivisions, click sounds, volume, presets and the A4 reference still
+follow-up: `docs/superpowers/specs/2026-10-22-metronome-controls-and-language-design.md`) and on
+2026-10-24 redrawn from the user's Claude Design canvas. The top bar names the open tab with its
+emoji; the tab bar is four emoji-and-word buttons. The metronome is one stage with the beat bubbles
+(the first bigger; the sounding one yellow with the speed's animal hopping on it) between a − and
+a + that step the bar from two to six beats (`fewerBeats` / `moreBeats` over 2/4, 3/4, 4/4, 5/4,
+6/8; the other signatures are not offered), and the tempo ring from 40 to 200: five animal bands
+(`TempoBand`: snail 40, turtle 60, duck 80, rabbit 100, cheetah 130), each a fifth of the ring, a
+yellow knob with the current animal that is dragged round, a tap on an animal jumps to its band
+(the rabbit again to 120), and the band's name over the tempo figure in the middle (tap it for the
+in-place `TempoWheel`; there are no tempo −/+ buttons: the user turned them down again on
+2026-10-24); then one Play / Stop pill (no volume control: the phone's buttons set loudness). The
+tuner has the two mode pills on top ("Which?" / "Tune"), then a stage with either the heard note
+in a bubble or the chosen note between ‹ › with a "Hear" pill under it (spec:
+`docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`) beside a tall face meter (a face
+that rides up when too high and down when too low, green in tune, grey in silence), the fingering
+for that note, one status line and, under it, one quieter advice line that says what to change
+(roll the flute, air, fingers, come closer, a clear note), never a number. The notes tab has one
+hero row (the streak as up to five flames, "Find" over the note's bubble, and a "Pick" button with
+a dot per chosen letter) over a stage with the staff and one feedback line, and ten round places
+at the bottom (a star for first time, a faint star for a retry, yellow for the current note);
+"Pick" swaps the staff for the picker in place (no dialog): the fifteen notes in octave rows,
+highest on top, the "Sound" switch row and a big OK, the only way back. The end-of-round summary
+has no numbers on screen either: a trophy, ten stars, and tiles for the best streak (flames), the
+aim (one to three stars) and the speed (an animal). The flute tab has a stage with the note's
+bubble, the fingering and one scrolling line of the notes played (circles in their letter's
+colour), the fifteen keys in three octave rows highest on top (each in its letter's colour; a key
+sounds for as long as it is held) and, at the bottom, one big Play pill ("Play" / "Stop") with a
+round erase button beside it (it sinks while held and repeats like a keyboard's backspace): no
+record button, no clear-all, no tempo, no note lengths as a control. The user rejected a wider
+layout (−/+ beside the ring, a ten-button signature scroller, flags in the content area) as too
+packed: keep the screens this sparse. Tap tempo, subdivisions, click sounds, volume, presets and the A4 reference still
 exist in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`
-resets subdivision, sound and volume to their defaults and `TunerViewModel` starts from 440 Hz
+resets subdivision, sound and volume to their defaults (and brings a stored tempo onto the
+ring's 40 to 200) and `TunerViewModel` starts from 440 Hz
 and plays the reference tone at a fixed `REFERENCE_TONE_VOLUME`, so a stale stored value cannot
 silently affect playback. Do not reintroduce numbers or jargon
 (BPM, Hz, cents, Italian markings) or extra controls on the main screens; an "advanced mode"

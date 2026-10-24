@@ -1,35 +1,35 @@
 package hr.bertlab.fluteassistant.ui.tuner
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.tuner.FluteKey
-import kotlin.math.min
+import hr.bertlab.fluteassistant.ui.theme.FluteTheme
 
 /**
- * A flute seen from above, head joint on the left: the thumb key, the three left-hand keys, the
- * G sharp lever, the three right-hand keys, the E flat key and the two foot-joint rollers.
- * Keys in [keys] are filled in coral, the rest are outlines; with no [keys] every key is drawn
- * faintly open. [noteLabel] names the note for accessibility.
+ * A flute seen from above, head joint on the left, on a rounded track: the thumb key, the
+ * three left-hand keys, the G sharp lever, the three right-hand keys, the E flat key and the
+ * two foot-joint rollers. Keys in [keys] are filled in [color] (the note's letter colour)
+ * with an ink outline, the rest are open; with no [keys] every key is drawn open.
+ * [noteLabel] names the note for accessibility. Draw it [FINGERING_ASPECT_RATIO] wide to tall.
  */
 @Composable
 fun FingeringDiagram(
     keys: Set<FluteKey>?,
     noteLabel: String?,
+    color: Color,
     modifier: Modifier = Modifier,
 ) {
-    val pressed = MaterialTheme.colorScheme.primary
-    val open = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = if (keys == null) 0.3f else 0.7f)
+    val colors = FluteTheme.colors
     val description = if (keys != null && noteLabel != null) stringResource(R.string.fingering_for, noteLabel) else null
 
     Canvas(
@@ -38,29 +38,50 @@ fun FingeringDiagram(
         ),
     ) {
         val unit = size.width / SPAN
-        val radius = min(unit * 0.38f, size.height * 0.32f)
+        val radius = unit * 0.37f
         val small = radius * 0.62f
-        val stroke = Stroke(width = 2.dp.toPx())
+        val pressedStroke = Stroke(width = size.height * 3f / DESIGN_HEIGHT)
+        val openStroke = Stroke(width = size.height * 2.5f / DESIGN_HEIGHT)
         val centreY = size.height / 2f
         val lowY = centreY + radius * 0.55f // the little-finger keys sit a bit lower, as on the flute
+
+        // The track: a pill nearly as tall as the canvas.
+        val trackHeight = size.height * 44f / DESIGN_HEIGHT
+        drawRoundRect(
+            color = colors.track,
+            topLeft = Offset(0f, centreY - trackHeight / 2f),
+            size = Size(size.width, trackHeight),
+            cornerRadius = CornerRadius(trackHeight / 2f),
+        )
+        drawRoundRect(
+            color = colors.border,
+            topLeft = Offset(0f, centreY - trackHeight / 2f),
+            size = Size(size.width, trackHeight),
+            cornerRadius = CornerRadius(trackHeight / 2f),
+            style = Stroke(width = size.height * 2f / DESIGN_HEIGHT),
+        )
 
         fun x(slot: Float) = (MARGIN + slot) * unit
 
         fun circle(slot: Float, r: Float, y: Float, down: Boolean) {
             val centre = Offset(x(slot), y)
-            if (down) drawCircle(pressed, r, centre) else drawCircle(open, r, centre, style = stroke)
+            drawCircle(if (down) color else colors.raised, r, centre)
+            drawCircle(if (down) colors.outline else colors.mutedText, r, centre, style = if (down) pressedStroke else openStroke)
         }
 
         fun paddle(slot: Float, width: Float, height: Float, y: Float, down: Boolean) {
             val topLeft = Offset(x(slot) - width / 2f, y - height / 2f)
             val corner = CornerRadius(width * 0.4f)
-            if (down) drawRoundRect(pressed, topLeft, Size(width, height), corner)
-            else drawRoundRect(open, topLeft, Size(width, height), corner, style = stroke)
+            drawRoundRect(if (down) color else colors.raised, topLeft, Size(width, height), corner)
+            drawRoundRect(
+                if (down) colors.outline else colors.mutedText, topLeft, Size(width, height), corner,
+                style = if (down) pressedStroke else openStroke,
+            )
         }
 
         fun down(key: FluteKey) = keys?.contains(key) == true
 
-        paddle(THUMB_SLOT, radius * 1.1f, radius * 2.4f, centreY, down(FluteKey.THUMB))
+        paddle(THUMB_SLOT, radius * 1.15f, radius * 2.45f, centreY, down(FluteKey.THUMB))
         circle(L1_SLOT, radius, centreY, down(FluteKey.L1))
         circle(L1_SLOT + 1f, radius, centreY, down(FluteKey.L2))
         circle(L1_SLOT + 2f, radius, centreY, down(FluteKey.L3))
@@ -73,6 +94,10 @@ fun FingeringDiagram(
         paddle(LOW_C_SLOT, small * 1.3f, small * 2.2f, lowY, down(FluteKey.LOW_C))
     }
 }
+
+/** Width over height of the diagram as the canvas drew it. */
+const val FINGERING_ASPECT_RATIO = 388f / 56f
+private const val DESIGN_HEIGHT = 56f
 
 // Horizontal slots, in key widths; the right hand starts after a wider gap.
 private const val MARGIN = 0.5f

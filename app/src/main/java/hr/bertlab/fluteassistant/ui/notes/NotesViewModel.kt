@@ -91,16 +91,21 @@ class NotesViewModel internal constructor(
                 advance()
             }
         } else {
-            _state.update { it.copy(wrongTaps = it.wrongTaps + midi, taps = it.taps + 1, streak = 0) }
+            _state.update { it.copy(wrongTaps = it.wrongTaps + midi, lastWrongTap = midi, taps = it.taps + 1, streak = 0) }
         }
     }
 
     private fun advance() {
         _state.update {
             if (it.results.size >= NotesUiState.ROUND_LENGTH) {
-                it.copy(solved = false, wrongTaps = emptySet(), roundOver = true)
+                it.copy(solved = false, wrongTaps = emptySet(), lastWrongTap = null, roundOver = true)
             } else {
-                it.copy(solved = false, wrongTaps = emptySet(), currentMidi = draw(it.practiceNotes, avoid = it.currentMidi))
+                it.copy(
+                    solved = false,
+                    wrongTaps = emptySet(),
+                    lastWrongTap = null,
+                    currentMidi = draw(it.practiceNotes, avoid = it.currentMidi),
+                )
             }
         }
     }

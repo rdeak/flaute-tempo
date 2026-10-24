@@ -94,13 +94,11 @@ data class TunerUiState(
 
     companion object {
         /**
-         * The green zone, shared by the status line, the gauge and the note wheel. A child's
+         * The green zone, shared by the status line and the face meter. A child's
          * held note wobbles about this much from breath alone, so a professional's 5 cents
          * would rarely settle on "Perfect!".
          */
         const val IN_TUNE_CENTS = 10.0
-        /** Amber up to here, red beyond. */
-        const val SLIGHTLY_OFF_CENTS = 20.0
         /**
          * In [TunerMode.TARGET] a pitch this close to the chosen note still counts as the chosen
          * note, flat or sharp, even when its nearest note is the semitone neighbour. An embouchure

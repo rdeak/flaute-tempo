@@ -2,10 +2,11 @@ package hr.bertlab.fluteassistant.ui.metronome
 
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -14,7 +15,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performSemanticsAction
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.TimeSignature
@@ -57,11 +57,39 @@ class MetronomeScreenTest {
     @Test
     fun start_button_toggles_playback_and_reflects_the_playing_state() {
         show(MetronomeUiState())
-        compose.onNodeWithText("Let's play!").performClick()
+        compose.onNodeWithText("Play").performClick()
         assertEquals(1, toggles)
 
         compose.runOnIdle { state.value = state.value.copy(isPlaying = true) }
         compose.onNodeWithText("Stop").assertIsDisplayed()
+    }
+
+    @Test
+    fun the_ring_names_the_speed_with_its_animal() {
+        show(MetronomeUiState(config = MetronomeConfig(bpm = 120)))
+        compose.onNodeWithText("Rabbit").assertIsDisplayed()
+        compose.runOnIdle { state.value = state.value.copy(config = MetronomeConfig(bpm = 70)) }
+        compose.onNodeWithText("Turtle").assertIsDisplayed()
+        compose.onNodeWithText("70").assertIsDisplayed()
+    }
+
+    @Test
+    fun tapping_a_band_jumps_to_its_start_and_the_rabbit_again_to_120() {
+        show(MetronomeUiState(config = MetronomeConfig(bpm = 97)))
+        compose.onNodeWithContentDescription("Turtle").performClick()
+        assertEquals(60, chosenBpm)
+        compose.onNodeWithContentDescription("Rabbit").performClick()
+        assertEquals(100, chosenBpm)
+        compose.onNodeWithContentDescription("Rabbit").performClick()
+        assertEquals(120, chosenBpm)
+    }
+
+    @Test
+    fun assistive_technology_can_set_the_tempo_on_the_ring() {
+        show(MetronomeUiState(config = MetronomeConfig(bpm = 120)))
+        compose.onNodeWithContentDescription("Tempo ring, drag around it to change the speed")
+            .performSemanticsAction(SemanticsActions.SetProgress) { it(75f) }
+        assertEquals(75, chosenBpm)
     }
 
     @Test
@@ -78,7 +106,7 @@ class MetronomeScreenTest {
         show(MetronomeUiState(config = MetronomeConfig(bpm = 120)))
         compose.onNodeWithText("120").performClick()
         compose.onNodeWithContentDescription("Tempo wheel, scroll to change the speed")
-            .performScrollToIndex(123 - MetronomeConfig.MIN_BPM)
+            .performScrollToIndex(123 - TempoBand.MIN_BPM)
         compose.waitForIdle()
         assertEquals(123, chosenBpm)
         compose.onNodeWithText("122").assertIsDisplayed()
@@ -100,75 +128,61 @@ class MetronomeScreenTest {
         show(MetronomeUiState(config = MetronomeConfig(bpm = 120)))
         compose.onNodeWithText("120").performClick()
         compose.onNodeWithText("119").assertIsDisplayed()
-        compose.onNodeWithText("Let's play!").performClick()
+        compose.onNodeWithText("Play").performClick()
         compose.onNodeWithText("119").assertDoesNotExist()
         assertEquals(1, toggles)
     }
 
     @Test
-    fun the_open_wheel_follows_a_level_pill() {
+    fun the_open_wheel_follows_a_band() {
         show(MetronomeUiState(config = MetronomeConfig(bpm = 120)))
         compose.onNodeWithText("120").performClick()
-        compose.onNodeWithText("Star").performClick()
-        assertEquals(100, chosenBpm)
+        compose.onNodeWithContentDescription("Duck").performClick()
+        assertEquals(80, chosenBpm)
         compose.onNodeWithText("119").assertDoesNotExist()
-        compose.onNodeWithText("100").assertIsDisplayed()
+        compose.onNodeWithText("80").assertIsDisplayed()
     }
 
     @Test
-    fun the_beats_stepper_shows_the_current_signature_and_steps_both_ways() {
+    fun the_beat_buttons_step_one_beat_each_way() {
         show(MetronomeUiState(config = MetronomeConfig(timeSignature = TimeSignature.FOUR_FOUR)))
-        compose.onNodeWithText("4/4").assertIsDisplayed()
-        compose.onNodeWithText("3/4").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Beats in a bar: 4").assertIsDisplayed()
 
-        compose.onNodeWithContentDescription("Next beats in a bar").performClick()
+        compose.onNodeWithContentDescription("More beats").performClick()
         assertEquals(TimeSignature.FIVE_FOUR, chosenSignature)
-        compose.onNodeWithContentDescription("Previous beats in a bar").performClick()
+        compose.onNodeWithContentDescription("Fewer beats").performClick()
         assertEquals(TimeSignature.THREE_FOUR, chosenSignature)
     }
 
     @Test
-    fun the_beats_stepper_sits_above_the_play_button() {
+    fun the_beat_buttons_stop_at_two_and_six() {
+        show(MetronomeUiState(config = MetronomeConfig(timeSignature = TimeSignature.SIX_EIGHT)))
+        compose.onNodeWithContentDescription("More beats").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Fewer beats").assertIsEnabled()
+
+        compose.runOnIdle { state.value = MetronomeUiState(config = MetronomeConfig(timeSignature = TimeSignature.TWO_FOUR)) }
+        compose.onNodeWithContentDescription("Fewer beats").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("More beats").assertIsEnabled()
+    }
+
+    @Test
+    fun the_beats_sit_above_the_ring_and_the_ring_above_the_play_button() {
         show(MetronomeUiState())
-        val stepper = compose.onNodeWithContentDescription("Beats in a bar").getBoundsInRoot()
-        val play = compose.onNodeWithText("Let's play!").getBoundsInRoot()
-        assertTrue("stepper bottom ${stepper.bottom} should be above play top ${play.top}", stepper.bottom < play.top)
-    }
-
-    @Test
-    fun the_beats_stepper_wraps_from_the_last_signature_to_the_first() {
-        show(MetronomeUiState(config = MetronomeConfig(timeSignature = TimeSignature.entries.last())))
-        compose.onNodeWithContentDescription("Next beats in a bar").performClick()
-        assertEquals(TimeSignature.TWO_FOUR, chosenSignature)
-    }
-
-    @Test
-    fun skill_level_chip_sets_its_tempo_in_one_tap() {
-        show(MetronomeUiState())
-        compose.onNodeWithText("Star").performClick()
-        assertEquals(100, chosenBpm)
-        compose.onNodeWithText("Beginner").performClick()
-        assertEquals(60, chosenBpm)
-    }
-
-    @Test
-    fun the_level_matching_the_tempo_is_highlighted_and_an_in_between_tempo_highlights_none() {
-        show(MetronomeUiState(config = MetronomeConfig(bpm = 120)))
-        compose.onNodeWithText("Master").assertIsSelected()
-        compose.onNodeWithText("Star").assertIsNotSelected()
-
-        compose.runOnIdle { state.value = state.value.copy(config = MetronomeConfig(bpm = 121)) }
-        listOf("Beginner", "Learner", "Star", "Master").forEach { compose.onNodeWithText(it).assertIsNotSelected() }
+        val beats = compose.onNodeWithContentDescription("Beats in a bar: 4").getBoundsInRoot()
+        val ring = compose.onNodeWithContentDescription("Tempo ring, drag around it to change the speed").getBoundsInRoot()
+        val play = compose.onNodeWithText("Play").getBoundsInRoot()
+        assertTrue("beats bottom ${beats.bottom} should be above ring top ${ring.top}", beats.bottom < ring.top)
+        assertTrue("ring bottom ${ring.bottom} should be above play top ${play.top}", ring.bottom < play.top)
     }
 
     @Test
     fun croatian_system_language_shows_croatian_labels() {
         show(MetronomeUiState(), Locale("hr"))
-        compose.onNodeWithText("Idemo!").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Dobe u taktu").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Tvoja razina").assertIsDisplayed()
-        compose.onNodeWithText("Početnik").assertIsDisplayed()
-        compose.onAllNodesWithContentDescription("Sljedeće dobe u taktu").assertCountEquals(1)
+        compose.onNodeWithText("Sviraj").assertIsDisplayed()
+        compose.onNodeWithText("Zec").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Dobe u taktu: 4").assertIsDisplayed()
+        compose.onAllNodesWithContentDescription("Više doba").assertCountEquals(1)
+        compose.onNodeWithContentDescription("Kornjača").assertExists()
         compose.onNodeWithText("120").performClick()
         compose.onNodeWithContentDescription("Kotačić tempa, zavrti ga za promjenu brzine").assertExists()
     }

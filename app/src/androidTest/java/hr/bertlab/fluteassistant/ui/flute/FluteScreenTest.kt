@@ -69,20 +69,20 @@ class FluteScreenTest {
     }
 
     @Test
-    fun shows_the_keys_in_octave_rows_with_a_faint_name_before_the_first_tap() {
+    fun shows_the_keys_in_octave_rows_highest_on_top_with_a_hint_before_the_first_tap() {
         show(FluteUiState())
-        compose.onNodeWithText("…").assertIsDisplayed()
+        compose.onNodeWithText("👆 Tap a note").assertIsDisplayed()
         compose.onNodeWithContentDescription("Flute keys").assertExists()
         val c4 = compose.onNodeWithContentDescription("C4").getBoundsInRoot()
         val c5 = compose.onNodeWithContentDescription("C5").getBoundsInRoot()
         val c6 = compose.onNodeWithContentDescription("C6").getBoundsInRoot()
         val d4 = compose.onNodeWithContentDescription("D4").getBoundsInRoot()
-        assertTrue("C4 $c4 should sit above C5 $c5", c4.bottom <= c5.top)
-        assertTrue("C5 $c5 should sit above C6 $c6", c5.bottom <= c6.top)
+        assertTrue("C6 $c6 should sit above C5 $c5", c6.bottom <= c5.top)
+        assertTrue("C5 $c5 should sit above C4 $c4", c5.bottom <= c4.top)
         assertTrue("the octave rows should share a left edge: $c4 $c5 $c6", abs((c4.left - c5.left).value) <= 1f)
         assertTrue("the octave rows should share a left edge: $c4 $c5 $c6", abs((c5.left - c6.left).value) <= 1f)
         assertTrue("D4 $d4 should be right of C4 $c4", d4.left >= c4.right)
-        assertTrue("a key should be at least 64 dp tall, was ${c4.height}", c4.height >= 64.dp)
+        assertTrue("a key should be at least 58 dp tall, was ${c4.height}", c4.height >= 58.dp)
     }
 
     @Test
@@ -102,46 +102,46 @@ class FluteScreenTest {
         compose.onNodeWithContentDescription("Fingering for G4").assertExists()
         compose.onNodeWithContentDescription("Your tune, 1 note").assertExists()
         compose.onNode(hasText("G4") and hasAnyAncestor(hasContentDescription("Your tune, 1 note"))).assertExists()
-        compose.onNodeWithText("Tap a note to start your tune").assertDoesNotExist()
+        compose.onNodeWithText("👆 Tap a note").assertDoesNotExist()
     }
 
     @Test
     fun play_and_erase_are_disabled_while_the_tune_is_empty() {
         show(FluteUiState())
-        compose.onNodeWithText("Play my tune").assertIsNotEnabled()
+        compose.onNodeWithText("Play").assertIsNotEnabled()
         compose.onNodeWithContentDescription("Erase the last note").assertIsNotEnabled()
-        compose.onNodeWithText("Tap a note to start your tune").assertIsDisplayed()
+        compose.onNodeWithText("👆 Tap a note").assertIsDisplayed()
         state.value = state.value.copy(tune = listOf(TuneNote(60, 300)))
         compose.waitForIdle()
-        compose.onNodeWithText("Play my tune").assertIsEnabled()
+        compose.onNodeWithText("Play").assertIsEnabled()
         compose.onNodeWithContentDescription("Erase the last note").assertIsEnabled()
-        compose.onNodeWithText("Play my tune").performClick()
+        compose.onNodeWithText("Play").performClick()
         assertEquals(1, playToggles)
         compose.onNodeWithContentDescription("Erase the last note").performClick()
         assertEquals(1, erases)
     }
 
     @Test
-    fun the_erase_button_shows_it_is_pressed() {
+    fun the_erase_button_sinks_while_pressed() {
         show(FluteUiState(tune = listOf(TuneNote(60, 300))))
         val erase = compose.onNodeWithContentDescription("Erase the last note")
-        // A pixel near the left edge of the round button, clear of the icon in its middle.
-        fun edgePixel(): Color {
+        // A pixel on the button's top edge: its ink outline at rest, empty once it sinks.
+        fun topPixel(): Color {
             val pixels = erase.captureToImage().toPixelMap()
-            return pixels[pixels.width * 15 / 100, pixels.height / 2]
+            return pixels[pixels.width / 2, with(compose.density) { 1.dp.roundToPx() }]
         }
-        val idle = edgePixel()
+        val idle = topPixel()
         erase.performTouchInput { down(center) }
-        assertNotEquals("the button should change colour while held", idle, edgePixel())
+        assertNotEquals("the button should sink while held", idle, topPixel())
         erase.performTouchInput { up() }
-        assertEquals(idle, edgePixel())
+        assertEquals(idle, topPixel())
     }
 
     @Test
     fun the_pill_reads_stop_while_playing() {
         show(FluteUiState(tune = listOf(TuneNote(60, 300), TuneNote(67, 300)), playingIndex = 1, shownMidi = 67))
         compose.onNodeWithText("Stop").assertIsDisplayed()
-        compose.onNodeWithText("Play my tune").assertDoesNotExist()
+        compose.onNodeWithText("Play").assertDoesNotExist()
     }
 
     @Test
@@ -169,7 +169,7 @@ class FluteScreenTest {
             }
         }
         val layouts = mutableListOf<TextLayoutResult>()
-        val node = compose.onNodeWithText("Odsviraj moju pjesmicu", useUnmergedTree = true).fetchSemanticsNode()
+        val node = compose.onNodeWithText("Sviraj", useUnmergedTree = true).fetchSemanticsNode()
         node.config[SemanticsActions.GetTextLayoutResult].action!!.invoke(layouts)
         assertFalse("the Play label should shrink to fit, not be cut short", layouts.single().isLineEllipsized(0))
     }
@@ -177,7 +177,7 @@ class FluteScreenTest {
     @Test
     fun croatian_copy() {
         show(FluteUiState(tune = listOf(TuneNote(60, 300), TuneNote(62, 300), TuneNote(64, 300))), Locale("hr"))
-        compose.onNodeWithText("Odsviraj moju pjesmicu").assertExists()
+        compose.onNodeWithText("Sviraj").assertExists()
         compose.onNodeWithContentDescription("Obriši zadnju notu").assertExists()
         compose.onNodeWithContentDescription("c1").assertExists()
         compose.onNodeWithContentDescription("Tvoja pjesmica, 3 note").assertExists()

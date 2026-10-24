@@ -9,75 +9,71 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import hr.bertlab.fluteassistant.R
-import hr.bertlab.fluteassistant.ui.theme.InTuneGreen
-import hr.bertlab.fluteassistant.ui.theme.SlightlyOffAmber
+import hr.bertlab.fluteassistant.ui.common.Emoji
+import hr.bertlab.fluteassistant.ui.common.OutlineWidth
+import hr.bertlab.fluteassistant.ui.common.dashedBorder
+import hr.bertlab.fluteassistant.ui.theme.FluteTheme
+import hr.bertlab.fluteassistant.ui.theme.Sun
 
-/** Shows a flame once the child has this many first-tap answers in a row. */
-private const val STREAK_SHOWN_FROM = 2
+/** A star for a note that took more than one try: still earned, but faint. */
+private const val RETRY_STAR_ALPHA = 0.35f
 
 /**
- * One dot per note of the round: green when found on the first tap, amber when it took
- * more, the one being asked ringed in coral, the rest faint. The score and the accuracy
- * at a glance, without a number. When [streak] reaches [STREAK_SHOWN_FROM], a flame with
- * the count sits at the right end.
+ * One place per note of the round: a star when found on the first try, a faint star when it
+ * took more, a yellow dot for the one being asked and a dashed circle for the rest. The
+ * score and the accuracy at a glance, without a number.
  */
 @Composable
-fun RoundProgress(results: List<Boolean>, streak: Int, modifier: Modifier = Modifier) {
+fun RoundProgress(results: List<Boolean>, roundOver: Boolean, modifier: Modifier = Modifier) {
+    val colors = FluteTheme.colors
     val description = pluralStringResource(
         R.plurals.round_progress,
         NotesUiState.ROUND_LENGTH,
         results.size,
         NotesUiState.ROUND_LENGTH,
     )
-    val streakDescription = stringResource(R.string.streak_description, streak)
-    val faint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
-    Box(
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .height(32.dp),
-        contentAlignment = Alignment.Center,
+            .height(32.dp)
+            .clearAndSetSemantics { contentDescription = description },
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.semantics { contentDescription = description },
-        ) {
-            repeat(NotesUiState.ROUND_LENGTH) { index ->
-                val fill = when {
-                    index < results.size -> if (results[index]) InTuneGreen else SlightlyOffAmber
-                    else -> faint
+        repeat(NotesUiState.ROUND_LENGTH) { index ->
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.size(28.dp)) {
+                when {
+                    index < results.size -> Emoji(
+                        STAR_EMOJI,
+                        fontSize = 22,
+                        modifier = Modifier.alpha(if (results[index]) 1f else RETRY_STAR_ALPHA),
+                    )
+                    index == results.size && !roundOver -> Box(
+                        Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Sun)
+                            .border(OutlineWidth, colors.outline, CircleShape),
+                    )
+                    else -> Box(
+                        Modifier
+                            .size(28.dp)
+                            .dashedBorder(OutlineWidth / 2, colors.border, CircleShape),
+                    )
                 }
-                Box(
-                    Modifier
-                        .size(14.dp)
-                        .background(if (index == results.size) Color.Transparent else fill, CircleShape)
-                        .then(
-                            if (index == results.size) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                            else Modifier,
-                        ),
-                )
             }
-        }
-        if (streak >= STREAK_SHOWN_FROM) {
-            Text(
-                text = stringResource(R.string.streak_badge, streak),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .semantics { contentDescription = streakDescription },
-            )
         }
     }
 }
+
+const val STAR_EMOJI = "⭐" // star
