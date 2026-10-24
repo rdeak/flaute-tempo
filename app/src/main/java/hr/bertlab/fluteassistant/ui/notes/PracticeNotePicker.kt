@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.notes.StaffNotes
+import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.common.BigActionButton
 import hr.bertlab.fluteassistant.ui.common.ChunkyButton
 import hr.bertlab.fluteassistant.ui.common.Emoji
@@ -36,6 +37,7 @@ import hr.bertlab.fluteassistant.ui.common.dashedBorder
 import hr.bertlab.fluteassistant.ui.common.noteColor
 import hr.bertlab.fluteassistant.ui.common.noteLabel
 import hr.bertlab.fluteassistant.ui.common.noteText
+import hr.bertlab.fluteassistant.ui.theme.ActionGo
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
 import hr.bertlab.fluteassistant.ui.theme.Go
 
@@ -102,9 +104,9 @@ fun PracticeNotePicker(
         }
         SoundSettingRow(soundOn = soundOn, onToggleSound = onToggleSound)
         BigActionButton(
-            emoji = CHECK_EMOJI,
+            icon = AppIcons.Done,
             text = stringResource(R.string.choose_notes_done),
-            color = Go,
+            color = ActionGo,
             onClick = onDone,
             modifier = Modifier.padding(bottom = 8.dp),
         )
@@ -171,6 +173,5 @@ private fun SoundSettingRow(soundOn: Boolean, onToggleSound: () -> Unit) {
     }
 }
 
-private const val CHECK_EMOJI = "✅" // check mark button
 private const val SPEAKER_EMOJI = "🔊" // speaker, loud
 private const val MUTED_EMOJI = "🔇" // speaker, muted

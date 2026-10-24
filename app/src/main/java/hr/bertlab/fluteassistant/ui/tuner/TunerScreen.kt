@@ -52,6 +52,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.tuner.FluteFingerings
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
+import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.common.BigActionButton
 import hr.bertlab.fluteassistant.ui.common.ChunkyButton
 import hr.bertlab.fluteassistant.ui.common.Emoji
@@ -62,8 +63,8 @@ import hr.bertlab.fluteassistant.ui.common.fitOrScroll
 import hr.bertlab.fluteassistant.ui.common.labelRes
 import hr.bertlab.fluteassistant.ui.common.noteColor
 import hr.bertlab.fluteassistant.ui.common.noteLabel
+import hr.bertlab.fluteassistant.ui.theme.ActionGo
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
-import hr.bertlab.fluteassistant.ui.theme.Go
 import hr.bertlab.fluteassistant.ui.theme.Sun
 
 /**
@@ -410,9 +411,9 @@ private fun PermissionCard(onRequestPermission: () -> Unit, onOpenSettings: () -
         }
         Spacer(Modifier.height(12.dp))
         BigActionButton(
-            emoji = THUMBS_UP_EMOJI,
+            icon = AppIcons.Done,
             text = stringResource(R.string.allow_microphone),
-            color = Go,
+            color = ActionGo,
             onClick = onRequestPermission,
         )
         Spacer(Modifier.height(20.dp))
@@ -433,5 +434,4 @@ private fun PermissionCard(onRequestPermission: () -> Unit, onOpenSettings: () -
 }
 
 private const val MICROPHONE_EMOJI = "\uD83C\uDFA4" // microphone
-private const val THUMBS_UP_EMOJI = "\uD83D\uDC4D" // thumbs up
 private const val GEAR_EMOJI = "\u2699\uFE0F" // gear

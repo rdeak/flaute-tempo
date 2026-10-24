@@ -14,10 +14,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,14 +37,18 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import hr.bertlab.fluteassistant.ui.theme.ActionGo
+import hr.bertlab.fluteassistant.ui.theme.ActionStop
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
 import hr.bertlab.fluteassistant.ui.theme.InkOnFill
+import hr.bertlab.fluteassistant.ui.theme.OnAction
 
 /** Width of the ink outline around everything that can be pressed. */
 val OutlineWidth = 3.dp
@@ -122,12 +128,13 @@ fun ChunkyButton(
 }
 
 /**
- * The big full-width action at the bottom of a screen: an emoji and one word on a bright
- * pill (Play, Stop, OK, Again, Yes).
+ * The big full-width action at the bottom of a screen: a drawn icon and one word, both white,
+ * on a deep pill ([ActionGo] for Play, OK, Again and Yes, [ActionStop] for Stop), so the most
+ * important button on each screen has the strongest contrast.
  */
 @Composable
 fun BigActionButton(
-    emoji: String,
+    icon: ImageVector,
     text: String,
     color: Color,
     onClick: () -> Unit,
@@ -145,8 +152,14 @@ fun BigActionButton(
             .height(84.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Emoji(emoji, fontSize = 32)
-            Text(text, style = MaterialTheme.typography.headlineMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Icon(icon, contentDescription = null, tint = OnAction, modifier = Modifier.size(32.dp))
+            Text(
+                text,
+                style = MaterialTheme.typography.headlineMedium,
+                color = OnAction,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

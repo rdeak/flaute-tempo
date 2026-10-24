@@ -38,11 +38,12 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.model.TimeSignature
+import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.common.BigActionButton
 import hr.bertlab.fluteassistant.ui.common.Stage
 import hr.bertlab.fluteassistant.ui.common.fitOrScroll
-import hr.bertlab.fluteassistant.ui.theme.Go
-import hr.bertlab.fluteassistant.ui.theme.Stop
+import hr.bertlab.fluteassistant.ui.theme.ActionGo
+import hr.bertlab.fluteassistant.ui.theme.ActionStop
 
 private const val FLASH_DURATION_MS = 220
 
@@ -51,8 +52,6 @@ private const val FLASH_DURATION_MS = 220
  * does the tab scroll instead.
  */
 private val MetronomeMinHeight = 420.dp
-private const val PLAY_EMOJI = "\u25B6\uFE0F" // play button
-private const val STOP_EMOJI = "\u23F9\uFE0F" // stop button
 
 /** Stateful entry point: wires the ViewModel to the stateless [MetronomeContent]. */
 @Composable
@@ -160,9 +159,9 @@ fun MetronomeContent(
                 )
             }
             BigActionButton(
-                emoji = if (state.isPlaying) STOP_EMOJI else PLAY_EMOJI,
+                icon = if (state.isPlaying) AppIcons.Stop else AppIcons.Play,
                 text = stringResource(if (state.isPlaying) R.string.stop else R.string.play),
-                color = if (state.isPlaying) Stop else Go,
+                color = if (state.isPlaying) ActionStop else ActionGo,
                 onClick = onTogglePlayback,
                 modifier = Modifier.padding(bottom = 8.dp),
             )

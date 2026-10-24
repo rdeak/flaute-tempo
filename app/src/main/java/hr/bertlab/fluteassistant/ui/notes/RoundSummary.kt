@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,12 +31,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import hr.bertlab.fluteassistant.R
+import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.common.BigActionButton
 import hr.bertlab.fluteassistant.ui.common.Emoji
 import hr.bertlab.fluteassistant.ui.common.OutlineWidth
 import hr.bertlab.fluteassistant.ui.common.facingRight
+import hr.bertlab.fluteassistant.ui.theme.ActionGo
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
-import hr.bertlab.fluteassistant.ui.theme.Go
 
 /** Flames shown at most, for the streak here and on the game screen. */
 const val MAX_FLAMES = 5
@@ -90,16 +92,20 @@ fun RoundSummary(state: NotesUiState, onPlayAgain: () -> Unit, modifier: Modifie
             )
         }
         BigActionButton(
-            emoji = AGAIN_EMOJI,
+            icon = AppIcons.Again,
             text = stringResource(R.string.play_again),
-            color = Go,
+            color = ActionGo,
             onClick = onPlayAgain,
             modifier = Modifier.padding(bottom = 8.dp),
         )
     }
 }
 
-/** A quiet tile: a picture made of emoji over one word; an [animal] faces right, as on the metronome. */
+/**
+ * A quiet tile: a picture made of emoji over one word; an [animal] faces right, as on the
+ * metronome. The picture shrinks to fit the tile rather than lose an emoji off the edge: five
+ * flames are wider than a third of a phone at full size.
+ */
 @Composable
 private fun StatTile(
     picture: String,
@@ -123,9 +129,11 @@ private fun StatTile(
     ) {
         Text(
             text = picture,
-            style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, letterSpacing = (-2).sp),
+            style = MaterialTheme.typography.titleLarge.copy(letterSpacing = (-2).sp),
             maxLines = 1,
+            autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 22.sp),
             modifier = Modifier
+                .padding(horizontal = 8.dp)
                 .alpha(if (faint) 0.3f else 1f)
                 .then(if (animal) Modifier.facingRight() else Modifier),
         )
@@ -145,4 +153,3 @@ fun headlineFor(score: Int): Int = when {
 const val FLAME_EMOJI = "🔥" // fire
 private const val TROPHY_EMOJI = "🏆" // trophy
 private const val AIM_EMOJI = "🎯" // direct hit
-private const val AGAIN_EMOJI = "🔁" // repeat

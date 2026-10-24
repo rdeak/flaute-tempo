@@ -17,6 +17,12 @@ val Go = Color(0xFF5BE07E)
 val Stop = Color(0xFFFF8A80)
 val InkOnFill = Color(0xFF1F2440)
 
+// The big action buttons (BigActionButton), the same in both themes: deep enough that white
+// text and icons on them pass contrast, unlike [InkOnFill] on the light [Go] and [Stop].
+val ActionGo = Color(0xFF0F7A3E)
+val ActionStop = Color(0xFFC62F2F)
+val OnAction = Color.White
+
 /** The tuner's tick when the note is in tune. */
 val InTuneGreen = Color(0xFF22A35A)
 

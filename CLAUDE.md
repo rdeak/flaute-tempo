@@ -282,13 +282,16 @@ or on `eraseLast()`, which drops the last note (the erase button repeats while h
 - The look comes from the Claude Design canvas (see `.superpowers/design/flute-assistant-screens/`):
   white cards (`Stage`) on sky blue, or navy in dark mode, with dynamic colour off; the tokens that
   change with the theme are `FluteColors` (read through `FluteTheme.colors`), the bright fills that
-  never change are `Sun` (yellow = chosen), `Go`, `Stop` and `NoteLetterColors`, one per letter,
+  never change are `Sun` (yellow = chosen), `Go` (the Sound switch), `Stop` and `NoteLetterColors`, one per letter,
   which `noteColor(midi)` applies wherever a note appears (a sharp takes the letter below). Text on a
   bright fill is always `InkOnFill`. Everything pressable is a `ChunkyButton` / `Modifier.chunky`
-  (thick ink outline, solid shadow, sinks 3 dp when pressed); big actions are `BigActionButton`.
+  (thick ink outline, solid shadow, sinks 3 dp when pressed); big actions are `BigActionButton`,
+  the one place with white on colour: a drawn icon and the word in `OnAction` on `ActionGo` (deep
+  green: Play, OK, Again, Yes) or `ActionStop` (deep red: Stop), for contrast (canvas, 2026-10-24).
   The font is Nunito (three static weights in `res/font`, licence in `docs/licenses/`); the canvas
   used Fredoka, which has no č, ć or đ. Icons are emoji (`Emoji`, hidden from accessibility), plus
-  the chevrons, arrows and tick in `AppIcons`. The app icon's picture is one vector, `@drawable/ic_app_art` (a robot
+  the chevrons, arrows and tick of the tuner and the big buttons' play, stop, done and again icons
+  in `AppIcons`. The app icon's picture is one vector, `@drawable/ic_app_art` (a robot
   over a flute, from the canvas's "App icon" board): the launcher insets it into the adaptive icon's
   safe zone, `AppLogo` puts it on the golden rounded square in the top bar, and `tools/IconGen.java`
   draws the same shapes for the PNGs and the Play listing. Note names are shown with the octave raised (`noteText`, built from

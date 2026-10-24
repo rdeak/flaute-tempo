@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.tuner.FluteFingerings
+import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.common.BigActionButton
 import hr.bertlab.fluteassistant.ui.common.DISABLED_ALPHA
 import hr.bertlab.fluteassistant.ui.common.Emoji
@@ -46,9 +47,9 @@ import hr.bertlab.fluteassistant.ui.common.Stage
 import hr.bertlab.fluteassistant.ui.common.chunky
 import hr.bertlab.fluteassistant.ui.common.noteColor
 import hr.bertlab.fluteassistant.ui.common.noteLabel
+import hr.bertlab.fluteassistant.ui.theme.ActionGo
+import hr.bertlab.fluteassistant.ui.theme.ActionStop
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
-import hr.bertlab.fluteassistant.ui.theme.Go
-import hr.bertlab.fluteassistant.ui.theme.Stop
 import hr.bertlab.fluteassistant.ui.tuner.FINGERING_ASPECT_RATIO
 import hr.bertlab.fluteassistant.ui.tuner.FingeringDiagram
 import kotlinx.coroutines.delay
@@ -97,7 +98,7 @@ private val FitsHeight = 20.dp + (38.dp + BubbleSize + 6.dp + 14.dp + 48.dp + 14
  * playing now) in its letter's colour, a dashed bubble with a pointing finger before the
  * first tap, the tuner's flute drawing with that note's fingering and the scrolling
  * [TuneLine]; then the octave rows of [FluteKeys] taking the height left, and the Play row:
- * one big pill ("Play", green; "Stop", coral, while the tune plays) and a round erase
+ * one big pill ("Play", green; "Stop", red, while the tune plays) and a round erase
  * button, both faded while the tune is empty. On an ordinary phone held upright nothing
  * scrolls; when the height is short of [FitsHeight] the keys keep their minimum and the
  * whole screen scrolls.
@@ -156,9 +157,9 @@ fun FluteContent(
                     .padding(bottom = PlayShadow),
             ) {
                 BigActionButton(
-                    emoji = if (state.isPlaying) STOP_EMOJI else PLAY_EMOJI,
+                    icon = if (state.isPlaying) AppIcons.Stop else AppIcons.Play,
                     text = stringResource(if (state.isPlaying) R.string.stop else R.string.flute_play),
-                    color = if (state.isPlaying) Stop else Go,
+                    color = if (state.isPlaying) ActionStop else ActionGo,
                     onClick = onTogglePlayback,
                     enabled = !state.isEmpty,
                     modifier = Modifier.weight(1f),
@@ -170,8 +171,6 @@ fun FluteContent(
 }
 
 private const val POINTING_EMOJI = "\uD83D\uDC46" // backhand index pointing up
-private const val PLAY_EMOJI = "\u25B6\uFE0F" // play button
-private const val STOP_EMOJI = "\u23F9\uFE0F" // stop button
 private const val SPONGE_EMOJI = "\uD83E\uDDFD" // sponge
 
 /** After this long held, the erase button starts repeating, then every [EraseRepeatMs]: a phone keyboard's backspace. */
