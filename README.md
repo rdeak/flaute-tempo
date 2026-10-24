@@ -106,8 +106,7 @@ The confidence gate is an open question, and the code says so. Offline analysis 
 of a real flute with breath noise added showed that below roughly 9 dB signal-to-noise the detector
 still finds the note, while the second of two stacked confidence gates discards the frame and the
 screen shows nothing. The gate stays at 0.85 until a capture from a phone confirms it. The KDoc on
-`MIN_PROBABILITY` names the log line to read and the change the evidence supports, and the analysis
-is written up in the tuner spec.
+`MIN_PROBABILITY` names the log line to read and the change the evidence supports.
 
 ## Flute synth
 
