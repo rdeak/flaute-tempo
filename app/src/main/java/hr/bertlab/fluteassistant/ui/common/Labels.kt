@@ -4,12 +4,20 @@ import android.content.res.Resources
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.BaselineShift
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.em
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.SoundProfile
 import hr.bertlab.fluteassistant.domain.model.Subdivision
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
+import hr.bertlab.fluteassistant.ui.theme.NoteLetterColors
 import hr.bertlab.fluteassistant.ui.tuner.TunerAdvice
 
 /*
@@ -72,21 +80,51 @@ fun MetronomeConfig.summary(): String = summary(LocalResources.current)
  * octave "c1", then "c2", "c3"; below it the small octave is lowercase with no number ("h"),
  * the great octave uppercase ("C") and the contra octave "C1".
  */
-fun noteLabel(resources: Resources, midi: Int): String {
-    val name = resources.getStringArray(R.array.note_names)[Math.floorMod(midi, 12)]
-    val octave = Math.floorDiv(midi, 12) - 1 // scientific: C4 = 60
-    if (!resources.getBoolean(R.bool.note_octaves_helmholtz)) return name + octave
-    return when {
-        octave >= 4 -> name.lowercase() + (octave - 3)
-        octave == 3 -> name.lowercase()
-        octave == 2 -> name
-        else -> name + (2 - octave)
-    }
-}
+fun noteLabel(resources: Resources, midi: Int): String =
+    noteLabelParts(resources, midi).let { (name, octave) -> name + octave }
 
 @Composable
 @ReadOnlyComposable
 fun noteLabel(midi: Int): String = noteLabel(LocalResources.current, midi)
+
+/**
+ * [noteLabel] split into the name and the octave figure ("A♯" and "4", "c" and "1", "h" and
+ * ""), so the screens can raise the figure: the label reads "A♯⁴" or "c¹" on screen while
+ * assistive technology still hears [noteLabel].
+ */
+fun noteLabelParts(resources: Resources, midi: Int): Pair<String, String> {
+    val name = resources.getStringArray(R.array.note_names)[Math.floorMod(midi, 12)]
+    val octave = Math.floorDiv(midi, 12) - 1 // scientific: C4 = 60
+    if (!resources.getBoolean(R.bool.note_octaves_helmholtz)) return name to octave.toString()
+    return when {
+        octave >= 4 -> name.lowercase() to (octave - 3).toString()
+        octave == 3 -> name.lowercase() to ""
+        octave == 2 -> name to ""
+        else -> name to (2 - octave).toString()
+    }
+}
+
+/** [noteLabelParts] as display text: the octave figure small and raised. */
+@Composable
+@ReadOnlyComposable
+fun noteText(midi: Int): AnnotatedString {
+    val (name, octave) = noteLabelParts(LocalResources.current, midi)
+    return buildAnnotatedString {
+        append(name)
+        if (octave.isNotEmpty()) {
+            withStyle(SpanStyle(fontSize = 0.5.em, baselineShift = BaselineShift(0.55f))) { append(octave) }
+        }
+    }
+}
+
+/**
+ * The colour of a note's letter ([NoteLetterColors]); a sharp takes the colour of the
+ * letter it raises, so C♯ is red like C.
+ */
+fun noteColor(midi: Int): Color = NoteLetterColors[LETTER_OF_PITCH_CLASS[Math.floorMod(midi, 12)]]
+
+/** Index of the letter (C = 0 to B = 6) each pitch class is written on, sharps on the letter below. */
+private val LETTER_OF_PITCH_CLASS = intArrayOf(0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6)
 
 /** Note name without the octave, e.g. "A♯" (or "B" in Croatian), for the big tuner display. */
 fun noteName(resources: Resources, midi: Int): String =

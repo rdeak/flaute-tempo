@@ -1,53 +1,65 @@
 package hr.bertlab.fluteassistant.ui.flute
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
+import hr.bertlab.fluteassistant.domain.flute.NoteLength
 import hr.bertlab.fluteassistant.domain.tuner.FluteFingerings
 import hr.bertlab.fluteassistant.ui.common.AppIcons
+import hr.bertlab.fluteassistant.ui.common.BigActionButton
+import hr.bertlab.fluteassistant.ui.common.DISABLED_ALPHA
+import hr.bertlab.fluteassistant.ui.common.Emoji
+import hr.bertlab.fluteassistant.ui.common.NoteBubble
+import hr.bertlab.fluteassistant.ui.common.OutlineWidth
+import hr.bertlab.fluteassistant.ui.common.Stage
+import hr.bertlab.fluteassistant.ui.common.chunky
+import hr.bertlab.fluteassistant.ui.common.dashedBorder
+import hr.bertlab.fluteassistant.ui.common.noteColor
 import hr.bertlab.fluteassistant.ui.common.noteLabel
+import hr.bertlab.fluteassistant.ui.theme.ActionGo
+import hr.bertlab.fluteassistant.ui.theme.ActionStop
+import hr.bertlab.fluteassistant.ui.theme.FluteTheme
+import hr.bertlab.fluteassistant.ui.tuner.FINGERING_ASPECT_RATIO
 import hr.bertlab.fluteassistant.ui.tuner.FingeringDiagram
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -79,26 +91,31 @@ fun FluteScreen(
     )
 }
 
-/** The name row's height: the 64 sp name's line. */
-private val NameRowHeight = 72.dp
-private val FluteHeight = 56.dp
-private val PlayRowHeight = 64.dp
+private val BubbleSize = 96.dp
+private val HoldDot = 16.dp
+private val HoldBeatsGap = 10.dp
+private val PlayRowHeight = 84.dp
+private val PlayShadow = 8.dp
 
 /**
- * Everything below this height cannot hold the keys at their minimum: the name row, the
- * flute, the tune line, three key rows and the Play row, plus the spacers between them.
+ * Everything below this height cannot hold the keys at their minimum: the stage (bubble,
+ * hold dots, flute, tune line), three key rows and the Play row, plus the gaps between them.
  */
-private val FitsHeight = NameRowHeight + 8.dp + FluteHeight + 12.dp + TuneLineHeight + 12.dp +
-    FluteKeysMinHeight + 12.dp + PlayRowHeight + 12.dp
+private val FitsHeight = 20.dp + (38.dp + BubbleSize + 6.dp + HoldBeatsGap + HoldDot + 14.dp + 48.dp + 14.dp + TuneLineHeight) +
+    14.dp + FluteKeysMinHeight + 14.dp + PlayRowHeight + PlayShadow + 16.dp
+
+/** The dots under the note: one per beat, up to a whole note's four. */
+private val MaxHoldBeats = NoteLength.WHOLE.wholeBeats
 
 /**
- * The whole flute tab, top to bottom: the big name of the note shown (held, last played, or
- * playing now; a faint "…" before the first tap), the tuner's flute drawing with that note's
- * fingering, the scrolling [TuneLine], the octave rows of [FluteKeys] taking all the height
- * left, and the Play row: one big coral pill ("Play my tune", "Stop" while the tune plays) and
- * a round erase button, both faded while the tune is empty. On an ordinary phone held upright
- * nothing scrolls; when the height is short of [FitsHeight] the keys keep their minimum and
- * the whole screen scrolls, like the metronome and tuner tabs.
+ * The whole flute tab, top to bottom: a stage with the note shown (held, last played, or
+ * playing now) in its letter's colour, a dashed bubble with a pointing finger before the
+ * first tap, and under it, while a key is held, [HoldBeats] filling one dot per beat; the
+ * tuner's flute drawing with that note's fingering and the scrolling [TuneLine]; then the octave rows of [FluteKeys] taking the height left, and the Play row:
+ * one big pill ("Play", green; "Stop", red, while the tune plays) and a round erase
+ * button, both faded while the tune is empty. On an ordinary phone held upright nothing
+ * scrolls; when the height is short of [FitsHeight] the keys keep their minimum and the
+ * whole screen scrolls.
  */
 @Composable
 fun FluteContent(
@@ -116,33 +133,34 @@ fun FluteContent(
             modifier = Modifier
                 .fillMaxSize()
                 .then(if (fits) Modifier else Modifier.verticalScroll(rememberScrollState()))
-                .padding(horizontal = 12.dp),
+                .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             val shown = state.shownMidi
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(NameRowHeight),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = shown?.let { noteLabel(it) } ?: "…",
-                    style = MaterialTheme.typography.displayLarge.copy(fontSize = 64.sp, lineHeight = 72.sp),
-                    color = if (shown == null) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f) else MaterialTheme.colorScheme.onSurface,
+            Stage(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(HoldBeatsGap),
+                ) {
+                    NoteBubble(
+                        midi = shown,
+                        size = BubbleSize,
+                        fontSize = 48.sp,
+                        placeholder = POINTING_EMOJI,
+                    )
+                    HoldBeats(beats = state.holdBeats, color = shown?.let(::noteColor) ?: FluteTheme.colors.raised)
+                }
+                FingeringDiagram(
+                    keys = shown?.let(FluteFingerings::keysFor),
+                    noteLabel = shown?.let { noteLabel(it) },
+                    color = shown?.let(::noteColor) ?: FluteTheme.colors.raised,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(FINGERING_ASPECT_RATIO),
                 )
+                TuneLine(tune = state.tune, litIndex = state.litIndex)
             }
-            Spacer(Modifier.height(8.dp))
-            FingeringDiagram(
-                keys = shown?.let(FluteFingerings::keysFor),
-                noteLabel = shown?.let { noteLabel(it) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(FluteHeight),
-            )
-            Spacer(Modifier.height(12.dp))
-            TuneLine(tune = state.tune, litIndex = state.litIndex)
-            Spacer(Modifier.height(12.dp))
             FluteKeys(
                 litMidi = state.litMidi,
                 onPress = onKeyPressed,
@@ -152,58 +170,72 @@ fun FluteContent(
                     .fillMaxWidth()
                     .then(if (fits) Modifier.weight(1f) else Modifier.height(FluteKeysMinHeight)),
             )
-            Spacer(Modifier.height(12.dp))
             Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(PlayRowHeight),
+                    .padding(bottom = PlayShadow),
             ) {
-                Button(
+                BigActionButton(
+                    icon = if (state.isPlaying) AppIcons.Stop else AppIcons.Play,
+                    text = stringResource(if (state.isPlaying) R.string.stop else R.string.flute_play),
+                    color = if (state.isPlaying) ActionStop else ActionGo,
                     onClick = onTogglePlayback,
                     enabled = !state.isEmpty,
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                ) {
-                    Icon(
-                        imageVector = if (state.isPlaying) AppIcons.Stop else AppIcons.PlayArrow,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    // The Croatian label is long: shrink it to fit a narrow phone rather than cut it short.
-                    Text(
-                        text = stringResource(if (state.isPlaying) R.string.stop else R.string.flute_play),
-                        style = MaterialTheme.typography.titleLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        autoSize = TextAutoSize.StepBased(
-                            minFontSize = PlayLabelMinSize,
-                            maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
-                            stepSize = 1.sp,
-                        ),
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
+                    modifier = Modifier.weight(1f),
+                )
                 EraseButton(enabled = !state.isEmpty, onErase = onEraseLast, modifier = Modifier.size(PlayRowHeight))
             }
-            Spacer(Modifier.height(12.dp))
         }
     }
 }
 
-/** The smallest the Play label shrinks to on a narrow phone. */
-private val PlayLabelMinSize = 14.sp
+/**
+ * Four dots under the note while a key is held, one more filled in the note's colour for each
+ * beat its note has grown to ([FluteUiState.holdBeats]: the same length its pill shows). When
+ * no key is held they are laid out but invisible, so the keys never move under a finger.
+ */
+@Composable
+private fun HoldBeats(beats: Int?, color: Color) {
+    val colors = FluteTheme.colors
+    val description = beats?.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.flute_held_beats, it, it) }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .alpha(if (beats == null) 0f else 1f)
+            .clearAndSetSemantics { if (description != null) contentDescription = description },
+    ) {
+        repeat(MaxHoldBeats) { index ->
+            val filled = beats != null && index < beats
+            Box(
+                modifier = Modifier
+                    .size(HoldDot)
+                    .clip(CircleShape)
+                    .then(
+                        if (filled) {
+                            Modifier
+                                .background(color)
+                                .border(OutlineWidth, colors.outline, CircleShape)
+                        } else {
+                            Modifier.dashedBorder(OutlineWidth, colors.border, CircleShape)
+                        },
+                    ),
+            )
+        }
+    }
+}
+
+private const val POINTING_EMOJI = "\uD83D\uDC46" // backhand index pointing up
+private const val SPONGE_EMOJI = "\uD83E\uDDFD" // sponge
 
 /** After this long held, the erase button starts repeating, then every [EraseRepeatMs]: a phone keyboard's backspace. */
 private const val EraseRepeatDelayMs = 400L
 private const val EraseRepeatMs = 120L
 
 /**
- * One round soft-teal button with a backspace icon that erases the last note on a tap and
- * keeps erasing while held, so a long line is cleared by holding; it fills teal while a finger
- * is on it, like the keys fill coral. Faded and inert while [enabled] is false.
+ * One round chunky button with a sponge that erases the last note on a tap and keeps erasing
+ * while held, so a long line is cleared by holding; it sinks while a finger is on it, like a
+ * key. Faded and inert while [enabled] is false.
  */
 @Composable
 private fun EraseButton(
@@ -215,12 +247,11 @@ private fun EraseButton(
     val scope = rememberCoroutineScope()
     val currentOnErase by rememberUpdatedState(onErase)
     var pressed by remember { mutableStateOf(false) }
-    Surface(
-        shape = CircleShape,
-        color = if (pressed) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = if (pressed) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSecondaryContainer,
+    val colors = FluteTheme.colors
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = modifier
-            .alpha(if (enabled) 1f else 0.38f)
+            .alpha(if (enabled) 1f else DISABLED_ALPHA)
             .semantics {
                 role = Role.Button
                 contentDescription = description
@@ -230,6 +261,7 @@ private fun EraseButton(
                     enabled
                 }
             }
+            .chunky(CircleShape, colors.raised, colors.outline, PlayShadow, pressed)
             .then(
                 if (enabled) {
                     Modifier.pointerInput(Unit) {
@@ -258,8 +290,6 @@ private fun EraseButton(
                 },
             ),
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(AppIcons.Backspace, contentDescription = null, modifier = Modifier.size(28.dp))
-        }
+        Emoji(SPONGE_EMOJI, fontSize = 34)
     }
 }

@@ -69,7 +69,10 @@ class SharedPreferencesSettingsStore @Inject constructor(
 
     override fun saveNoteSound(enabled: Boolean) = prefs.edit { putBoolean(KEY_NOTE_SOUND, enabled) }
 
-    override fun loadTune(): List<TuneNote> = Tune.decode(prefs.getString(KEY_TUNE, null) ?: "")
+    // A tune saved before lengths were snapped holds times in ms; they become lengths at the
+    // metronome's stored tempo, the one the flute counts beats in.
+    override fun loadTune(): List<TuneNote> =
+        Tune.decode(prefs.getString(KEY_TUNE, null) ?: "", legacyBpm = loadMetronomeConfig().bpm)
 
     override fun saveTune(notes: List<TuneNote>) = prefs.edit { putString(KEY_TUNE, Tune.encode(notes)) }
 

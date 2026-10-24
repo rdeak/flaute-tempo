@@ -1,5 +1,6 @@
 package hr.bertlab.fluteassistant.ui.notes
 
+import hr.bertlab.fluteassistant.ui.metronome.TempoBand
 import kotlin.math.roundToInt
 
 /** Immutable snapshot of everything the note reading game renders: one round of [ROUND_LENGTH] notes. */
@@ -8,8 +9,10 @@ data class NotesUiState(
     val practiceNotes: Set<Int>,
     /** The note being asked. */
     val currentMidi: Int,
-    /** Notes tapped by mistake for the current question; drawn red until it is answered. */
+    /** Notes tapped by mistake for the current question; each marked with a cross until it is answered. */
     val wrongTaps: Set<Int> = emptySet(),
+    /** The latest of [wrongTaps]: its cross gets the arrow pointing towards the right place. */
+    val lastWrongTap: Int? = null,
     /** True from the right tap until the next note appears: the place is green and the note sounds. */
     val solved: Boolean = false,
     /** One entry per note answered this round: true when found on the first tap. */
@@ -39,8 +42,31 @@ data class NotesUiState(
     }
 }
 
-/** A round's time as the child reads it on a stopwatch: "1:23", whole seconds, minutes unbounded. */
-fun formatRoundTime(millis: Long): String {
-    val seconds = millis / 1000
-    return "%d:%02d".format(seconds / 60, seconds % 60)
+/**
+ * How fast a round went, as one of the metronome's animals ([TempoBand]) rather than a time:
+ * the average time per note, the cheetah for under two seconds down to the snail for over
+ * ten. Null until the round is over.
+ */
+fun NotesUiState.speed(): TempoBand? {
+    val perNote = (roundMillis ?: return null) / NotesUiState.ROUND_LENGTH
+    return when {
+        perNote <= 2_000 -> TempoBand.CHEETAH
+        perNote <= 3_500 -> TempoBand.RABBIT
+        perNote <= 6_000 -> TempoBand.DUCK
+        perNote <= 10_000 -> TempoBand.TURTLE
+        else -> TempoBand.SNAIL
+    }
+}
+
+/**
+ * How well the child aimed, one to three stars from [NotesUiState.accuracyPercent]: three
+ * from 90 %, two from 70 %, one otherwise (they found every note in the end).
+ */
+fun NotesUiState.aimStars(): Int {
+    val percent = accuracyPercent ?: return 1
+    return when {
+        percent >= 90 -> 3
+        percent >= 70 -> 2
+        else -> 1
+    }
 }

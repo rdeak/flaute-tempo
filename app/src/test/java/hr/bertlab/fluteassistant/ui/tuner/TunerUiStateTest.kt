@@ -135,3 +135,35 @@ class TunerUiStateAdviceTest {
         assertEquals(TunerAdvice.NONE, TunerUiState(reading = offA4(0.0), targetMidi = 67, mode = TunerMode.IDENTIFY).advice)
     }
 }
+
+class TunerUiStatePitchWindowTest {
+
+    @Test
+    fun `the home ring is the chosen note, or the identified one while a note is heard`() {
+        assertEquals(67, TunerUiState(reading = null, targetMidi = 67, mode = TunerMode.TARGET).homeMidi)
+        assertNull(TunerUiState(reading = null, targetMidi = 67, mode = TunerMode.IDENTIFY).homeMidi)
+        assertEquals(69, TunerUiState(reading = offA4(0.0), targetMidi = 67, mode = TunerMode.IDENTIFY).homeMidi)
+        val held = TunerUiState(reading = offA4(60.0), mode = TunerMode.IDENTIFY, identifiedMidi = 69) // nearest is A♯4
+        assertEquals(69, held.homeMidi)
+    }
+
+    @Test
+    fun `identifying measures from the identified note`() {
+        val held = TunerUiState(reading = offA4(60.0), mode = TunerMode.IDENTIFY, identifiedMidi = 69)
+        assertEquals(60.0, held.gaugeCents!!, 0.01)
+        assertEquals(TuningStatus.HIGH, held.status)
+        assertEquals(-40.0, held.copy(identifiedMidi = null).gaugeCents!!, 0.01) // the reading's own note, A♯4
+    }
+
+    @Test
+    fun `the sound bubble shows the home note unless another note is played`() {
+        fun target(reading: NoteReading?) = TunerUiState(reading = reading, targetMidi = 69, mode = TunerMode.TARGET)
+        assertNull(target(null).heardMidi)
+        assertEquals(69, target(offA4(20.0)).heardMidi)
+        assertEquals(69, target(offA4(-60.0)).heardMidi) // nearest is G♯4, but it is a flat A4
+        assertEquals(67, target(offA4(-200.0)).heardMidi)
+        assertEquals(81, target(offA4(1200.0)).heardMidi)
+        val held = TunerUiState(reading = offA4(60.0), mode = TunerMode.IDENTIFY, identifiedMidi = 69)
+        assertEquals(69, held.heardMidi)
+    }
+}

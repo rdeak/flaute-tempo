@@ -1,95 +1,76 @@
 package hr.bertlab.fluteassistant.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 
-private val LightColorScheme = lightColorScheme(
-    primary = CoralLight,
-    onPrimary = OnCoralLight,
-    primaryContainer = CoralContainerLight,
-    onPrimaryContainer = OnCoralContainerLight,
-    secondary = TealLight,
-    onSecondary = OnTealLight,
-    secondaryContainer = TealContainerLight,
-    onSecondaryContainer = OnTealContainerLight,
-    tertiary = SunLight,
-    onTertiary = OnSunLight,
-    tertiaryContainer = SunContainerLight,
-    onTertiaryContainer = OnSunContainerLight,
-    background = CreamSurface,
-    onBackground = OnCreamSurface,
-    surface = CreamSurface,
-    onSurface = OnCreamSurface,
-    surfaceVariant = PeachSurfaceVariant,
-    onSurfaceVariant = OnPeachSurfaceVariant,
-    outline = OutlineLight,
-    outlineVariant = PeachSurfaceVariant,
-    error = StopRedLight,
-    onError = Color(0xFFFFFFFF),
-    surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFFFF4E6),
-    surfaceContainer = Color(0xFFFFEFDC),
-    surfaceContainerHigh = Color(0xFFFFE9D2),
-    surfaceContainerHighest = Color(0xFFFFE3C8),
-    surfaceDim = Color(0xFFF3E4D3),
-    surfaceBright = CreamSurface,
-    inverseSurface = OnCreamSurface,
-    inverseOnSurface = Color(0xFFFFF4E6),
-    inversePrimary = CoralDark,
-)
+private val LocalFluteColors = staticCompositionLocalOf { LightFluteColors }
 
-private val DarkColorScheme = darkColorScheme(
-    primary = CoralDark,
-    onPrimary = OnCoralDark,
-    primaryContainer = CoralContainerDark,
-    onPrimaryContainer = OnCoralContainerDark,
-    secondary = TealDark,
-    onSecondary = OnTealDark,
-    secondaryContainer = TealContainerDark,
-    onSecondaryContainer = OnTealContainerDark,
-    tertiary = SunDark,
-    onTertiary = OnSunDark,
-    tertiaryContainer = SunContainerDark,
-    onTertiaryContainer = OnSunContainerDark,
-    background = NavySurface,
-    onBackground = OnNavySurface,
-    surface = NavySurface,
-    onSurface = OnNavySurface,
-    surfaceVariant = NavySurfaceVariant,
-    onSurfaceVariant = OnNavySurfaceVariant,
-    outline = OutlineDark,
-    outlineVariant = NavySurfaceVariant,
-    error = StopRedDark,
-    onError = Color(0xFFFFFFFF),
-    surfaceContainerLowest = Color(0xFF161424),
-    surfaceContainerLow = Color(0xFF26233A),
-    surfaceContainer = Color(0xFF2C2942),
-    surfaceContainerHigh = Color(0xFF363250),
-    surfaceContainerHighest = Color(0xFF403B5C),
-    surfaceDim = NavySurface,
-    surfaceBright = Color(0xFF3C3852),
-    inverseSurface = OnNavySurface,
-    inverseOnSurface = OnCreamSurface,
-    inversePrimary = CoralLight,
-)
+/** The app's own colour tokens, which Material's colour scheme has no names for. */
+object FluteTheme {
+    val colors: FluteColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalFluteColors.current
+}
+
+/*
+ * Material's scheme is derived from the same tokens so the few Material pieces left (the
+ * snackbar, ripples, the default text colour) match the hand-drawn ones.
+ */
+private fun FluteColors.toColorScheme(dark: Boolean): ColorScheme {
+    val base = if (dark) darkColorScheme() else lightColorScheme()
+    return base.copy(
+        primary = outline,
+        onPrimary = card,
+        secondary = Go,
+        onSecondary = InkOnFill,
+        tertiary = Sun,
+        onTertiary = InkOnFill,
+        background = page,
+        onBackground = text,
+        surface = page,
+        onSurface = text,
+        surfaceVariant = track,
+        onSurfaceVariant = mutedText,
+        surfaceContainerLowest = card,
+        surfaceContainerLow = card,
+        surfaceContainer = card,
+        surfaceContainerHigh = raised,
+        surfaceContainerHighest = raised,
+        outline = border,
+        outlineVariant = border,
+        error = Stop,
+        onError = InkOnFill,
+        inverseSurface = text,
+        inverseOnSurface = page,
+    )
+}
+
+private val LightColorScheme = LightFluteColors.toColorScheme(dark = false)
+private val DarkColorScheme = DarkFluteColors.toColorScheme(dark = true)
 
 /**
  * Material 3 theme with a fixed playful palette (see [Color.kt]), extra-round shapes and
- * big, bold type. Dark mode follows the system setting.
+ * big, bold rounded type. Dark mode follows the system setting.
  */
 @Composable
 fun FluteAssistantTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-        typography = Typography,
-        shapes = AppShapes,
-        content = content,
-    )
+    CompositionLocalProvider(LocalFluteColors provides if (darkTheme) DarkFluteColors else LightFluteColors) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+            typography = Typography,
+            shapes = AppShapes,
+            content = content,
+        )
+    }
 }

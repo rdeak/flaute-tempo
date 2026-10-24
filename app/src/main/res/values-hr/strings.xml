@@ -6,28 +6,22 @@
     <string name="tab_flute">Flauta</string>
 
     <!-- Metronome -->
-    <string name="play">Idemo!</string>
+    <string name="play">Sviraj</string>
     <string name="stop">Stani</string>
     <string name="tempo_dial">Prsten tempa, povuci po njemu za promjenu brzine</string>
     <string name="tempo_tap">Promijeni brzinu</string>
     <string name="tempo_wheel">Kotačić tempa, zavrti ga za promjenu brzine</string>
-    <string name="time_signature">Dobe u taktu</string>
-    <string name="previous_time_signature">Prethodne dobe u taktu</string>
-    <string name="next_time_signature">Sljedeće dobe u taktu</string>
+    <string name="fewer_beats">Manje doba</string>
+    <string name="more_beats">Više doba</string>
+    <string name="beats_in_bar">Dobe u taktu: %1$d</string>
 
     <string name="language">Jezik</string>
 
-    <string name="feel_very_slow">Jako sporo</string>
-    <string name="feel_slow">Sporo</string>
-    <string name="feel_medium">Srednje</string>
-    <string name="feel_fast">Brzo</string>
-    <string name="feel_super_fast">Super brzo</string>
-
-    <string name="skill_level">Tvoja razina</string>
-    <string name="level_beginner">Početnik</string>
-    <string name="level_learner">Učenik</string>
-    <string name="level_star">Zvijezda</string>
-    <string name="level_master">Majstor</string>
+    <string name="band_snail">Puž</string>
+    <string name="band_turtle">Kornjača</string>
+    <string name="band_duck">Patka</string>
+    <string name="band_rabbit">Zec</string>
+    <string name="band_cheetah">Gepard</string>
 
     <string name="subdivision_quarter">Četvrtinke</string>
     <string name="subdivision_eighth">Osminke</string>
@@ -52,68 +46,94 @@
 
     <!-- Tuner -->
     <string name="tuner_mode">Način štimanja</string>
-    <string name="mode_identify">Koji je ton?</string>
-    <string name="mode_target">Ugodi ton</string>
+    <string name="mode_identify">Koji?</string>
+    <string name="mode_target">Ugodi</string>
     <string name="play_a_note">👂 Odsviraj ton</string>
-    <string name="target_note">Ton koji ugađaš, zavrti za drugi</string>
-    <string name="hear_note">Poslušaj ton</string>
+    <string name="lower_note">Niži ton</string>
+    <string name="higher_note">Viši ton</string>
+    <string name="hear_note">Slušaj</string>
     <string name="listen_status">🔊 Slušaj</string>
     <string name="fingering_for">Prstomet za %1$s</string>
     <string name="play_note_prompt">👂 Odsviraj %1$s</string>
     <string name="in_tune">🎉 Savršeno!</string>
     <string name="too_low">⬇️ Prenisko</string>
     <string name="too_high">⬆️ Previsoko</string>
-    <string name="heard_other_note">🖐️ To je %1$s</string>
+    <string name="heard_lower_note">⬇️ To je %1$s</string>
+    <string name="heard_higher_note">⬆️ To je %1$s</string>
     <string name="octave_too_low">⬇️ Oktavu prenisko</string>
     <string name="octave_too_high">⬆️ Oktavu previsoko</string>
+    <!-- What a screen reader says for the pitch window (ui/tuner/TunerScreen.kt) -->
+    <string name="pitch_listening">Slušam, još ništa ne čujem</string>
+    <string name="pitch_home">Kućica za %1$s, još ništa ne čujem</string>
+    <string name="pitch_in_tune">Tvoj ton je %1$s, u svojoj kućici. Savršeno</string>
+    <string name="pitch_low">Tvoj ton je %1$s, ali malo prenizak. Idi gore</string>
+    <string name="pitch_high">Tvoj ton je %1$s, ali malo previsok. Idi dolje</string>
+    <string name="pitch_other_low">Tvoj ton je %1$s, puno niži od %2$s. Idi gore</string>
+    <string name="pitch_other_high">Tvoj ton je %1$s, puno viši od %2$s. Idi dolje</string>
     <!-- Advice line under the status (ui/tuner/TunerScreen.kt) -->
-    <string name="advice_come_closer">Dođi bliže mobitelu</string>
-    <string name="advice_clear_note">Odsviraj jedan dug, čist ton</string>
-    <string name="advice_roll_out">Zakreni flautu malo od sebe</string>
-    <string name="advice_roll_in">Zakreni flautu malo k sebi</string>
-    <string name="advice_faster_air">Brži zrak</string>
-    <string name="advice_gentler_air">Nježniji zrak</string>
-    <string name="advice_check_fingers">Provjeri prste</string>
-    <string name="mic_permission_title">Smijem li koristiti mikrofon?</string>
-    <string name="mic_permission_body">Trebam čuti tvoju flautu da ti pomognem ugoditi. Ništa se ne snima niti šalje.</string>
-    <string name="allow_microphone">Da, dopusti</string>
-    <string name="open_settings">Otvori postavke</string>
+    <string name="advice_come_closer">📱 Dođi bliže mobitelu</string>
+    <string name="advice_clear_note">🎵 Odsviraj jedan dug, čist ton</string>
+    <string name="advice_roll_out">🔄 Zakreni flautu malo od sebe</string>
+    <string name="advice_roll_in">🔄 Zakreni flautu malo k sebi</string>
+    <string name="advice_faster_air">💨 Brži zrak</string>
+    <string name="advice_gentler_air">🍃 Nježniji zrak</string>
+    <string name="advice_check_fingers">👀 Provjeri prste</string>
+    <string name="mic_permission_title">Smijem li slušati?</string>
+    <string name="mic_permission_body">Samo slušam. Ništa se ne sprema.</string>
+    <string name="allow_microphone">Da</string>
+    <string name="open_settings">Postavke</string>
     <!-- Note reading game -->
     <string name="notes_correct">🎉 Tako je!</string>
-    <string name="notes_wrong">🙈 Nije tu, probaj opet</string>
-    <string name="staff_description">Crtovlje, dodirni gdje ide nota</string>
+    <string name="notes_wrong">🙈 Probaj opet</string>
+    <string name="notes_placing">👆 Povuci i pusti</string>
+    <string name="find_note">🔎 Nađi</string>
+    <string name="staff_description">Crtovlje, pritisni gdje ide nota i pusti</string>
     <string name="staff_position">Mjesto %1$d u crtovlju</string>
     <plurals name="round_progress">
         <item quantity="one">Napredak, %1$d od %2$d note</item>
         <item quantity="few">Napredak, %1$d od %2$d note</item>
         <item quantity="other">Napredak, %1$d od %2$d nota</item>
     </plurals>
-    <string name="streak_badge">🔥 %1$d</string>
     <string name="streak_description">Niz od %1$d</string>
     <string name="round_amazing">🏆 Nevjerojatno!</string>
     <string name="round_great">🌟 Odlično!</string>
     <string name="round_good">👍 Dobro!</string>
     <string name="round_keep_going">💪 Vježbaj dalje!</string>
-    <string name="round_score">%1$d / %2$d</string>
-    <string name="round_score_caption">točno iz prve</string>
-    <string name="round_best_streak">🔥 Najdulji niz: %1$d</string>
-    <string name="round_accuracy">🎯 Točnost: %1$d %%</string>
-    <string name="round_time">⏱️ Vrijeme: %1$s</string>
-    <string name="play_again">Igraj opet</string>
+    <string name="summary_streak">Niz</string>
+    <string name="summary_aim">Točnost</string>
+    <string name="summary_speed">Brzina</string>
+    <string name="summary_stars">Točno iz prve: %1$d od %2$d</string>
+    <string name="aim_description">Točnost: %1$d od 3 zvjezdice</string>
+    <string name="speed_description">Brzina: %1$s</string>
+    <string name="play_again">Opet</string>
     <string name="choose_notes">Odaberi note</string>
+    <string name="pick_notes">Odaberi</string>
     <string name="choose_notes_done">U redu</string>
     <string name="choose_notes_title">Koje note?</string>
     <string name="practice_notes">Note za vježbanje</string>
-    <string name="note_sound">Odsviraj pogođenu notu</string>
+    <string name="note_sound">Zvuk</string>
     <!-- Digital flute -->
-    <string name="flute_hint">Dodirni notu i složi pjesmicu</string>
-    <string name="flute_play">Odsviraj moju pjesmicu</string>
+    <string name="flute_hint">👆 Dodirni ili drži notu</string>
+    <string name="flute_play">Sviraj</string>
     <string name="flute_erase">Obriši zadnju notu</string>
     <string name="flute_keys">Tipke flaute</string>
     <plurals name="flute_tune_line">
         <item quantity="one">Tvoja pjesmica, %1$d nota</item>
         <item quantity="few">Tvoja pjesmica, %1$d note</item>
         <item quantity="other">Tvoja pjesmica, %1$d nota</item>
+    </plurals>
+    <!-- Accessibility name of one note of the tune line: the note (e.g. "C4") and its length in beats -->
+    <plurals name="flute_note_beats">
+        <item quantity="one">%1$s, %2$d doba</item>
+        <item quantity="few">%1$s, %2$d dobe</item>
+        <item quantity="other">%1$s, %2$d doba</item>
+    </plurals>
+    <string name="flute_note_half_beat">%1$s, pola dobe</string>
+    <!-- Accessibility name of the dots under the note while a key is held -->
+    <plurals name="flute_held_beats">
+        <item quantity="one">Držiš %1$d dobu</item>
+        <item quantity="few">Držiš %1$d dobe</item>
+        <item quantity="other">Držiš %1$d doba</item>
     </plurals>
     <!-- Croatian music schools name octaves c1, c2, c3 (jednocrtna, dvocrtna, trocrtna), with
          the one-lined octave starting at middle C -->

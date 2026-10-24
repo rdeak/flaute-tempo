@@ -1,5 +1,6 @@
 package hr.bertlab.fluteassistant.ui.notes
 
+import hr.bertlab.fluteassistant.ui.metronome.TempoBand
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -17,11 +18,22 @@ class NotesUiStateTest {
     }
 
     @Test
-    fun `round time reads as minutes and seconds`() {
-        assertEquals("0:00", formatRoundTime(0L))
-        assertEquals("0:07", formatRoundTime(7_400L))
-        assertEquals("1:23", formatRoundTime(83_000L))
-        assertEquals("12:05", formatRoundTime(725_900L))
+    fun `the round's speed is an animal for the time per note`() {
+        fun speed(millis: Long?) = NotesUiState(practiceNotes = setOf(60), currentMidi = 60, roundMillis = millis).speed()
+        assertNull(speed(null))
+        assertEquals(TempoBand.CHEETAH, speed(20_000L))
+        assertEquals(TempoBand.RABBIT, speed(30_000L))
+        assertEquals(TempoBand.DUCK, speed(60_000L))
+        assertEquals(TempoBand.TURTLE, speed(100_000L))
+        assertEquals(TempoBand.SNAIL, speed(100_010L))
+    }
+
+    @Test
+    fun `aim is one to three stars from the accuracy`() {
+        assertEquals(1, state(results = emptyList(), taps = 0).aimStars())
+        assertEquals(3, state(results = List(10) { true }, taps = 11).aimStars())
+        assertEquals(2, state(results = List(10) { true }, taps = 14).aimStars())
+        assertEquals(1, state(results = List(10) { true }, taps = 15).aimStars())
     }
 
     @Test

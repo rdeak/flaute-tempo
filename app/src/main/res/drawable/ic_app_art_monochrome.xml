@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon picture (Android 13+): @drawable/ic_app_art as one colour, which the launcher
+     tints. The face sits in a hole in the head and the dots are holes in the flute. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    <!-- The robot: rotate(-9 about 256,216), then scale 1.1 about 256,196 and down 40, as on the canvas. -->
+    <group
+        android:pivotX="256"
+        android:pivotY="196"
+        android:scaleX="1.1"
+        android:scaleY="1.1"
+        android:translateY="40">
+        <group
+            android:pivotX="256"
+            android:pivotY="216"
+            android:rotation="-9">
+            <path
+                android:strokeColor="#FF000000"
+                android:strokeWidth="13"
+                android:strokeLineJoin="round"
+                android:strokeLineCap="round"
+                android:pathData="M256,112 L256,84" />
+            <path
+                android:fillColor="#FF000000"
+                android:pathData="M229.5,68 a26.5,26.5 0 1,0 53,0 a26.5,26.5 0 1,0 -53,0" />
+            <path
+                android:fillColor="#FF000000"
+                android:pathData="M73.5,216 a42.5,42.5 0 1,0 85,0 a42.5,42.5 0 1,0 -85,0" />
+            <path
+                android:fillColor="#FF000000"
+                android:pathData="M353.5,216 a42.5,42.5 0 1,0 85,0 a42.5,42.5 0 1,0 -85,0" />
+            <path
+                android:fillColor="#FF000000"
+                android:fillType="evenOdd"
+                android:pathData="M117.5,216 a138.5,110.5 0 1,0 277,0 a138.5,110.5 0 1,0 -277,0 M162,214 a94,64 0 1,0 188,0 a94,64 0 1,0 -188,0" />
+            <path
+                android:fillColor="#FF000000"
+                android:pathData="M198,200 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0" />
+            <path
+                android:fillColor="#FF000000"
+                android:pathData="M278,200 a18,18 0 1,0 36,0 a18,18 0 1,0 -36,0" />
+            <path
+                android:strokeColor="#FF000000"
+                android:strokeWidth="13"
+                android:strokeLineJoin="round"
+                android:strokeLineCap="round"
+                android:pathData="M224,238 Q256,268 288,238" />
+        </group>
+    </group>
+    <!-- The flute: a white pill with one dot per note letter, C to B, tilted -6 degrees. -->
+    <group
+        android:translateX="256"
+        android:translateY="428"
+        android:rotation="-6">
+        <path
+            android:fillColor="#FF000000"
+            android:fillType="evenOdd"
+            android:pathData="M-168,-28.5 H168 A28.5,28.5 0 0 1 168,28.5 H-168 A28.5,28.5 0 0 1 -168,-28.5 Z M-106,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M-74,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M-42,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M22,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M54,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0 M86,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+    </group>
+</vector>

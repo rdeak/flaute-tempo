@@ -99,6 +99,7 @@ class NotesViewModelTest {
         val wrong = vm.otherNote()
         vm.onNoteTapped(wrong)
         assertEquals(setOf(wrong), vm.state.value.wrongTaps)
+        assertEquals(wrong, vm.state.value.lastWrongTap)
         assertEquals(0, vm.state.value.streak)
         assertEquals(2, vm.state.value.taps)
         assertEquals(asked, vm.current)
@@ -109,6 +110,11 @@ class NotesViewModelTest {
         assertEquals(listOf(true, false), vm.state.value.results)
         assertTrue(vm.state.value.solved)
         assertEquals(0, vm.state.value.streak)
+
+        // The next note starts without crosses or an arrow.
+        advanceTimeBy(NotesViewModel.FEEDBACK_MS.toLong() + 1)
+        assertTrue(vm.state.value.wrongTaps.isEmpty())
+        assertNull(vm.state.value.lastWrongTap)
     }
 
     @Test
