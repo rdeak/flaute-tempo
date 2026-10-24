@@ -1,5 +1,7 @@
 package hr.bertlab.fluteassistant.ui.flute
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,9 +27,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.onClick
@@ -37,14 +43,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import hr.bertlab.fluteassistant.R
+import hr.bertlab.fluteassistant.domain.flute.NoteLength
 import hr.bertlab.fluteassistant.domain.tuner.FluteFingerings
 import hr.bertlab.fluteassistant.ui.common.AppIcons
 import hr.bertlab.fluteassistant.ui.common.BigActionButton
 import hr.bertlab.fluteassistant.ui.common.DISABLED_ALPHA
 import hr.bertlab.fluteassistant.ui.common.Emoji
 import hr.bertlab.fluteassistant.ui.common.NoteBubble
+import hr.bertlab.fluteassistant.ui.common.OutlineWidth
 import hr.bertlab.fluteassistant.ui.common.Stage
 import hr.bertlab.fluteassistant.ui.common.chunky
+import hr.bertlab.fluteassistant.ui.common.dashedBorder
 import hr.bertlab.fluteassistant.ui.common.noteColor
 import hr.bertlab.fluteassistant.ui.common.noteLabel
 import hr.bertlab.fluteassistant.ui.theme.ActionGo
@@ -83,21 +92,26 @@ fun FluteScreen(
 }
 
 private val BubbleSize = 96.dp
+private val HoldDot = 16.dp
+private val HoldBeatsGap = 10.dp
 private val PlayRowHeight = 84.dp
 private val PlayShadow = 8.dp
 
 /**
  * Everything below this height cannot hold the keys at their minimum: the stage (bubble,
- * flute, tune line), three key rows and the Play row, plus the gaps between them.
+ * hold dots, flute, tune line), three key rows and the Play row, plus the gaps between them.
  */
-private val FitsHeight = 20.dp + (38.dp + BubbleSize + 6.dp + 14.dp + 48.dp + 14.dp + TuneLineHeight) + 14.dp +
-    FluteKeysMinHeight + 14.dp + PlayRowHeight + PlayShadow + 16.dp
+private val FitsHeight = 20.dp + (38.dp + BubbleSize + 6.dp + HoldBeatsGap + HoldDot + 14.dp + 48.dp + 14.dp + TuneLineHeight) +
+    14.dp + FluteKeysMinHeight + 14.dp + PlayRowHeight + PlayShadow + 16.dp
+
+/** The dots under the note: one per beat, up to a whole note's four. */
+private val MaxHoldBeats = NoteLength.WHOLE.wholeBeats
 
 /**
  * The whole flute tab, top to bottom: a stage with the note shown (held, last played, or
  * playing now) in its letter's colour, a dashed bubble with a pointing finger before the
- * first tap, the tuner's flute drawing with that note's fingering and the scrolling
- * [TuneLine]; then the octave rows of [FluteKeys] taking the height left, and the Play row:
+ * first tap, and under it, while a key is held, [HoldBeats] filling one dot per beat; the
+ * tuner's flute drawing with that note's fingering and the scrolling [TuneLine]; then the octave rows of [FluteKeys] taking the height left, and the Play row:
  * one big pill ("Play", green; "Stop", red, while the tune plays) and a round erase
  * button, both faded while the tune is empty. On an ordinary phone held upright nothing
  * scrolls; when the height is short of [FitsHeight] the keys keep their minimum and the
@@ -125,12 +139,18 @@ fun FluteContent(
         ) {
             val shown = state.shownMidi
             Stage(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                NoteBubble(
-                    midi = shown,
-                    size = BubbleSize,
-                    fontSize = 48.sp,
-                    placeholder = POINTING_EMOJI,
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(HoldBeatsGap),
+                ) {
+                    NoteBubble(
+                        midi = shown,
+                        size = BubbleSize,
+                        fontSize = 48.sp,
+                        placeholder = POINTING_EMOJI,
+                    )
+                    HoldBeats(beats = state.holdBeats, color = shown?.let(::noteColor) ?: FluteTheme.colors.raised)
+                }
                 FingeringDiagram(
                     keys = shown?.let(FluteFingerings::keysFor),
                     noteLabel = shown?.let { noteLabel(it) },
@@ -166,6 +186,41 @@ fun FluteContent(
                 )
                 EraseButton(enabled = !state.isEmpty, onErase = onEraseLast, modifier = Modifier.size(PlayRowHeight))
             }
+        }
+    }
+}
+
+/**
+ * Four dots under the note while a key is held, one more filled in the note's colour for each
+ * beat its note has grown to ([FluteUiState.holdBeats]: the same length its pill shows). When
+ * no key is held they are laid out but invisible, so the keys never move under a finger.
+ */
+@Composable
+private fun HoldBeats(beats: Int?, color: Color) {
+    val colors = FluteTheme.colors
+    val description = beats?.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.flute_held_beats, it, it) }
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .alpha(if (beats == null) 0f else 1f)
+            .clearAndSetSemantics { if (description != null) contentDescription = description },
+    ) {
+        repeat(MaxHoldBeats) { index ->
+            val filled = beats != null && index < beats
+            Box(
+                modifier = Modifier
+                    .size(HoldDot)
+                    .clip(CircleShape)
+                    .then(
+                        if (filled) {
+                            Modifier
+                                .background(color)
+                                .border(OutlineWidth, colors.outline, CircleShape)
+                        } else {
+                            Modifier.dashedBorder(OutlineWidth, colors.border, CircleShape)
+                        },
+                    ),
+            )
         }
     }
 }

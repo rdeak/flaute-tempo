@@ -229,13 +229,20 @@ give the answer away; their semantic click answers at once.
 
 ### Digital flute path
 
-`Tune` (`domain/flute/`) is the child's tune: `TuneNote(midi, heldMs)`, at most `MAX_NOTES`
-(200), each held length clamped to `MIN_NOTE_MS`..`MAX_NOTE_MS` (300 to 2000 ms) and played
-back with `GAP_MS` (80) of silence between notes so a repeated note is heard twice. Pauses
-between presses are not recorded (a child hunting for the next key would make the tune
-halting), but the stored string (`"60:450,67:300"`; `decode` is lenient and `sanitize` keeps
-only `StaffNotes.ALL`) tolerates an optional third field per note so pauses can be added
-without a migration; `SettingsStore.saveTune` keeps it under `tune` across restarts. Sound:
+`Tune` (`domain/flute/`) is the child's tune: `TuneNote(midi, length)`, at most `MAX_NOTES`
+(200). Since the canvas of 2026-10-24 a note's `NoteLength` is how long its key was held,
+snapped to the metronome tab's tempo (read from `SettingsStore.loadMetronomeConfig`, clamped to
+the ring's 40 to 200): the nearest of an eighth, a quarter, a half, a dotted half and a whole
+note (`NoteLength.ofBeats`, split halfway: ¾, 1½, 2½, 3½ beats; longer stays a whole note).
+Lengths are kept in beats, so the tempo applies only at playback and changing it later keeps
+the rhythm; `Tune.durationMs` turns a length into time, with `gapMs` (80 ms, at most a quarter
+of the note) taken out of its end so a repeated note is heard twice and the tempo stays exact.
+Pauses between presses are not recorded (a child hunting for the next key would make the tune
+halting), but the stored string (`"60:2,67:4"`, half beats; `decode` is lenient and `sanitize`
+keeps only `StaffNotes.ALL`) tolerates an optional third field per note so pauses can be added
+without a migration, and reads a value above 8 as a held time in ms from before lengths were
+snapped (never under 300), converted at the stored tempo; `SettingsStore.saveTune` keeps it
+under `tune` across restarts. Sound:
 `FluteTimbre` (`audio/flute/`, the harmonics the tuner's `ReferenceToneSynth` now shares)
 under `SustainedToneSynth`, a phase-continuous oscillator with an attack (30 ms) / sustain /
 release (120 ms) envelope and a retrigger fade (10 ms), so a note on, a note off or a takeover
@@ -251,13 +258,15 @@ overlap for the fade rather than the first press after a rotation waiting for it
 `docs/superpowers/specs/2026-10-23-digital-flute-design.md`) opens the player in `enterTab()`
 and closes it in `leaveTab()` (`FluteScreen`'s `LifecycleStartEffect`, so the first press is
 never late and nothing plays off screen); `onKeyPressed(midi)` sounds the key at once, shows
-it (`shownMidi`) and appends it with `MIN_NOTE_MS` (not at the cap, where it only sounds);
-`onKeyReleased(midi)` silences it and records the held length from `MonotonicClock`, ignored
+it (`shownMidi`) and appends it as an eighth (not at the cap, where it only sounds), then grows
+it while the key stays down at `Tune.growAtMs` (`heldLength`, which the hold dots and the pill
+show); `onKeyReleased(midi)` silences it and records the length the hold made from
+`MonotonicClock` (`Tune.lengthOf`, the same rule, so the pill never jumps at lift-off), ignored
 unless that key is the one held (the newest press wins; sliding off a key releases it);
-`onKeyActivated(midi)` is the screen-reader path (`ACTIVATED_MS` 500); `togglePlayback()`
-plays the tune from the start, each note for its held length then the gap, lighting it in the
-line, on its key and on the fingering diagram, and stops at once on the pill, on a key press
-or on `eraseLast()`, which drops the last note (the erase button repeats while held).
+`onKeyActivated(midi)` is the screen-reader path (one beat: a quarter note); `togglePlayback()`
+plays the tune from the start at the metronome's tempo, each note for its length, lighting it
+in the line, on its key and on the fingering diagram, and stops at once on the pill, on a key
+press or on `eraseLast()`, which drops the last note (the erase button repeats while held).
 
 ### UI conventions
 
@@ -339,11 +348,14 @@ at the bottom (a star for first time, a faint star for a retry, yellow for the c
 highest on top, the "Sound" switch row and a big OK, the only way back. The end-of-round summary
 has no numbers on screen either: a trophy, ten stars, and tiles for the best streak (flames), the
 aim (one to three stars) and the speed (an animal). The flute tab has a stage with the note's
-bubble, the fingering and one scrolling line of the notes played (circles in their letter's
-colour), the fifteen keys in three octave rows highest on top (each in its letter's colour; a key
-sounds for as long as it is held) and, at the bottom, one big Play pill ("Play" / "Stop") with a
-round erase button beside it (it sinks while held and repeats like a keyboard's backspace): no
-record button, no clear-all, no tempo, no note lengths as a control. The user rejected a wider
+bubble, four hold dots under it that fill one per beat while a key is held (always laid out, so
+the keys never move under a finger), the fingering and one scrolling line of the notes played
+(pills in their letter's colour, as wide as the note is long, a faint note symbol under each),
+the fifteen keys in three octave rows highest on top (each in its letter's colour; a key sounds
+for as long as it is held) and, at the bottom, one big Play pill ("Play" / "Stop", at the
+metronome's tempo) with a round erase button beside it (it sinks while held and repeats like a
+keyboard's backspace): no record button, no clear-all, no tempo control and no note lengths as a
+control (lengths come only from how long a key is held; the user drew this on 2026-10-24). The user rejected a wider
 layout (−/+ beside the ring, a ten-button signature scroller, flags in the content area) as too
 packed: keep the screens this sparse. Tap tempo, subdivisions, click sounds, volume, presets and the A4 reference still
 exist in the engine, data layer and ViewModels but are not exposed: `MetronomeViewModel.initialState()`
@@ -374,7 +386,7 @@ levelMean, reading, target, mode, hearing), `tuner.reading` when the shown note 
 `tuner.reference`, `tuner.error`, `reference.error`. Metronome: `metronome.start` / `stop` / `ended` / `focus_lost` / `noisy` / `track_open` / `track_closed`
 (underruns) / `error`; playback: `playback.error`. Flute: `tone.track_open` (rate, block and
 buffer frames) / `tone.track_closed` (underruns) / `tone.error`, `flute.note` (midi, heldMs,
-added: false at the cap, per note ended), `flute.play` (notes), `flute.play_done`, `flute.stop`
+length, added: false at the cap, per note ended), `flute.play` (notes, bpm), `flute.play_done`, `flute.stop`
 (reason: pill, key, erase or leave, so every `flute.play` has a closing line), `flute.erase`
 (left).
 

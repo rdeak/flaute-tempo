@@ -40,6 +40,11 @@ tap() { # $1 exact label; or "text <regex>" / "desc <regex>" for a pattern on th
   r=$(find_node "$mode" "$want"); [ -n "$r" ] || { echo "no node: $1" >&2; return 1; }
   read -r x y _ <<<"$r"; $ADB shell input tap "$x" "$y"; $ADB shell sleep 0.4
 }
+hold() { # $1 exact label, $2 ms: keeps a finger on it that long without moving
+  local r x y
+  r=$(find_node exact "$1"); [ -n "$r" ] || { echo "no node: $1" >&2; return 1; }
+  read -r x y _ <<<"$r"; $ADB shell input swipe "$x" "$y" "$x" "$y" "$2"; $ADB shell sleep 0.2
+}
 shot() { # $1 language, $2 file name
   local raw="$RAW/$1-$2.png" out="$OUT/$1/$2.jpg"
   mkdir -p "$OUT/$1"
@@ -80,11 +85,14 @@ run_language() { # lang, tuner tab, notes tab, flute tab, play, stop, target-mod
   tap "$TAB_NOTES"; $ADB shell sleep 1
   for i in 1 2 3; do answer_note; $ADB shell sleep 1.6; done
   answer_note; $ADB shell sleep 0.3; shot "$L" 3-notes; $ADB shell sleep 1.5
-  # Flute: the first notes of a tune tapped, the last one held while the shot is taken.
+  # Flute: the first notes of a tune played, the last one held while the shot is taken.
   tap "$TAB_FLUTE"; $ADB shell sleep 1
-  for n in "${TUNE[@]:0:$((${#TUNE[@]} - 1))}"; do tap "$n"; done
+  # A note is as long as its key is held, in beats of the metronome's tempo (120 after pm clear,
+  # so 500 ms is a beat): each a quarter note, then the last held past two beats during the shot,
+  # so its pill is a half note and two hold dots are filled, as on the canvas board.
+  for n in "${TUNE[@]:0:$((${#TUNE[@]} - 1))}"; do hold "$n" 500; done
   r=$(find_node exact "$last"); read -r x y _ <<<"$r"
-  $ADB shell input swipe "$x" "$y" "$x" "$y" 1500 & $ADB shell sleep 0.7; shot "$L" 4-flute; wait
+  $ADB shell input swipe "$x" "$y" "$x" "$y" 2500 & $ADB shell sleep 1.0; shot "$L" 4-flute; wait
 }
 
 $ADB install -r app/build/outputs/apk/debug/app-debug.apk >/dev/null || exit 1

@@ -1,5 +1,6 @@
 package hr.bertlab.fluteassistant.ui.flute
 
+import hr.bertlab.fluteassistant.domain.flute.NoteLength
 import hr.bertlab.fluteassistant.domain.flute.Tune
 import hr.bertlab.fluteassistant.domain.flute.TuneNote
 
@@ -15,10 +16,15 @@ data class FluteUiState(
     val shownMidi: Int? = null,
     /** The note of [tune] sounding during playback; null when not playing. */
     val playingIndex: Int? = null,
+    /** How long the held key's note has grown so far ([NoteLength.ofBeats]); null when no key is held. */
+    val heldLength: NoteLength? = null,
 ) {
     val isPlaying: Boolean get() = playingIndex != null
     val isEmpty: Boolean get() = tune.isEmpty()
     val atCap: Boolean get() = tune.size >= Tune.MAX_NOTES
+
+    /** The hold dots filled under the note: one per whole beat of [heldLength]; null when no key is held. */
+    val holdBeats: Int? get() = heldLength?.wholeBeats
 
     /** The key drawn pressed: the playing note's, else the held key. */
     val litMidi: Int? get() = playingIndex?.let { tune.getOrNull(it)?.midi } ?: heldMidi

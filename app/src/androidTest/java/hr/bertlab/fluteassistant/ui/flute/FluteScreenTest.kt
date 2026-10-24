@@ -12,7 +12,6 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -27,6 +26,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import hr.bertlab.fluteassistant.domain.flute.NoteLength
 import hr.bertlab.fluteassistant.domain.flute.TuneNote
 import hr.bertlab.fluteassistant.ui.common.LocaleProvider
 import org.junit.Assert.assertEquals
@@ -71,7 +71,7 @@ class FluteScreenTest {
     @Test
     fun shows_the_keys_in_octave_rows_highest_on_top_with_a_hint_before_the_first_tap() {
         show(FluteUiState())
-        compose.onNodeWithText("👆 Tap a note").assertIsDisplayed()
+        compose.onNodeWithText("👆 Tap or hold a note").assertIsDisplayed()
         compose.onNodeWithContentDescription("Flute keys").assertExists()
         val c4 = compose.onNodeWithContentDescription("C4").getBoundsInRoot()
         val c5 = compose.onNodeWithContentDescription("C5").getBoundsInRoot()
@@ -97,12 +97,21 @@ class FluteScreenTest {
 
     @Test
     fun the_held_note_is_named_fingered_and_in_the_line() {
-        show(FluteUiState(tune = listOf(TuneNote(67, 300)), heldMidi = 67, heldIndex = 0, shownMidi = 67))
-        compose.onAllNodesWithText("G4").assertCountEquals(3) // the name, the key and the pill
+        show(
+            FluteUiState(
+                tune = listOf(TuneNote(67, NoteLength.QUARTER)),
+                heldMidi = 67,
+                heldIndex = 0,
+                shownMidi = 67,
+                heldLength = NoteLength.QUARTER,
+            ),
+        )
+        compose.onAllNodesWithText("G4").assertCountEquals(2) // the name and the key
         compose.onNodeWithContentDescription("Fingering for G4").assertExists()
         compose.onNodeWithContentDescription("Your tune, 1 note").assertExists()
-        compose.onNode(hasText("G4") and hasAnyAncestor(hasContentDescription("Your tune, 1 note"))).assertExists()
-        compose.onNodeWithText("👆 Tap a note").assertDoesNotExist()
+        compose.onNode(hasContentDescription("G4, 1 beat") and hasAnyAncestor(hasContentDescription("Your tune, 1 note"))).assertExists()
+        compose.onNodeWithContentDescription("Held for 1 beat").assertExists()
+        compose.onNodeWithText("👆 Tap or hold a note").assertDoesNotExist()
     }
 
     @Test
@@ -110,8 +119,8 @@ class FluteScreenTest {
         show(FluteUiState())
         compose.onNodeWithText("Play").assertIsNotEnabled()
         compose.onNodeWithContentDescription("Erase the last note").assertIsNotEnabled()
-        compose.onNodeWithText("👆 Tap a note").assertIsDisplayed()
-        state.value = state.value.copy(tune = listOf(TuneNote(60, 300)))
+        compose.onNodeWithText("👆 Tap or hold a note").assertIsDisplayed()
+        state.value = state.value.copy(tune = listOf(TuneNote(60, NoteLength.QUARTER)))
         compose.waitForIdle()
         compose.onNodeWithText("Play").assertIsEnabled()
         compose.onNodeWithContentDescription("Erase the last note").assertIsEnabled()
@@ -123,7 +132,7 @@ class FluteScreenTest {
 
     @Test
     fun the_erase_button_sinks_while_pressed() {
-        show(FluteUiState(tune = listOf(TuneNote(60, 300))))
+        show(FluteUiState(tune = listOf(TuneNote(60, NoteLength.QUARTER))))
         val erase = compose.onNodeWithContentDescription("Erase the last note")
         // A pixel on the button's top edge: its ink outline at rest, empty once it sinks.
         fun topPixel(): Color {
@@ -139,21 +148,21 @@ class FluteScreenTest {
 
     @Test
     fun the_pill_reads_stop_while_playing() {
-        show(FluteUiState(tune = listOf(TuneNote(60, 300), TuneNote(67, 300)), playingIndex = 1, shownMidi = 67))
+        show(FluteUiState(tune = listOf(TuneNote(60, NoteLength.QUARTER), TuneNote(67, NoteLength.QUARTER)), playingIndex = 1, shownMidi = 67))
         compose.onNodeWithText("Stop").assertIsDisplayed()
         compose.onNodeWithText("Play").assertDoesNotExist()
     }
 
     @Test
     fun the_line_scrolls_to_the_newest_note() {
-        val tune = List(29) { TuneNote(if (it % 2 == 0) 60 else 62, 300) } + TuneNote(84, 300)
+        val tune = List(29) { TuneNote(if (it % 2 == 0) 60 else 62, NoteLength.QUARTER) } + TuneNote(84, NoteLength.QUARTER)
         show(FluteUiState(tune = tune, heldMidi = 84, heldIndex = 29, shownMidi = 84))
-        compose.onNode(hasText("C6") and hasAnyAncestor(hasContentDescription("Your tune, 30 notes"))).assertIsDisplayed()
+        compose.onNode(hasContentDescription("C6, 1 beat") and hasAnyAncestor(hasContentDescription("Your tune, 30 notes"))).assertIsDisplayed()
     }
 
     @Test
     fun the_play_label_fits_a_narrow_phone_in_croatian() {
-        state = mutableStateOf(FluteUiState(tune = listOf(TuneNote(60, 300))))
+        state = mutableStateOf(FluteUiState(tune = listOf(TuneNote(60, NoteLength.QUARTER))))
         compose.setContent {
             LocaleProvider(Locale("hr")) {
                 Box(Modifier.width(360.dp)) {
@@ -176,10 +185,37 @@ class FluteScreenTest {
 
     @Test
     fun croatian_copy() {
-        show(FluteUiState(tune = listOf(TuneNote(60, 300), TuneNote(62, 300), TuneNote(64, 300))), Locale("hr"))
+        show(FluteUiState(tune = listOf(TuneNote(60, NoteLength.QUARTER), TuneNote(62, NoteLength.QUARTER), TuneNote(64, NoteLength.QUARTER))), Locale("hr"))
         compose.onNodeWithText("Sviraj").assertExists()
         compose.onNodeWithContentDescription("Obriši zadnju notu").assertExists()
         compose.onNodeWithContentDescription("c1").assertExists()
         compose.onNodeWithContentDescription("Tvoja pjesmica, 3 note").assertExists()
+        compose.onNodeWithContentDescription("d1, 1 doba").assertExists()
+    }
+
+    @Test
+    fun each_note_in_the_line_says_how_long_it_is() {
+        show(FluteUiState(tune = listOf(TuneNote(60, NoteLength.EIGHTH), TuneNote(62, NoteLength.HALF), TuneNote(64, NoteLength.WHOLE))))
+        compose.onNodeWithContentDescription("C4, half a beat").assertExists()
+        compose.onNodeWithContentDescription("D4, 2 beats").assertExists()
+        compose.onNodeWithContentDescription("E4, 4 beats").assertExists()
+    }
+
+    @Test
+    fun note_lengths_are_said_in_croatian() {
+        show(FluteUiState(tune = listOf(TuneNote(60, NoteLength.EIGHTH), TuneNote(62, NoteLength.DOTTED_HALF))), Locale("hr"))
+        compose.onNodeWithContentDescription("c1, pola dobe").assertExists()
+        compose.onNodeWithContentDescription("d1, 3 dobe").assertExists()
+    }
+
+    @Test
+    fun holding_a_key_does_not_move_the_keys() {
+        show(FluteUiState(tune = listOf(TuneNote(60, NoteLength.QUARTER)), shownMidi = 60))
+        val before = compose.onNodeWithContentDescription("C4").getBoundsInRoot()
+        state.value = state.value.copy(heldMidi = 60, heldIndex = 0, heldLength = NoteLength.HALF)
+        compose.onNodeWithContentDescription("Held for 2 beats").assertExists()
+        assertEquals(before, compose.onNodeWithContentDescription("C4").getBoundsInRoot())
+        state.value = FluteUiState()
+        assertEquals(before, compose.onNodeWithContentDescription("C4").getBoundsInRoot())
     }
 }

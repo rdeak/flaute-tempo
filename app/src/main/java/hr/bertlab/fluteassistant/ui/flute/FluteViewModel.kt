@@ -7,11 +7,14 @@ import hr.bertlab.fluteassistant.audio.flute.FluteTonePlayer
 import hr.bertlab.fluteassistant.core.MonotonicClock
 import hr.bertlab.fluteassistant.core.log.LogTags
 import hr.bertlab.fluteassistant.core.log.Logger
+import hr.bertlab.fluteassistant.domain.flute.NoteLength
 import hr.bertlab.fluteassistant.domain.flute.Tune
 import hr.bertlab.fluteassistant.domain.flute.TuneNote
+import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.notes.StaffNotes
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
+import hr.bertlab.fluteassistant.ui.metronome.TempoBand
 import hr.bertlab.fluteassistant.ui.tuner.TunerViewModel
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -25,15 +28,19 @@ import javax.inject.Inject
 
 /**
  * The flute tab: a key pressed sounds through [FluteTonePlayer] until it is released and is
- * appended to the tune with how long it was held; one Play button plays the tune back, each
- * note for its held length with a short gap; erase drops the last note. The tune is saved
- * through [SettingsStore] on every change and restored, sanitised, on creation. Activity-scoped,
- * so the tune survives tab switches and rotation; [enterTab] and [leaveTab] follow the tab's
- * visibility so the player is open only while the flute is on screen.
+ * appended to the tune; its [NoteLength] grows while the key is held, in beats of the
+ * metronome's tempo (an eighth at first, then a quarter at ¾ of a beat and so on, see
+ * [Tune.growAtMs]), and the release records the length the hold makes ([Tune.lengthOf]), the
+ * same one the screen was showing. One Play button plays the tune back at the metronome's
+ * tempo; erase drops the last note. The tempo is the metronome tab's, read from
+ * [SettingsStore] at each press and at Play. The tune is saved through [SettingsStore] on every
+ * change and restored, sanitised, on creation. Activity-scoped, so the tune survives tab
+ * switches and rotation; [enterTab] and [leaveTab] follow the tab's visibility so the player is
+ * open only while the flute is on screen.
  *
- * Logs under [LogTags.FLUTE]: `flute.note` per note ended (midi, heldMs, added: false at the
- * cap), `flute.play` (notes), `flute.play_done`, `flute.stop` (reason: pill, key, erase or
- * leave), `flute.erase` (left).
+ * Logs under [LogTags.FLUTE]: `flute.note` per note ended (midi, heldMs, length, added: false
+ * at the cap), `flute.play` (notes, bpm), `flute.play_done`, `flute.stop` (reason: pill, key,
+ * erase or leave), `flute.erase` (left).
  */
 @HiltViewModel
 class FluteViewModel @Inject constructor(
@@ -48,6 +55,10 @@ class FluteViewModel @Inject constructor(
 
     /** When the held key went down, so its release can record how long it was held. */
     private var pressedAt: Long? = null
+    /** The tempo the held key's note is counted in, read at the press. */
+    private var pressBpm: Int = MetronomeConfig.DEFAULT_BPM
+    /** Grows the held key's note at each of [Tune.growAtMs] while the key stays down. */
+    private var growJob: Job? = null
     private var playbackJob: Job? = null
     private var activationJob: Job? = null
 
@@ -73,14 +84,31 @@ class FluteViewModel @Inject constructor(
         activationJob?.cancel()
         tonePlayer.noteOn(NoteMath.midiToFrequency(midi), TunerViewModel.REFERENCE_TONE_VOLUME)
         pressedAt = now
+        pressBpm = bpm()
+        val first = NoteLength.EIGHTH
         _state.update { s ->
             if (s.atCap) {
-                s.copy(heldMidi = midi, heldIndex = null, shownMidi = midi)
+                s.copy(heldMidi = midi, heldIndex = null, shownMidi = midi, heldLength = first)
             } else {
-                s.copy(tune = s.tune + TuneNote(midi, Tune.MIN_NOTE_MS), heldMidi = midi, heldIndex = s.tune.size, shownMidi = midi)
+                s.copy(
+                    tune = s.tune + TuneNote(midi, first),
+                    heldMidi = midi,
+                    heldIndex = s.tune.size,
+                    shownMidi = midi,
+                    heldLength = first,
+                )
             }
         }
         save()
+        val bpm = pressBpm
+        growJob = viewModelScope.launch {
+            var waited = 0L
+            for (at in Tune.growAtMs(bpm)) {
+                delay(at - waited)
+                waited = at
+                grow(Tune.lengthOf(at, bpm))
+            }
+        }
     }
 
     /** The finger lifted off (or slid off) the key of [midi]; ignored unless that key is the one sounding. */
@@ -89,13 +117,14 @@ class FluteViewModel @Inject constructor(
         release(midi, heldFor(clock.nowMillis()))
     }
 
-    /** A screen reader activated the key of [midi]: sound it for [ACTIVATED_MS] and add it. */
+    /** A screen reader activated the key of [midi]: sound it for one beat and add it, a quarter note. */
     fun onKeyActivated(midi: Int) {
         onKeyPressed(midi)
         if (_state.value.heldMidi != midi) return
+        val beat = Tune.durationMs(NoteLength.QUARTER, pressBpm)
         activationJob = viewModelScope.launch {
-            delay(ACTIVATED_MS.toLong())
-            if (_state.value.heldMidi == midi) release(midi, ACTIVATED_MS)
+            delay(beat)
+            if (_state.value.heldMidi == midi) release(midi, beat)
         }
     }
 
@@ -112,15 +141,18 @@ class FluteViewModel @Inject constructor(
         }
         activationJob?.cancel()
         val notes = _state.value.tune
-        logger.d(LogTags.FLUTE, "flute.play", "notes" to notes.size)
+        val bpm = bpm()
+        logger.d(LogTags.FLUTE, "flute.play", "notes" to notes.size, "bpm" to bpm)
         // Undispatched, so the first note sounds and lights before this call returns.
         playbackJob = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             for ((index, note) in notes.withIndex()) {
+                val duration = Tune.durationMs(note.length, bpm)
+                val gap = Tune.gapMs(duration)
                 _state.update { it.copy(playingIndex = index, shownMidi = note.midi) }
                 tonePlayer.noteOn(NoteMath.midiToFrequency(note.midi), TunerViewModel.REFERENCE_TONE_VOLUME)
-                delay(note.heldMs.toLong())
+                delay(duration - gap)
                 tonePlayer.noteOff()
-                delay(Tune.GAP_MS.toLong())
+                delay(gap)
             }
             playbackJob = null
             _state.update { it.copy(playingIndex = null) }
@@ -149,7 +181,7 @@ class FluteViewModel @Inject constructor(
     }
 
     /** Silences the held key and records how long it was held. */
-    private fun release(midi: Int, heldMs: Int) {
+    private fun release(midi: Int, heldMs: Long) {
         tonePlayer.noteOff()
         record(midi, heldMs)
     }
@@ -160,31 +192,37 @@ class FluteViewModel @Inject constructor(
         record(midi, heldFor(now))
     }
 
-    private fun heldFor(now: Long): Int = Tune.clampHeld(now - (pressedAt ?: now))
+    private fun heldFor(now: Long): Long = (now - (pressedAt ?: now)).coerceAtLeast(0)
 
-    private fun record(midi: Int, heldMs: Int) {
+    /** The held key's note reached [length]: show it on the dots and in the line. */
+    private fun grow(length: NoteLength) {
+        _state.update { s -> s.copy(tune = s.withHeldLength(length), heldLength = length) }
+    }
+
+    private fun record(midi: Int, heldMs: Long) {
+        growJob?.cancel()
+        growJob = null
+        val length = Tune.lengthOf(heldMs, pressBpm)
         val added = _state.value.heldIndex != null // false at the cap, where the press only sounded
-        _state.update { s ->
-            val tune = s.heldIndex?.let { index ->
-                s.tune.toMutableList().also { it[index] = it[index].copy(heldMs = heldMs) }
-            } ?: s.tune
-            s.copy(tune = tune, heldMidi = null, heldIndex = null)
-        }
+        _state.update { s -> s.copy(tune = s.withHeldLength(length), heldMidi = null, heldIndex = null, heldLength = null) }
         pressedAt = null
         save()
-        logger.d(LogTags.FLUTE, "flute.note", "midi" to midi, "heldMs" to heldMs, "added" to added)
+        logger.d(LogTags.FLUTE, "flute.note", "midi" to midi, "heldMs" to heldMs, "length" to length, "added" to added)
     }
+
+    /** The tune with the held key's note set to [length]; unchanged at the cap, where it was not added. */
+    private fun FluteUiState.withHeldLength(length: NoteLength): List<TuneNote> =
+        heldIndex?.let { index -> tune.toMutableList().also { it[index] = it[index].copy(length = length) } } ?: tune
+
+    /** The metronome tab's tempo, in its ring's range (a stored one from an older build may lie outside). */
+    private fun bpm(): Int = settings.loadMetronomeConfig().bpm.coerceIn(TempoBand.MIN_BPM, TempoBand.MAX_BPM)
 
     private fun save() = settings.saveTune(_state.value.tune)
 
     override fun onCleared() {
         playbackJob?.cancel()
         activationJob?.cancel()
+        growJob?.cancel()
         tonePlayer.close()
-    }
-
-    companion object {
-        /** How long a key activated by a screen reader sounds. */
-        const val ACTIVATED_MS = 500
     }
 }
