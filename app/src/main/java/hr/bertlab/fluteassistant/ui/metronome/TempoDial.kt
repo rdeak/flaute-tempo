@@ -6,7 +6,6 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.progressSemantics
@@ -36,6 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.ui.common.Emoji
 import hr.bertlab.fluteassistant.ui.common.chunky
+import hr.bertlab.fluteassistant.ui.common.facingRight
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
 import hr.bertlab.fluteassistant.ui.theme.Sun
 import kotlin.math.atan2
@@ -98,6 +99,7 @@ fun TempoDial(
     val colors = FluteTheme.colors
     val dialDescription = stringResource(R.string.tempo_dial)
     val band = tempoBand(bpm)
+    val bandName = stringResource(band.labelRes)
     val minBpm = TempoBand.MIN_BPM
     val maxBpm = TempoBand.MAX_BPM
 
@@ -107,6 +109,8 @@ fun TempoDial(
             .progressSemantics(bpm.toFloat(), minBpm.toFloat()..maxBpm.toFloat(), steps = maxBpm - minBpm - 1)
             .semantics {
                 contentDescription = dialDescription
+                // The ring shows no name any more; a screen reader still hears the speed's animal.
+                stateDescription = bandName
                 setProgress { value ->
                     onBpmChange(value.roundToInt().coerceIn(minBpm, maxBpm))
                     true
@@ -155,7 +159,7 @@ fun TempoDial(
                     }
                     .semantics { contentDescription = label },
             ) {
-                if (each != band) Emoji(each.emoji, fontSize = 22, modifier = Modifier.alpha(0.75f))
+                if (each != band) Emoji(each.emoji, fontSize = 22, modifier = Modifier.alpha(0.75f).facingRight())
             }
         }
 
@@ -167,7 +171,7 @@ fun TempoDial(
                 modifier = Modifier.onGloballyPositioned(onWheelPositioned),
             )
         } else {
-            TempoNumber(bpm = bpm, bandName = stringResource(band.labelRes), scale = side / DESIGN_SIZE.dp, onClick = { onEditingChange(true) })
+            TempoNumber(bpm = bpm, scale = side / DESIGN_SIZE.dp, onClick = { onEditingChange(true) })
         }
 
         val knob = side * KNOB_SIZE
@@ -182,18 +186,25 @@ fun TempoDial(
             Emoji(
                 emoji = band.emoji,
                 fontSize = (knob.value * 0.55f).roundToInt(),
-                modifier = Modifier.graphicsLayer { translationY = -HOP_DP * density * flash() },
+                modifier = Modifier
+                    .facingRight()
+                    .graphicsLayer { translationY = -HOP_DP * density * flash() },
             )
         }
     }
 }
 
-/** The band's name over the big tempo figure, sized with the ring ([scale] 1 = 304 dp); a tap opens the wheel. */
+/**
+ * The big tempo figure alone in the ring (the animal on the knob names the speed), sized with the
+ * ring ([scale] 1 = 304 dp); a tap opens the wheel.
+ */
 @Composable
-private fun TempoNumber(bpm: Int, bandName: String, scale: Float, onClick: () -> Unit) {
+private fun TempoNumber(bpm: Int, scale: Float, onClick: () -> Unit) {
     val tapLabel = stringResource(R.string.tempo_tap)
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    val number = MaterialTheme.typography.displayLarge
+    Text(
+        text = bpm.toString(),
+        style = number.copy(fontSize = number.fontSize * scale, lineHeight = number.lineHeight * scale),
         modifier = Modifier.clickable(
             interactionSource = remember { MutableInteractionSource() },
             indication = ripple(bounded = false, radius = 72.dp),
@@ -201,16 +212,7 @@ private fun TempoNumber(bpm: Int, bandName: String, scale: Float, onClick: () ->
             onClickLabel = tapLabel,
             onClick = onClick,
         ),
-    ) {
-        val name = MaterialTheme.typography.titleMedium
-        val number = MaterialTheme.typography.displayLarge
-        Text(
-            text = bandName,
-            style = name.copy(fontSize = name.fontSize * scale, lineHeight = name.lineHeight * scale),
-            color = FluteTheme.colors.mutedText,
-        )
-        Text(text = bpm.toString(), style = number.copy(fontSize = number.fontSize * scale, lineHeight = number.lineHeight * scale))
-    }
+    )
 }
 
 /** The five coloured bands between an inner and an outer ink line, closed at both ends. */

@@ -312,9 +312,12 @@ the open tab; the tab bar is four emoji-and-word buttons. The metronome is one s
 (the first bigger; the sounding one yellow with the speed's animal hopping on it) between a − and
 a + that step the bar from two to six beats (`fewerBeats` / `moreBeats` over 2/4, 3/4, 4/4, 5/4,
 6/8; the other signatures are not offered), and the tempo ring from 40 to 200: five animal bands
-(`TempoBand`: snail 40, turtle 60, duck 80, rabbit 100, cheetah 130), each a fifth of the ring, a
+(`TempoBand`: snail 40, turtle 60, duck 80, rabbit 100, cheetah 130), each a fifth of the ring and
+every animal mirrored to face right (`facingRight` in `ui/common`, also used for the summary's
+speed animal: the emoji sets draw them facing left), a
 yellow knob with the current animal that is dragged round, a tap on an animal jumps to its band
-(the rabbit again to 120), and the band's name over the tempo figure in the middle (tap it for the
+(the rabbit again to 120), and the tempo figure alone in the middle (the band's name above it was
+dropped on 2026-10-24; a screen reader hears it as the ring's state; tap the figure for the
 in-place `TempoWheel`; there are no tempo −/+ buttons: the user turned them down again on
 2026-10-24); then one Play / Stop pill (no volume control: the phone's buttons set loudness). The
 tuner has the two mode pills on top ("Which?" / "Tune"), then a stage with the pitch window (since

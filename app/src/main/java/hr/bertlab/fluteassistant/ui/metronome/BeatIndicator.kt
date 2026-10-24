@@ -31,6 +31,7 @@ import hr.bertlab.fluteassistant.domain.model.TimeSignature
 import hr.bertlab.fluteassistant.ui.common.ChunkyButton
 import hr.bertlab.fluteassistant.ui.common.Emoji
 import hr.bertlab.fluteassistant.ui.common.OutlineWidth
+import hr.bertlab.fluteassistant.ui.common.facingRight
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
 import hr.bertlab.fluteassistant.ui.theme.Sun
 
@@ -132,7 +133,9 @@ private fun BeatBubbles(
                             Emoji(
                                 emoji = animal,
                                 fontSize = 32,
-                                modifier = Modifier.graphicsLayer { translationY = -HOP_DP * density * flash() },
+                                modifier = Modifier
+                                    .facingRight()
+                                    .graphicsLayer { translationY = -HOP_DP * density * flash() },
                             )
                         }
                     }

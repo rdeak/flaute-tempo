@@ -33,6 +33,7 @@ import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.ui.common.BigActionButton
 import hr.bertlab.fluteassistant.ui.common.Emoji
 import hr.bertlab.fluteassistant.ui.common.OutlineWidth
+import hr.bertlab.fluteassistant.ui.common.facingRight
 import hr.bertlab.fluteassistant.ui.theme.FluteTheme
 import hr.bertlab.fluteassistant.ui.theme.Go
 
@@ -82,6 +83,7 @@ fun RoundSummary(state: NotesUiState, onPlayAgain: () -> Unit, modifier: Modifie
             )
             StatTile(
                 picture = speed?.emoji.orEmpty(),
+                animal = true,
                 label = stringResource(R.string.summary_speed),
                 description = speed?.let { stringResource(R.string.speed_description, stringResource(it.labelRes)) }.orEmpty(),
                 modifier = Modifier.weight(1f),
@@ -97,9 +99,16 @@ fun RoundSummary(state: NotesUiState, onPlayAgain: () -> Unit, modifier: Modifie
     }
 }
 
-/** A quiet tile: a picture made of emoji over one word. */
+/** A quiet tile: a picture made of emoji over one word; an [animal] faces right, as on the metronome. */
 @Composable
-private fun StatTile(picture: String, label: String, description: String, modifier: Modifier = Modifier, faint: Boolean = false) {
+private fun StatTile(
+    picture: String,
+    label: String,
+    description: String,
+    modifier: Modifier = Modifier,
+    faint: Boolean = false,
+    animal: Boolean = false,
+) {
     val colors = FluteTheme.colors
     val shape = RoundedCornerShape(24.dp)
     Column(
@@ -116,7 +125,9 @@ private fun StatTile(picture: String, label: String, description: String, modifi
             text = picture,
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, letterSpacing = (-2).sp),
             maxLines = 1,
-            modifier = Modifier.alpha(if (faint) 0.3f else 1f),
+            modifier = Modifier
+                .alpha(if (faint) 0.3f else 1f)
+                .then(if (animal) Modifier.facingRight() else Modifier),
         )
         Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
     }

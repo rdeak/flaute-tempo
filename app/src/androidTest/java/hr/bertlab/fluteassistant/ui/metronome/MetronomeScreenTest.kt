@@ -3,6 +3,9 @@ package hr.bertlab.fluteassistant.ui.metronome
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -65,13 +68,16 @@ class MetronomeScreenTest {
     }
 
     @Test
-    fun the_ring_names_the_speed_with_its_animal() {
+    fun the_ring_shows_only_the_tempo_and_tells_a_screen_reader_its_animal() {
         show(MetronomeUiState(config = MetronomeConfig(bpm = 120)))
-        compose.onNodeWithText("Rabbit").assertIsDisplayed()
+        compose.onNodeWithText("Rabbit").assertDoesNotExist()
+        ring().assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Rabbit"))
         compose.runOnIdle { state.value = state.value.copy(config = MetronomeConfig(bpm = 70)) }
-        compose.onNodeWithText("Turtle").assertIsDisplayed()
+        ring().assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Turtle"))
         compose.onNodeWithText("70").assertIsDisplayed()
     }
+
+    private fun ring() = compose.onNodeWithContentDescription("Tempo ring, drag around it to change the speed")
 
     @Test
     fun tapping_a_band_jumps_to_its_start_and_the_rabbit_again_to_120() {
@@ -179,7 +185,8 @@ class MetronomeScreenTest {
     fun croatian_system_language_shows_croatian_labels() {
         show(MetronomeUiState(), Locale("hr"))
         compose.onNodeWithText("Sviraj").assertIsDisplayed()
-        compose.onNodeWithText("Zec").assertIsDisplayed()
+        compose.onNodeWithText("Zec").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Zec").assertExists()
         compose.onNodeWithContentDescription("Dobe u taktu: 4").assertIsDisplayed()
         compose.onAllNodesWithContentDescription("Više doba").assertCountEquals(1)
         compose.onNodeWithContentDescription("Kornjača").assertExists()
