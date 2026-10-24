@@ -40,8 +40,7 @@ the same in full.
 | Dependencies    | AndroidX, plus Hilt and kotlinx.coroutines. No audio, networking or image libraries                                |
 | Size            | About 7,400 lines of app code and 4,300 lines of tests (about 220 JVM unit tests, about 70 instrumented)           |
 | Languages       | English and Croatian, switchable in the app                                                                        |
-| Status          | Release build, store listing in both languages, screenshots and privacy policy are ready. Prepared for Google Play |
-| Author          | Robert Deak, bertlab                                                                                               |
+| Status          | 1.0.1 is on the Play internal testing track and a GitHub Release. Store listing in both languages is ready         |
 
 ## Architecture
 
@@ -163,9 +162,16 @@ music-school convention (c1) and German H and B in Croatian.
 - Release builds use whole-app R8. A package-scoped optimisation was tried first and crashed at
   startup inside `androidx.startup`.
 - Signing credentials come from environment variables or a gitignored `keystore.properties`. With
-  neither, the release build is produced unsigned so the project compiles anywhere. The version code
-  can be overridden from the command line for CI. The keystore backup procedure is in [
-  `docs/release/`](docs/release/README.md).
+  neither, the release build is produced unsigned so the project compiles anywhere. The keystore
+  backup procedure is in [`docs/release/`](docs/release/README.md).
+- GitHub Actions (`.github/workflows/release.yml`) runs the unit tests and release lint on every push
+  to `main`, builds a signed bundle and APK, and checks that both carry the upload certificate. When
+  `fluteAssistant.versionName` in `gradle.properties` has no `v<name>` tag yet, the run is a
+  release: the bundle goes to the Play internal testing track through Workload Identity Federation
+  (no key file), then the commit is tagged and a GitHub Release gets the bundle, the APK and the R8
+  mapping file. `tools/release.sh` derives the version code from the name (major * 10000 + minor *
+  100 + patch). Build, Play upload and release are separate jobs, so "Re-run failed jobs" repeats
+  only what failed.
 - Launcher icons and store graphics are generated from source (`tools/IconGen.java`), and the store
   screenshots, one per tab in each language, come from `tools/play-screenshots.sh` driving an
   emulator.
@@ -186,8 +192,9 @@ description of the internals, kept in step with the code.
 
 ## Known limits
 
-- The repository has no CI configuration. The pre-upload check
-  (`testDebugUnitTest lintRelease bundleRelease`) is run by hand.
+- Instrumented tests do not run in CI. They are run by hand on an emulator or a phone.
+- Moving a build from internal testing to a closed test or production is done by hand in Play
+  Console.
 - Sound quality and the -60 dBFS silence gate can only be confirmed on a phone, and the tuner's
   confidence gate is waiting for such a capture.
 - Room is at schema version 1 with a destructive fallback migration. Presets are not exposed, so no
