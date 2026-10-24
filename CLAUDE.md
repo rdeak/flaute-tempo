@@ -59,7 +59,8 @@ The notification-permission dialog appears on the first metronome start (API 33+
 
 Versions live in `gradle.properties`. Pushing a new `fluteAssistant.versionName` to `main` makes
 `.github/workflows/release.yml` tag `v<name>` and publish a GitHub Release with the signed bundle,
-APK and mapping file; every push to `main` runs the full check. Three jobs (build, then play,
+APK and mapping file; every push to `main` runs the full check (`testDebugUnitTest lintRelease
+bundleRelease assembleRelease`, signed; no instrumented tests). Three jobs (build, then play,
 then release; only a release run keeps a 7-day artifact for the later two) so "Re-run failed
 jobs" repeats only what failed. `tools/release.sh` derives the versionCode from the name (major * 10000 +
 minor * 100 + patch), checks both outputs carry the upload certificate (a build without the
@@ -100,11 +101,13 @@ in `di/` binding each interface to its Android implementation:
 
 - `domain/` is pure Kotlin: `MetronomeConfig` (bpm, `TimeSignature` with per-beat accents,
   `Subdivision` offsets, `SoundProfile`), `NoteMath` (frequency to MIDI/cents),
-  `TapTempoCalculator`, `StaffNotes` (the note reading game's fifteen notes and their staff
-  places), the `PresetRepository` and `SettingsStore` interfaces, preset use cases.
+  `TapTempoCalculator`, `TunerMode`, `FluteRange` and `FluteFingerings` (`domain/tuner/`),
+  `StaffNotes` (the note reading game's fifteen notes and their staff places), `Tune` (the
+  digital flute's tune), the `PresetRepository` and `SettingsStore` interfaces, preset use cases.
 - `data/` implements them: Room (`PresetEntity`, `PresetDao`, enum `Converters` that fall back
   to defaults on unknown names) and `SharedPreferencesSettingsStore` for last-used settings.
-- `audio/` holds the metronome and tuner engines; `core/MonotonicClock` is a fake-able clock.
+- `audio/` holds the metronome, tuner and flute-tone engines; `core/MonotonicClock` is a
+  fake-able clock and `core/log/` the logger.
 - `playback/` keeps the metronome alive off screen (foreground service).
 - `ui/` is Compose + MVVM: `StateFlow` UI state plus intent methods on the ViewModels.
 
@@ -250,7 +253,9 @@ or on `eraseLast()`, which drops the last note (the erase button repeats while h
   switching between the four tabs (`AppTab`: metronome, tuner, notes, flute). All ViewModels are
   Activity-scoped so state and playback survive tab switches, rotation and that re-creation;
   the one exception is the game's round, which the tab bar resets (`NotesViewModel.resetRound`)
-  when the notes tab is left, so the child always comes back to a zero score.
+  when the notes tab is left, so the child always comes back to a zero score. `MainScreen` also
+  keeps the screen on (`ui/common/KeepScreenOn`) while the metronome plays, the tuner listens or
+  the flute plays the tune back.
 - Each screen is split into a stateful `MetronomeScreen` / `TunerScreen` / `NotesScreen` /
   `FluteScreen` (ViewModel, permissions, lifecycle) and a stateless `MetronomeContent` /
   `TunerContent` / `NotesContent` / `FluteContent` taking state plus callbacks. The `*Content` composables are what the Compose
@@ -336,8 +341,9 @@ adb logcat -v time -s FA.Tuner | grep tuner.summary     # one line a second: did
 
 Unit tests use hand-written fakes from `app/src/test/.../fakes/Fakes.kt` (`FakeMetronomePlayer`,
 `FakeTunerEngine`, `FakeSettingsStore`, `FakePresetRepository`, `FakeClock`,
-`FakeBackgroundPlayback`, `FakeReferenceTonePlayer`, `FakeFluteTonePlayer`); there is no mocking library. ViewModel tests run under
+`FakeBackgroundPlayback`, `FakeReferenceTonePlayer`, `FakeFluteTonePlayer`, `FakeLogger`); there is no mocking library. ViewModel tests run under
 `StandardTestDispatcher` with `Dispatchers.setMain` and drive time with `advanceTimeBy` /
 `advanceUntilIdle`. Instrumented tests cover the `*Content` composables (`MetronomeScreenTest`, `TunerScreenTest`,
-`NotesScreenTest`, `FluteScreenTest`) and locale-dependent resources (`LabelsTest`). The `config_summary`, `subdivision_*` and `sound_*` strings must stay
+`NotesScreenTest`, `FluteScreenTest`), the flag buttons (`LanguageSwitchTest`) and
+locale-dependent resources (`LabelsTest`). The `config_summary`, `subdivision_*` and `sound_*` strings must stay
 even though the screens no longer show them: the playback notification and `LabelsTest` use them.
