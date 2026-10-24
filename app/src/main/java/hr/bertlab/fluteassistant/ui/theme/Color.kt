@@ -17,6 +17,9 @@ val Go = Color(0xFF5BE07E)
 val Stop = Color(0xFFFF8A80)
 val InkOnFill = Color(0xFF1F2440)
 
+/** The app icon's golden square, also @drawable/ic_launcher_background. */
+val AppIconGold = Color(0xFFFFC857)
+
 /**
  * One colour per note letter (C red to B pink, the order of a rainbow), used for a note
  * wherever it appears: name bubbles, fingering keys, the staff, the flute keys and the tune.

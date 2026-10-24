@@ -1,20 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Adaptive icon foreground: a metronome. Content stays inside the 66dp safe circle of the
-     108dp canvas. The same geometry renders the legacy PNGs and Play assets (tools/IconGen.java). -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M46,28 H62 L73,80 H35 Z" />
-    <path
-        android:strokeColor="#FF3949AB"
-        android:strokeWidth="4"
-        android:strokeLineCap="round"
-        android:pathData="M54,76 L62,37" />
-    <path
-        android:fillColor="#FF3949AB"
-        android:pathData="M59,53 m-4.5,0 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0" />
-</vector>
+<!-- Adaptive icon foreground: the app icon's picture inset so all of it, the flute's ends
+     included, stays inside the 66dp safe circle of the 108dp canvas (23.3 % each side shrinks the
+     512 box to 57.6dp). tools/IconGen.java renders the legacy PNGs with the same placement. -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:drawable="@drawable/ic_app_art"
+    android:inset="23.3%" />

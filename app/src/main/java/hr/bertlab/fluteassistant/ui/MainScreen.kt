@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
@@ -52,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import hr.bertlab.fluteassistant.R
 import hr.bertlab.fluteassistant.ui.common.AppLanguage
+import hr.bertlab.fluteassistant.ui.common.AppLogo
 import hr.bertlab.fluteassistant.ui.common.Emoji
 import hr.bertlab.fluteassistant.ui.common.KeepScreenOn
 import hr.bertlab.fluteassistant.ui.common.LanguageSwitch
@@ -70,7 +72,7 @@ import hr.bertlab.fluteassistant.ui.tuner.TunerScreen
 import hr.bertlab.fluteassistant.ui.tuner.TunerViewModel
 import java.util.Locale
 
-/** The four top-level destinations, each with the emoji that stands for it in both bars. */
+/** The four top-level destinations, each with the emoji that stands for it in the tab bar. */
 enum class AppTab(@StringRes val labelRes: Int, val emoji: String) {
     METRONOME(R.string.tab_metronome, "\uD83E\uDD41"), // drum
     TUNER(R.string.tab_tuner, "\uD83D\uDC42"), // ear
@@ -152,7 +154,7 @@ fun MainScreen(
 
 
 /**
- * The top bar: the open tab's emoji and name and, at the end, the in-app language switch.
+ * The top bar: the app icon, the open tab's name and, at the end, the in-app language switch.
  * The current language is read from the activity's configuration (which is what the
  * per-app locale actually changed), so anything that is not Croatian shows as English, the
  * fallback. Choosing hands the tag to the platform's per-app language setting: the system on
@@ -174,7 +176,7 @@ private fun TitleBar(tab: AppTab) {
             .height(72.dp)
             .padding(horizontal = 20.dp),
     ) {
-        Emoji(tab.emoji, fontSize = 34)
+        AppLogo(contentDescription = stringResource(R.string.app_name), modifier = Modifier.size(48.dp))
         Spacer(Modifier.width(10.dp))
         Text(
             text = stringResource(tab.labelRes),

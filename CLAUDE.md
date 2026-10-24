@@ -256,7 +256,7 @@ or on `eraseLast()`, which drops the last note (the erase button repeats while h
 ### UI conventions
 
 - One Activity, which sets `volumeControlStream` to the media stream so the volume keys adjust
-  the app's sound even while nothing is playing. `MainScreen` hosts a top bar (the open tab's emoji and name plus the `LanguageSwitch`: two flag
+  the app's sound even while nothing is playing. `MainScreen` hosts a top bar (the app icon, `AppLogo`, and the open tab's name plus the `LanguageSwitch`: two flag
   buttons over `ui/common/AppLanguage`; selecting one calls
   `AppCompatDelegate.setApplicationLocales`, which re-creates the Activity) and a bottom bar
   switching between the four tabs (`AppTab`: metronome, tuner, notes, flute). All ViewModels are
@@ -282,7 +282,10 @@ or on `eraseLast()`, which drops the last note (the erase button repeats while h
   (thick ink outline, solid shadow, sinks 3 dp when pressed); big actions are `BigActionButton`.
   The font is Nunito (three static weights in `res/font`, licence in `docs/licenses/`); the canvas
   used Fredoka, which has no č, ć or đ. Icons are emoji (`Emoji`, hidden from accessibility), plus
-  two chevrons in `AppIcons`. Note names are shown with the octave raised (`noteText`, built from
+  two chevrons in `AppIcons`. The app icon's picture is one vector, `@drawable/ic_app_art` (a robot
+  over a flute, from the canvas's "App icon" board): the launcher insets it into the adaptive icon's
+  safe zone, `AppLogo` puts it on the golden rounded square in the top bar, and `tools/IconGen.java`
+  draws the same shapes for the PNGs and the Play listing. Note names are shown with the octave raised (`noteText`, built from
   `noteLabelParts`) in a round `NoteBubble`; English keeps scientific octaves (C⁴), Croatian the
   school ones (c¹), and accessibility and tests still read the plain `noteLabel`.
 - On a short screen (360 x 640 dp, large text) the ring, the tuner's target note and its meter
@@ -298,8 +301,8 @@ or on `eraseLast()`, which drops the last note (the erase button repeats while h
 
 The UI was deliberately reduced (spec: `docs/superpowers/specs/2026-10-22-kid-friendly-ui-design.md`,
 follow-up: `docs/superpowers/specs/2026-10-22-metronome-controls-and-language-design.md`) and on
-2026-10-24 redrawn from the user's Claude Design canvas. The top bar names the open tab with its
-emoji; the tab bar is four emoji-and-word buttons. The metronome is one stage with the beat bubbles
+2026-10-24 redrawn from the user's Claude Design canvas. The top bar shows the app icon and names
+the open tab; the tab bar is four emoji-and-word buttons. The metronome is one stage with the beat bubbles
 (the first bigger; the sounding one yellow with the speed's animal hopping on it) between a − and
 a + that step the bar from two to six beats (`fewerBeats` / `moreBeats` over 2/4, 3/4, 4/4, 5/4,
 6/8; the other signatures are not offered), and the tempo ring from 40 to 200: five animal bands
