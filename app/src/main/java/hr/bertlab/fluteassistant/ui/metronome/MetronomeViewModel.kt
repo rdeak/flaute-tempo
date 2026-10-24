@@ -66,7 +66,13 @@ class MetronomeViewModel @Inject constructor(
         // The simplified UI offers no subdivision, sound or volume choice, so a value stored
         // before that change (or by a future advanced mode) must not keep clicking with no way
         // off, or stay silent with no way back up: the volume is the default, not the stored one.
-        val config = settings.loadMetronomeConfig().copy(subdivision = Subdivision.NONE, sound = SoundProfile.WOODBLOCK)
+        // The same goes for a tempo outside the ring's range, from an older, wider ring.
+        val stored = settings.loadMetronomeConfig()
+        val config = stored.copy(
+            bpm = stored.bpm.coerceIn(TempoBand.MIN_BPM, TempoBand.MAX_BPM),
+            subdivision = Subdivision.NONE,
+            sound = SoundProfile.WOODBLOCK,
+        )
         return MetronomeUiState(config = config)
     }
 

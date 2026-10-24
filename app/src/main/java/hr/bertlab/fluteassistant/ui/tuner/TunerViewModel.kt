@@ -11,6 +11,7 @@ import hr.bertlab.fluteassistant.core.log.Logger
 import hr.bertlab.fluteassistant.domain.repository.SettingsStore
 import hr.bertlab.fluteassistant.domain.tuner.FluteRange
 import hr.bertlab.fluteassistant.domain.tuner.NoteMath
+import hr.bertlab.fluteassistant.domain.tuner.NoteReading
 import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -21,6 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.math.abs
 import kotlin.math.log2
 import kotlin.math.max
 import kotlin.math.min
@@ -33,6 +35,8 @@ import kotlin.math.min
  * - holds the last reading for a few silent or unsteady frames so the display does not blink
  *   between notes; a wandering pitch expires the reading after [HOLD_FRAMES] like silence does,
  *   and only a steady note resets that count,
+ * - keeps the identified note (the ring of [TunerMode.IDENTIFY]) through a drift just past the
+ *   halfway point to a neighbouring note until it has lasted [SWITCH_FRAMES],
  * - tells the screen when sound keeps coming without ever becoming a note ([Hearing], judged
  *   by [HearingTracker]), so it can say what to change.
  *
@@ -63,6 +67,8 @@ class TunerViewModel @Inject constructor(
     private val recentFrequencies = ArrayDeque<Double>()
     /** Frames in a row without a steady note (silent, uncertain or unsteady); [HOLD_FRAMES] of them clear the reading. */
     private var silentFrames = 0
+    /** Shown frames in a row whose note is not the identified one but still within reach of it; see [identify]. */
+    private var driftFrames = 0
     private val hearingTracker = HearingTracker()
     private val summary = FrameSummary()
     private var loggedReadingMidi: Int? = null
@@ -205,8 +211,32 @@ class TunerViewModel @Inject constructor(
         }
         silentFrames = 0
         val median = recentFrequencies.sorted()[recentFrequencies.size / 2]
-        _state.update { it.copy(reading = NoteMath.frequencyToNote(median, it.referenceA4), level = frame.level) }
+        val previous = _state.value
+        val reading = NoteMath.frequencyToNote(median, previous.referenceA4)
+        val identified = identify(previous, reading)
+        _state.update { it.copy(reading = reading, identifiedMidi = identified, level = frame.level) }
         return FrameDecision.SHOWN
+    }
+
+    /**
+     * The identified note once [reading] is shown. The first note after silence is taken at
+     * once, and so is a clearly different note (further than [TunerUiState.NEAR_TARGET_CENTS]
+     * from the identified one, such as a clean step to the next note). A sound that has only
+     * drifted past the halfway point to a neighbour switches the ring after [SWITCH_FRAMES]
+     * shown frames there in a row; one frame back on the identified note starts the count again.
+     */
+    private fun identify(previous: TunerUiState, reading: NoteReading): Int {
+        val current = previous.identifiedMidi.takeIf { previous.reading != null }
+        if (current == null || reading.midi == current) {
+            driftFrames = 0
+            return reading.midi
+        }
+        val reach = abs(NoteMath.centsBetween(reading.frequency, current, previous.referenceA4))
+        if (reach > TunerUiState.NEAR_TARGET_CENTS || ++driftFrames >= SWITCH_FRAMES) {
+            driftFrames = 0
+            return reading.midi
+        }
+        return current
     }
 
     /** Silence or a frame too uncertain to trust: hold the reading for a while, then clear it. */
@@ -304,6 +334,8 @@ class TunerViewModel @Inject constructor(
          * so a glissando or speech after a note clears the reading too instead of holding it.
          */
         const val HOLD_FRAMES = 20
+        /** ~0.5 s: how long a drift past the halfway point must last before the identified note switches. */
+        const val SWITCH_FRAMES = 12
         const val MIN_A4 = 415.0
         const val MAX_A4 = 466.0
         /** How long the reference note sounds. */

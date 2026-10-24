@@ -23,6 +23,14 @@ data class TunerUiState(
     val mode: TunerMode = TunerMode.IDENTIFY,
     /** True while the reference tone for [targetMidi] sounds; readings pause so the speaker is not measured. */
     val isPlayingReference: Boolean = false,
+    /**
+     * In [TunerMode.IDENTIFY], the note whose home ring is shown while a note is heard: the
+     * reading's own note, except that [TunerViewModel] holds it through a drift just past the
+     * halfway point to a neighbouring note until the sound has stayed there for
+     * [TunerViewModel.SWITCH_FRAMES], so the ring never flickers between two notes. Null means
+     * the reading's own note.
+     */
+    val identifiedMidi: Int? = null,
     /** What the microphone makes of sound that yields no readable note; see [Hearing]. */
     val hearing: Hearing = Hearing.CLEAR,
     val errorMessage: String? = null,
@@ -31,12 +39,30 @@ data class TunerUiState(
     val centsOffTarget: Double?
         get() = reading?.let { NoteMath.centsBetween(it.frequency, targetMidi, referenceA4) }
 
-    /** What the gauge shows: cents from the nearest note when identifying, from the target when tuning to one. */
-    val gaugeCents: Double?
+    /**
+     * The note the pitch window's home ring stands for: the chosen note when tuning to one; when
+     * identifying, the identified note while a note is heard and null (a grey ring) in silence.
+     */
+    val homeMidi: Int?
         get() = when (mode) {
-            TunerMode.IDENTIFY -> reading?.cents
-            TunerMode.TARGET -> centsOffTarget
+            TunerMode.TARGET -> targetMidi
+            TunerMode.IDENTIFY -> reading?.let { identifiedMidi ?: it.midi }
         }
+
+    /** What the pitch window and the status measure: cents from [homeMidi] (positive = sharp), or null in silence. */
+    val gaugeCents: Double?
+        get() {
+            val heard = reading ?: return null
+            val home = homeMidi ?: return null
+            return NoteMath.centsBetween(heard.frequency, home, referenceA4)
+        }
+
+    /**
+     * The note in the pitch window's sound bubble, null in silence: the home note, or when
+     * tuning to a chosen note another note or octave the child actually played ([mismatch]).
+     */
+    val heardMidi: Int?
+        get() = reading?.let { if (mismatch == TargetMismatch.NONE) homeMidi else it.midi }
 
     /** Whether [gaugeCents] counts as in tune, and if not which way to go; [TuningStatus.NONE] in silence. */
     val status: TuningStatus
@@ -94,20 +120,19 @@ data class TunerUiState(
 
     companion object {
         /**
-         * The green zone, shared by the status line, the gauge and the note wheel. A child's
-         * held note wobbles about this much from breath alone, so a professional's 5 cents
-         * would rarely settle on "Perfect!".
+         * In tune, shared by the status line and the pitch window (the sound bubble sits in its
+         * home ring exactly then). A child's held note wobbles about this much from breath
+         * alone, so a professional's 5 cents would rarely settle on "Perfect!".
          */
         const val IN_TUNE_CENTS = 10.0
-        /** Amber up to here, red beyond. */
-        const val SLIGHTLY_OFF_CENTS = 20.0
         /**
          * In [TunerMode.TARGET] a pitch this close to the chosen note still counts as the chosen
          * note, flat or sharp, even when its nearest note is the semitone neighbour. An embouchure
          * drift stays under half a semitone, while a wrong fingering lands near a whole other
          * note, so the neighbour played in tune (100 cents away) still counts as another note.
-         * The band also applies around the octave above and below the chosen note.
-         * The gauge is unchanged: it pegs at fifty.
+         * The band also applies around the octave above and below the chosen note, and when
+         * identifying [TunerViewModel] keeps the ring on a note while the sound stays this close.
+         * The pitch window is unchanged: it pins at fifty.
          */
         const val NEAR_TARGET_CENTS = 70.0
     }

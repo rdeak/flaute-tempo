@@ -5,7 +5,7 @@
 # CLAUDE.md) and a debug APK (./gradlew assembleDebug). Installs the APK, clears the app's data,
 # drives each tab through uiautomator and writes docs/release/play-listing/screenshots/<lang>/N-tab.jpg.
 # Play wants 9:16 and no alpha channel, so each 1080x2400 capture is scaled to 864x1920, padded to
-# 1080x1920 with the app's cream background and saved as JPEG.
+# 1080x1920 with the app's sky-blue page colour and saved as JPEG.
 set -u
 cd "$(dirname "$0")/.." || exit 2
 ADB=${ADB:-$HOME/Library/Android/sdk/platform-tools/adb}
@@ -14,7 +14,7 @@ export PYTHONUTF8=1
 PKG=hr.bertlab.fluteassistant
 OUT=${1:-docs/release/play-listing/screenshots}
 RAW=$(mktemp -d)
-BG=FFF9F0 # ui/theme/Color.kt CreamSurface
+BG=EAF4FF # ui/theme/Color.kt LightFluteColors.page
 
 PY='
 import sys, re, html
@@ -40,6 +40,11 @@ tap() { # $1 exact label; or "text <regex>" / "desc <regex>" for a pattern on th
   r=$(find_node "$mode" "$want"); [ -n "$r" ] || { echo "no node: $1" >&2; return 1; }
   read -r x y _ <<<"$r"; $ADB shell input tap "$x" "$y"; $ADB shell sleep 0.4
 }
+hold() { # $1 exact label, $2 ms: keeps a finger on it that long without moving
+  local r x y
+  r=$(find_node exact "$1"); [ -n "$r" ] || { echo "no node: $1" >&2; return 1; }
+  read -r x y _ <<<"$r"; $ADB shell input swipe "$x" "$y" "$x" "$y" "$2"; $ADB shell sleep 0.2
+}
 shot() { # $1 language, $2 file name
   local raw="$RAW/$1-$2.png" out="$OUT/$1/$2.jpg"
   mkdir -p "$OUT/$1"
@@ -58,7 +63,8 @@ import sys
 n = sys.argv[1]; letter = n[0].upper().replace(\"H\", \"B\"); octave = int(n[1])
 lowest = 1 if n[0].islower() else 4  # c1 in Croatian, C4 in English, is staff position 1
 print(\"CDEFGAB\".index(letter) + 7 * (octave - lowest) + 1)" "$name")
-  tap "desc [^0-9]*$pos[^0-9]*" || { echo "no staff position $pos" >&2; return 1; }
+  # The place by its own name only: "Streak of 2" carries a number too.
+  tap "desc (Staff position $pos|Mjesto $pos u crtovlju)" || { echo "no staff position $pos" >&2; return 1; }
   echo "$name -> staff position $pos"
 }
 
@@ -71,25 +77,28 @@ run_language() { # lang, tuner tab, notes tab, flute tab, play, stop, target-mod
   $ADB shell pm grant $PKG android.permission.POST_NOTIFICATIONS
   $ADB shell cmd locale set-app-locales $PKG --user 0 --locales "$L"
   $ADB shell am start -n $PKG/.MainActivity >/dev/null; $ADB shell sleep 3
-  # Metronome, running so a beat dot is lit.
+  # Metronome, running so a beat bubble is lit with the speed's animal on it.
   tap "$PLAY"; $ADB shell sleep 1.3; shot "$L" 1-metronome; tap "$STOP"
-  # Tuner in "tune to a note" mode: the note wheel, fingering and gauge show without a microphone.
+  # Tuner in "Tune" mode: the target note in its pitch window and its fingering show without a microphone.
   tap "$TAB_TUNER"; $ADB shell sleep 1; tap "text .*$TARGET"; $ADB shell sleep 1; shot "$L" 2-tuner
-  # Notes: three right answers, then the fourth caught during its feedback (green mark, streak badge).
+  # Notes: three right answers, then the fourth caught during its feedback (the note in colour, flames).
   tap "$TAB_NOTES"; $ADB shell sleep 1
   for i in 1 2 3; do answer_note; $ADB shell sleep 1.6; done
   answer_note; $ADB shell sleep 0.3; shot "$L" 3-notes; $ADB shell sleep 1.5
-  # Flute: the first notes of a tune tapped, the last one held while the shot is taken.
+  # Flute: the first notes of a tune played, the last one held while the shot is taken.
   tap "$TAB_FLUTE"; $ADB shell sleep 1
-  for n in "${TUNE[@]:0:$((${#TUNE[@]} - 1))}"; do tap "$n"; done
+  # A note is as long as its key is held, in beats of the metronome's tempo (120 after pm clear,
+  # so 500 ms is a beat): each a quarter note, then the last held past two beats during the shot,
+  # so its pill is a half note and two hold dots are filled, as on the canvas board.
+  for n in "${TUNE[@]:0:$((${#TUNE[@]} - 1))}"; do hold "$n" 500; done
   r=$(find_node exact "$last"); read -r x y _ <<<"$r"
-  $ADB shell input swipe "$x" "$y" "$x" "$y" 1500 & $ADB shell sleep 0.7; shot "$L" 4-flute; wait
+  $ADB shell input swipe "$x" "$y" "$x" "$y" 2500 & $ADB shell sleep 1.0; shot "$L" 4-flute; wait
 }
 
 $ADB install -r app/build/outputs/apk/debug/app-debug.apk >/dev/null || exit 1
 $ADB shell cmd uimode night no >/dev/null
-run_language en Tuner Notes Flute "Let's play!" Stop "Tune to a note" C4 C4 G4 G4 A4 A4 G4
-run_language hr Štimer Note Flauta "Idemo!" Stani "Ugodi ton" c1 c1 g1 g1 a1 a1 g1
+run_language en Tuner Notes Flute Play Stop Tune C4 C4 G4 G4 A4 A4 G4
+run_language hr Štimer Note Flauta Sviraj Stani Ugodi c1 c1 g1 g1 a1 a1 g1
 $ADB shell pm clear $PKG >/dev/null
 $ADB shell cmd locale set-app-locales $PKG --user 0 --locales en
 rm -rf "$RAW"

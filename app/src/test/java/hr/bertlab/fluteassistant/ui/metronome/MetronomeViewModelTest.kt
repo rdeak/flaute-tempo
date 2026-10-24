@@ -382,13 +382,10 @@ class MetronomeViewModelTest {
     }
 
     @Test
-    fun `tempo feel follows the bpm`() {
-        assertEquals(TempoFeel.VERY_SLOW, tempoFeel(50))
-        assertEquals(TempoFeel.SLOW, tempoFeel(60))
-        assertEquals(TempoFeel.MEDIUM, tempoFeel(90))
-        assertEquals(TempoFeel.FAST, tempoFeel(120))
-        assertEquals(TempoFeel.SUPER_FAST, tempoFeel(160))
-        assertEquals("\uD83D\uDC22", TempoFeel.SLOW.emoji) // turtle
-        assertNull(runCatching { tempoFeel(-1) }.exceptionOrNull())
+    fun `a stored tempo outside the ring is brought onto it`() = runTest(dispatcher) {
+        settings.config = MetronomeConfig(bpm = 250)
+        assertEquals(TempoBand.MAX_BPM, createViewModel().state.value.config.bpm)
+        settings.config = MetronomeConfig(bpm = 30)
+        assertEquals(TempoBand.MIN_BPM, createViewModel().state.value.config.bpm)
     }
 }

@@ -27,19 +27,20 @@ Full description, English:
 > Made for children in primary school who are learning the flute. Four big, friendly screens
 > and nothing to read.
 >
-> METRONOME. A tempo ring, four levels from Beginner to Master, bouncing beat dots and one play
-> button. Ten time signatures, from 2/4 to 12/8. The click keeps going while you read sheet
+> METRONOME. A tempo ring with five animals, from a snail to a cheetah: drag the animal round or
+> tap one to jump to its speed. Two to six beats in a bar, shown as bubbles with the animal
+> hopping on the beat you hear, and one play button. The click keeps going while you read sheet
 > music in another app, with a notification to stop it.
 >
-> TUNER. Play a note and see its name in big letters, with "Perfect!", "Too low" or "Too high"
-> and a tip on what to change. Or pick the note you want to play: hear it, see its fingering
-> and tune to it.
+> TUNER. Play a note and see it float above or below its home ring, with "Too high" or "Too low"
+> and a tip on what to change; bring it home for "Perfect!". Or pick the note you want to play:
+> hear it, see its fingering and tune to it.
 >
-> NOTES. A note reading game. A note name appears and you tap its place on the staff. Ten notes
-> a round, a streak for every hit in a row and the score at the end. Choose which notes to
-> practise.
+> NOTES. A note reading game. A note name appears; slide your finger to its place on the staff
+> and let go. Ten notes a round, flames for hits in a row and stars at the end. Choose which
+> notes to practise.
 >
-> FLUTE. Fifteen note keys in three octave rows. Press a key to hear the note and see its
+> FLUTE. Fifteen colourful note keys in three octave rows. Press a key to hear the note and see its
 > fingering, play a tune, then hear it played back.
 >
 > In English and Croatian. No account, no ads, no data leaves your device.
@@ -50,18 +51,20 @@ digitalna flauta za male flautiste."):
 > Napravljeno za djecu u osnovnoj školi koja uče svirati flautu. Četiri velika, vesela ekrana i
 > ništa za čitanje.
 >
-> METRONOM. Krug za tempo, četiri razine od Početnika do Majstora, točkice koje skaču u ritmu i
-> jedna tipka za sviranje. Deset mjera, od 2/4 do 12/8. Metronom kuca i dok u drugoj
+> METRONOM. Krug za tempo s pet životinja, od puža do geparda: povuci životinju po krugu ili
+> dodirni jednu da skočiš na njezinu brzinu. Od dvije do šest doba u taktu, kao mjehurići na
+> kojima skakuće životinja dok kuca, i jedna tipka za sviranje. Metronom kuca i dok u drugoj
 > aplikaciji gledaš note, a obavijest ga zaustavlja.
 >
-> ŠTIMER. Odsviraj ton i vidi njegovo ime velikim slovima uz „Savršeno!“, „Prenisko“ ili
-> „Previsoko“ i savjet što promijeniti. Ili odaberi ton koji želiš svirati: poslušaj ga,
-> pogledaj prstomet i ugodi flautu prema njemu.
+> ŠTIMER. Odsviraj ton i vidi kako lebdi iznad ili ispod svoje kućice, uz „Previsoko“ ili
+> „Prenisko“ i savjet što promijeniti; vrati ga kući za „Savršeno!“. Ili odaberi ton koji želiš
+> svirati: poslušaj ga, pogledaj prstomet i ugodi flautu prema njemu.
 >
-> NOTE. Igra čitanja nota. Pojavi se ime note, a ti dodirni njezino mjesto na crtovlju. Deset
-> nota po krugu, niz za svaki pogodak zaredom i rezultat na kraju. Sam biraš koje note vježbaš.
+> NOTE. Igra čitanja nota. Pojavi se ime note, a ti povuci prst do njezina mjesta na crtovlju i
+> pusti. Deset nota po krugu, plamičci za pogotke zaredom i zvjezdice na kraju. Sam biraš koje
+> note vježbaš.
 >
-> FLAUTA. Petnaest tipki u tri reda. Pritisni tipku da čuješ ton i vidiš prstomet, odsviraj
+> FLAUTA. Petnaest šarenih tipki u tri reda. Pritisni tipku da čuješ ton i vidiš prstomet, odsviraj
 > pjesmicu, a zatim je poslušaj.
 >
 > Na hrvatskom i engleskom. Bez računa, bez oglasa, nikakvi podaci ne napuštaju uređaj.

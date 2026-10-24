@@ -8,6 +8,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import hr.bertlab.fluteassistant.domain.model.MetronomeConfig
 import hr.bertlab.fluteassistant.domain.model.SoundProfile
 import hr.bertlab.fluteassistant.domain.model.Subdivision
+import hr.bertlab.fluteassistant.ui.theme.NoteLetterColors
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,6 +55,23 @@ class LabelsTest {
         assertEquals("H", noteLabel(hr, 47))
         assertEquals("C", noteLabel(hr, 36))
         assertEquals("C1", noteLabel(hr, 24))
+    }
+
+    @Test
+    fun the_octave_figure_splits_off_for_raising() {
+        assertEquals("A♯" to "4", noteLabelParts(resources(Locale.ENGLISH), 70))
+        assertEquals("c" to "1", noteLabelParts(resources(Locale("hr")), 60))
+        assertEquals("h" to "", noteLabelParts(resources(Locale("hr")), 59))
+        assertEquals("C" to "1", noteLabelParts(resources(Locale("hr")), 24))
+    }
+
+    @Test
+    fun a_note_takes_its_letter_colour_and_a_sharp_the_letter_below() {
+        assertEquals(NoteLetterColors[0], noteColor(60)) // C4
+        assertEquals(NoteLetterColors[0], noteColor(61)) // C♯4
+        assertEquals(NoteLetterColors[0], noteColor(84)) // C6, any octave
+        assertEquals(NoteLetterColors[5], noteColor(70)) // A♯4, B flat in Croatian
+        assertEquals(NoteLetterColors[6], noteColor(71)) // B4, H in Croatian
     }
 
     @Test
