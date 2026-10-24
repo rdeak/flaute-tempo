@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -56,7 +55,6 @@ import hr.bertlab.fluteassistant.domain.tuner.TunerMode
 import hr.bertlab.fluteassistant.ui.common.BigActionButton
 import hr.bertlab.fluteassistant.ui.common.ChunkyButton
 import hr.bertlab.fluteassistant.ui.common.Emoji
-import hr.bertlab.fluteassistant.ui.common.NoteBubble
 import hr.bertlab.fluteassistant.ui.common.OutlineWidth
 import hr.bertlab.fluteassistant.ui.common.Stage
 import hr.bertlab.fluteassistant.ui.common.chunky
@@ -124,13 +122,14 @@ fun TunerScreen(
 }
 
 /**
- * The whole tuner: the two mode pills on top, then a stage with either the note the child
- * chose to play ([TunerMode.TARGET], with ‹ › to change it and a button to hear it) or the
- * note being played ([TunerMode.IDENTIFY]) beside the face meter measuring against it, that
- * note's fingering, one friendly status line (which names the heard note when it is not the
- * chosen one) and under it one quieter advice line saying what to change (always present,
- * empty when there is nothing to say, so nothing moves). No numbers beyond the octave in
- * the note name: a child only needs to know whether to go up or down.
+ * The whole tuner: the two mode pills on top, then a stage with the pitch window, whose home
+ * ring is either the note the child chose to play ([TunerMode.TARGET], with ‹ › to change it
+ * and a button to hear it) or the nearest note to the one being played ([TunerMode.IDENTIFY])
+ * and whose bubble floats up or down from it with the child's sound, then the ring's
+ * fingering, one friendly status line (which names the heard note when it is not the chosen
+ * one) and under it one quieter advice line saying what to change (always present, empty when
+ * there is nothing to say, so nothing moves). No numbers beyond the octave in the note name:
+ * a child only needs to know whether to go up or down.
  */
 @Composable
 fun TunerContent(
@@ -168,38 +167,37 @@ fun TunerContent(
                     .fillMaxWidth()
                     .weight(1f),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f, fill = false)
-                        .height(300.dp),
-                ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.weight(1f)) {
-                        when (state.mode) {
-                            TunerMode.TARGET -> TargetNote(
-                                targetMidi = state.targetMidi,
-                                onTargetChange = onTargetNoteChange,
-                                onPlay = onPlayNote,
-                                isPlaying = state.isPlayingReference,
-                            )
-                            TunerMode.IDENTIFY -> NoteBubble(
-                                midi = state.reading?.midi,
-                                size = 140.dp,
-                                fontSize = 68.sp,
-                                placeholder = "\u2026",
-                            )
-                        }
-                    }
-                    TuningGauge(cents = state.gaugeCents, modifier = Modifier.fillMaxHeight())
+                val description = pitchWindowDescription(state)
+                val window: @Composable (Modifier) -> Unit = { windowModifier ->
+                    PitchWindow(
+                        homeMidi = state.homeMidi,
+                        heardMidi = state.heardMidi,
+                        cents = state.gaugeCents,
+                        description = description,
+                        modifier = windowModifier,
+                    )
+                }
+                // Both take what height is left over and shrink to it on a short screen.
+                when (state.mode) {
+                    TunerMode.TARGET -> TargetNote(
+                        targetMidi = state.targetMidi,
+                        onTargetChange = onTargetNoteChange,
+                        onPlay = onPlayNote,
+                        isPlaying = state.isPlayingReference,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false),
+                        window = window,
+                    )
+                    TunerMode.IDENTIFY -> window(
+                        Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false),
+                    )
                 }
 
-                // Which keys to press: for the chosen note, or for whatever is being played.
-                val fingeredMidi = when (state.mode) {
-                    TunerMode.TARGET -> state.targetMidi
-                    TunerMode.IDENTIFY -> state.reading?.midi
-                }
+                // Which keys to press: for the ring's note, chosen or heard.
+                val fingeredMidi = state.homeMidi
                 FingeringDiagram(
                     keys = fingeredMidi?.let(FluteFingerings::keysFor),
                     noteLabel = fingeredMidi?.let { noteLabel(it) },
@@ -228,8 +226,8 @@ fun TunerContent(
 }
 
 /**
- * The note and the meter shrink to fit a small phone; only below this height (split screen, a
- * tiny phone) does the tab scroll instead.
+ * The pitch window shrinks to fit a small phone; only below this height (split screen, a tiny
+ * phone) does the tab scroll instead.
  */
 private val TunerMinHeight = 440.dp
 
@@ -312,12 +310,12 @@ private fun StatusLine(
             TuningStatus.IN_TUNE -> stringResource(R.string.in_tune)
             TuningStatus.LOW -> when (mismatch) {
                 TargetMismatch.OCTAVE_DOWN -> stringResource(R.string.octave_too_low)
-                TargetMismatch.OTHER_NOTE -> stringResource(R.string.heard_other_note, heardNote.orEmpty())
+                TargetMismatch.OTHER_NOTE -> stringResource(R.string.heard_lower_note, heardNote.orEmpty())
                 else -> stringResource(R.string.too_low)
             }
             TuningStatus.HIGH -> when (mismatch) {
                 TargetMismatch.OCTAVE_UP -> stringResource(R.string.octave_too_high)
-                TargetMismatch.OTHER_NOTE -> stringResource(R.string.heard_other_note, heardNote.orEmpty())
+                TargetMismatch.OTHER_NOTE -> stringResource(R.string.heard_higher_note, heardNote.orEmpty())
                 else -> stringResource(R.string.too_high)
             }
         },
@@ -333,6 +331,24 @@ private fun StatusLine(
                 scaleY = scale.value
             },
     )
+}
+
+/**
+ * What a screen reader says for the pitch window: the home note and nothing heard yet, or
+ * where the child's sound is against it and which way to go.
+ */
+@Composable
+private fun pitchWindowDescription(state: TunerUiState): String {
+    val home = state.homeMidi ?: return stringResource(R.string.pitch_listening)
+    val homeName = noteLabel(home)
+    val heard = state.heardMidi
+    val low = state.status == TuningStatus.LOW
+    return when {
+        heard == null -> stringResource(R.string.pitch_home, homeName)
+        state.status == TuningStatus.IN_TUNE -> stringResource(R.string.pitch_in_tune, homeName)
+        heard != home -> stringResource(if (low) R.string.pitch_other_low else R.string.pitch_other_high, noteLabel(heard), homeName)
+        else -> stringResource(if (low) R.string.pitch_low else R.string.pitch_high, homeName)
+    }
 }
 
 /**

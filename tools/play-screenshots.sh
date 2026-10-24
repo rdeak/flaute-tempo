@@ -74,7 +74,7 @@ run_language() { # lang, tuner tab, notes tab, flute tab, play, stop, target-mod
   $ADB shell am start -n $PKG/.MainActivity >/dev/null; $ADB shell sleep 3
   # Metronome, running so a beat bubble is lit with the speed's animal on it.
   tap "$PLAY"; $ADB shell sleep 1.3; shot "$L" 1-metronome; tap "$STOP"
-  # Tuner in "Tune" mode: the target note, its fingering and the face meter show without a microphone.
+  # Tuner in "Tune" mode: the target note in its pitch window and its fingering show without a microphone.
   tap "$TAB_TUNER"; $ADB shell sleep 1; tap "text .*$TARGET"; $ADB shell sleep 1; shot "$L" 2-tuner
   # Notes: three right answers, then the fourth caught during its feedback (the note in colour, flames).
   tap "$TAB_NOTES"; $ADB shell sleep 1

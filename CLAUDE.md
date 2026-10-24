@@ -155,15 +155,21 @@ disagreeing frame freezes the reading instead of moving it, median-smooths a 5-f
 holds the last reading for about 0.9 s of silence or unsteadiness before clearing;
 `NoteMath.frequencyToNote` turns the median into a `NoteReading`. Two modes (`TunerMode`,
 remembered through `SettingsStore.saveTunerMode`, default `IDENTIFY`): `IDENTIFY` names the
-nearest note and measures against it; `TARGET` lets the child pick the note to play with the
+nearest note (`TunerUiState.identifiedMidi`: the reading's note, but a drift just past the halfway
+point to a neighbour, still within `NEAR_TARGET_CENTS` of the old note, moves it only after
+`TunerViewModel.SWITCH_FRAMES`, about 0.5 s, so it never flickers; the first note after silence
+and a clear step to another note move it at once) and measures against it; `TARGET` lets the
+child pick the note to play with the
 ‹ › half-step buttons of `TargetNote` (`FluteRange`: c1 to c4, MIDI 60 to 96, default a1 / A4, remembered through
 `SettingsStore.saveTargetNote` and clamped on load) and measures against it with
-`TunerUiState.centsOffTarget` (`NoteMath.centsBetween`), so a wrong note pins the meter's face
-at an end instead of being relabelled. `TunerUiState.gaugeCents` picks by mode and is what the
-face meter (`TuningGauge`) and status line show; `TunerUiState.status` judges it against
+`TunerUiState.centsOffTarget` (`NoteMath.centsBetween`), so a wrong note is pinned at an end of
+the pitch window instead of being relabelled. `TunerUiState.homeMidi` (the chosen or identified
+note) is the pitch window's home ring, `heardMidi` its sound bubble (the home note, or the other
+note or octave played in target mode) and `gaugeCents` (cents from `homeMidi`) what
+`PitchWindow` and the status line show; `TunerUiState.status` judges it against
 `IN_TUNE_CENTS` (10, a child's wobble, deliberately wider than a professional tuner's 5), the one
-place that threshold lives (the meter's green band is drawn from it, so the face's centre is in
-the green exactly when the status says "Perfect!"). There is no tolerance
+place that threshold lives (the bubble sits in its ring exactly when the status says
+"Perfect!" and jumps clear of it as soon as it does not). There is no tolerance
 setting on purpose: one good default beats a control. In target mode a reading within
 `NEAR_TARGET_CENTS` (70) of the chosen note or of its octaves is still that note or that octave
 (`TargetMismatch.NONE`, `OCTAVE_UP` / `OCTAVE_DOWN`), so a1 played sixty cents flat reads
@@ -282,14 +288,14 @@ or on `eraseLast()`, which drops the last note (the erase button repeats while h
   (thick ink outline, solid shadow, sinks 3 dp when pressed); big actions are `BigActionButton`.
   The font is Nunito (three static weights in `res/font`, licence in `docs/licenses/`); the canvas
   used Fredoka, which has no č, ć or đ. Icons are emoji (`Emoji`, hidden from accessibility), plus
-  two chevrons in `AppIcons`. The app icon's picture is one vector, `@drawable/ic_app_art` (a robot
+  the chevrons, arrows and tick in `AppIcons`. The app icon's picture is one vector, `@drawable/ic_app_art` (a robot
   over a flute, from the canvas's "App icon" board): the launcher insets it into the adaptive icon's
   safe zone, `AppLogo` puts it on the golden rounded square in the top bar, and `tools/IconGen.java`
   draws the same shapes for the PNGs and the Play listing. Note names are shown with the octave raised (`noteText`, built from
   `noteLabelParts`) in a round `NoteBubble`; English keeps scientific octaves (C⁴), Croatian the
   school ones (c¹), and accessibility and tests still read the plain `noteLabel`.
-- On a short screen (360 x 640 dp, large text) the ring, the tuner's target note and its meter
-  face shrink to fit, so Play and the status line stay in view; only below a tab's minimum height
+- On a short screen (360 x 640 dp, large text) the ring and the tuner's pitch window shrink to
+  fit, so Play and the status line stay in view; only below a tab's minimum height
   does `Modifier.fitOrScroll` make it scroll (a fixed-height column, so weights still work). The
   notes tab scrolls a little on such phones rather than shrink the staff's places, and the flute
   scrolls below its own `FitsHeight` as before.
@@ -311,11 +317,14 @@ yellow knob with the current animal that is dragged round, a tap on an animal ju
 (the rabbit again to 120), and the band's name over the tempo figure in the middle (tap it for the
 in-place `TempoWheel`; there are no tempo −/+ buttons: the user turned them down again on
 2026-10-24); then one Play / Stop pill (no volume control: the phone's buttons set loudness). The
-tuner has the two mode pills on top ("Which?" / "Tune"), then a stage with either the heard note
-in a bubble or the chosen note between ‹ › with a "Hear" pill under it (spec:
-`docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`) beside a tall face meter (a face
-that rides up when too high and down when too low, green in tune, grey in silence), the fingering
-for that note, one status line and, under it, one quieter advice line that says what to change
+tuner has the two mode pills on top ("Which?" / "Tune"), then a stage with the pitch window (since
+2026-10-24, replacing a face meter): a dashed home ring holding the note to play on a dotted
+up-down guide, and the child's sound as a bubble floating above it when too high and below when
+too low, with an arrow pointing home; another note shows as that note filled in its colour, in
+tune the bubble fills, sits in the ring and gets a tick and sparkles, and in "Which?" silence the
+ring is grey with "…". In "Tune" the window sits between ‹ › with a "Hear" pill under it (spec:
+`docs/superpowers/specs/2026-10-22-tuner-target-note-design.md`); then the fingering for the
+ring's note, one status line and, under it, one quieter advice line that says what to change
 (roll the flute, air, fingers, come closer, a clear note), never a number. The notes tab has one
 hero row (the streak as up to five flames, "Find" over the note's bubble, and a "Pick" button with
 a dot per chosen letter) over a stage with the staff and one feedback line, and ten round places

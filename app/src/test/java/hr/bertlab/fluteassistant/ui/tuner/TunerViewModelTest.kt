@@ -25,6 +25,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import kotlin.math.pow
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class TunerViewModelTest {
@@ -355,5 +356,68 @@ class TunerViewModelTest {
         engine.frames.tryEmit(pitched(300.0 + (TunerViewModel.HOLD_FRAMES - 1) * 7))
         advanceUntilIdle()
         assertNull(vm.state.value.reading)
+    }
+
+    /** A4 played [cents] off, at 440 Hz. */
+    private fun a4(cents: Double) = 440.0 * 2.0.pow(cents / 1200.0)
+
+    private fun frames(freq: Double, count: Int) = repeat(count) { engine.frames.tryEmit(pitched(freq)) }
+
+    @Test
+    fun `the first note is identified at once`() = runTest(dispatcher) {
+        val vm = listeningViewModel(); advanceUntilIdle()
+        steady(a4(60.0)) // nearest is A♯4
+        advanceUntilIdle()
+        assertEquals(70, vm.state.value.homeMidi)
+    }
+
+    @Test
+    fun `a drift past the halfway point moves the ring only once it lasts`() = runTest(dispatcher) {
+        val vm = listeningViewModel(); advanceUntilIdle()
+        steady(440.0)
+        // Two frames are unsteady while the pitch moves, then each frame is shown nearer A♯4.
+        frames(a4(60.0), TunerViewModel.LOCK_FRAMES - 1 + TunerViewModel.SWITCH_FRAMES - 1)
+        advanceUntilIdle()
+        assertEquals(70, vm.state.value.reading!!.midi)
+        assertEquals(69, vm.state.value.homeMidi)
+        assertEquals(TuningStatus.HIGH, vm.state.value.status)
+
+        frames(a4(60.0), 1)
+        advanceUntilIdle()
+        assertEquals(70, vm.state.value.homeMidi)
+        assertEquals(TuningStatus.LOW, vm.state.value.status)
+    }
+
+    @Test
+    fun `back on the note the drift starts again`() = runTest(dispatcher) {
+        val vm = listeningViewModel(); advanceUntilIdle()
+        steady(440.0)
+        frames(a4(60.0), TunerViewModel.LOCK_FRAMES - 1 + TunerViewModel.SWITCH_FRAMES - 1)
+        steady(440.0)
+        frames(a4(60.0), TunerViewModel.LOCK_FRAMES - 1 + TunerViewModel.SWITCH_FRAMES - 1)
+        advanceUntilIdle()
+        assertEquals(69, vm.state.value.homeMidi)
+    }
+
+    @Test
+    fun `a clear step to another note moves the ring at once`() = runTest(dispatcher) {
+        val vm = listeningViewModel(); advanceUntilIdle()
+        steady(440.0)
+        frames(a4(100.0), TunerViewModel.LOCK_FRAMES) // A♯4 in tune
+        advanceUntilIdle()
+        assertEquals(70, vm.state.value.homeMidi)
+        assertEquals(TuningStatus.IN_TUNE, vm.state.value.status)
+    }
+
+    @Test
+    fun `after silence the ring takes the next note at once`() = runTest(dispatcher) {
+        val vm = listeningViewModel(); advanceUntilIdle()
+        steady(440.0)
+        repeat(TunerViewModel.HOLD_FRAMES) { engine.frames.tryEmit(silence) }
+        advanceUntilIdle()
+        assertNull(vm.state.value.homeMidi)
+        steady(a4(60.0))
+        advanceUntilIdle()
+        assertEquals(70, vm.state.value.homeMidi)
     }
 }

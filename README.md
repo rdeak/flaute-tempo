@@ -14,13 +14,15 @@ tuner, a note reading game and a digital flute, in English and Croatian.
 
 | Tab       | What the child does                                                                                                                                                                                                                                                            |
 |-----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Metronome | Drags a tempo ring or picks a level (Beginner, Learner, Star, Master), steps through ten time signatures (2/2, 2/4 up to 12/8), and watches the beat dots bounce. The click keeps going while the phone is in a pocket or another app is open, with a notification to stop it. |
-| Tuner     | Plays a note and sees its name in large letters, with "Perfect!", "Too low" or "Too high" and one tip on what to change. Or picks the note to play, hears it, sees the fingering and tunes to it.                                                                              |
-| Notes     | Reads a note name and taps its place on the treble staff. Ten notes a round, a streak for hits in a row, the score at the end. The child chooses which notes to practise.                                                                                                      |
+| Metronome | Drags an animal round the tempo ring (snail to cheetah) or taps one to jump to its speed, sets two to six beats in a bar and watches the animal hop on the beats. The click keeps going while the phone is in a pocket or another app is open, with a notification to stop it. |
+| Tuner     | Plays a note and sees it float above or below its home ring, with "Too high" or "Too low" and one tip on what to change, until it settles in the ring for "Perfect!". Or picks the note to play, hears it, sees the fingering and tunes to it.                                 |
+| Notes     | Reads a note name, slides a finger to its place on the treble staff and lets go. Ten notes a round, flames for hits in a row, stars and an animal for speed at the end. The child chooses which notes to practise.                                                             |
 | Flute     | Holds down any of fifteen keys, from middle C up two octaves, to sound a note. The fingering is drawn, the notes played are collected in a line, and the tune plays back.                                                                                                      |
 
-The screens show no numbers or jargon: no BPM, hertz or cents. Tempo is a named level, tuning is a
-gauge with coloured zones, and the game's score is a row of dots until the round summary. The
+The screens show no jargon and almost no numbers: no BPM, hertz or cents (the only figures are the
+tempo in the middle of the ring and the small octave on note names). Tempo is an animal on the ring,
+tuning is a bubble floating up or down to its ring, and the game's score is stars, flames and an
+animal, even in the round summary. The
 metronome engine already supports tap tempo, subdivisions, click sounds and presets, and the tuner
 supports other A4 references. None of that is exposed, and it is kept for a later advanced mode.
 

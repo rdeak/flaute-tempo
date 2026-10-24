@@ -17,6 +17,9 @@ val Go = Color(0xFF5BE07E)
 val Stop = Color(0xFFFF8A80)
 val InkOnFill = Color(0xFF1F2440)
 
+/** The tuner's tick when the note is in tune. */
+val InTuneGreen = Color(0xFF22A35A)
+
 /** The app icon's golden square, also @drawable/ic_launcher_background. */
 val AppIconGold = Color(0xFFFFC857)
 
@@ -55,9 +58,6 @@ data class FluteColors(
     val staffSpace: Color,
     /** The metronome ring's five speed bands, slowest first. */
     val tempoBands: List<Color>,
-    /** The tuner meter: the green "in tune" band and the two "off" ends. */
-    val gaugeInTune: Color,
-    val gaugeOff: Color,
 )
 
 val LightFluteColors = FluteColors(
@@ -77,8 +77,6 @@ val LightFluteColors = FluteColors(
         Color(0xFFFFC690),
         Color(0xFFFFA0A0),
     ),
-    gaugeInTune = Color(0xFF7EE3A0),
-    gaugeOff = Color(0xFFFFC48A),
 )
 
 val DarkFluteColors = FluteColors(
@@ -98,6 +96,4 @@ val DarkFluteColors = FluteColors(
         Color(0xFFC9854A),
         Color(0xFFC25C5C),
     ),
-    gaugeInTune = Color(0xFF2E9E5B),
-    gaugeOff = Color(0xFFB8743A),
 )

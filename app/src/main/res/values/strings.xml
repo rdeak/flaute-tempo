@@ -54,7 +54,6 @@
     <string name="mode_identify">Which?</string>
     <string name="mode_target">Tune</string>
     <string name="play_a_note">👂 Play a note</string>
-    <string name="target_note">Note to tune</string>
     <string name="lower_note">Lower note</string>
     <string name="higher_note">Higher note</string>
     <string name="hear_note">Hear</string>
@@ -68,9 +67,18 @@
     <string name="too_low">⬇️ Too low</string>
     <string name="too_high">⬆️ Too high</string>
     <!-- Target mode, a note that is not the chosen one; the argument is the heard note, e.g. "A4" -->
-    <string name="heard_other_note">🖐️ That\'s %1$s</string>
+    <string name="heard_lower_note">⬇️ That\'s %1$s</string>
+    <string name="heard_higher_note">⬆️ That\'s %1$s</string>
     <string name="octave_too_low">⬇️ An octave too low</string>
     <string name="octave_too_high">⬆️ An octave too high</string>
+    <!-- What a screen reader says for the pitch window (ui/tuner/TunerScreen.kt) -->
+    <string name="pitch_listening">Listening, no note heard yet</string>
+    <string name="pitch_home">Home ring for %1$s, nothing heard yet</string>
+    <string name="pitch_in_tune">Your sound is %1$s, in its home ring. In tune</string>
+    <string name="pitch_low">Your sound is %1$s but a little low. Go up</string>
+    <string name="pitch_high">Your sound is %1$s but a little high. Go down</string>
+    <string name="pitch_other_low">Your sound is %1$s, well below %2$s. Go up</string>
+    <string name="pitch_other_high">Your sound is %1$s, well above %2$s. Go down</string>
     <!-- Advice line under the status (ui/tuner/TunerScreen.kt) -->
     <string name="advice_come_closer">📱 Come closer to the phone</string>
     <string name="advice_clear_note">🎵 Play one long, clear note</string>

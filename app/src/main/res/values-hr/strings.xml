@@ -49,7 +49,6 @@
     <string name="mode_identify">Koji?</string>
     <string name="mode_target">Ugodi</string>
     <string name="play_a_note">👂 Odsviraj ton</string>
-    <string name="target_note">Ton koji ugađaš</string>
     <string name="lower_note">Niži ton</string>
     <string name="higher_note">Viši ton</string>
     <string name="hear_note">Slušaj</string>
@@ -59,9 +58,18 @@
     <string name="in_tune">🎉 Savršeno!</string>
     <string name="too_low">⬇️ Prenisko</string>
     <string name="too_high">⬆️ Previsoko</string>
-    <string name="heard_other_note">🖐️ To je %1$s</string>
+    <string name="heard_lower_note">⬇️ To je %1$s</string>
+    <string name="heard_higher_note">⬆️ To je %1$s</string>
     <string name="octave_too_low">⬇️ Oktavu prenisko</string>
     <string name="octave_too_high">⬆️ Oktavu previsoko</string>
+    <!-- What a screen reader says for the pitch window (ui/tuner/TunerScreen.kt) -->
+    <string name="pitch_listening">Slušam, još ništa ne čujem</string>
+    <string name="pitch_home">Kućica za %1$s, još ništa ne čujem</string>
+    <string name="pitch_in_tune">Tvoj ton je %1$s, u svojoj kućici. Savršeno</string>
+    <string name="pitch_low">Tvoj ton je %1$s, ali malo prenizak. Idi gore</string>
+    <string name="pitch_high">Tvoj ton je %1$s, ali malo previsok. Idi dolje</string>
+    <string name="pitch_other_low">Tvoj ton je %1$s, puno niži od %2$s. Idi gore</string>
+    <string name="pitch_other_high">Tvoj ton je %1$s, puno viši od %2$s. Idi dolje</string>
     <!-- Advice line under the status (ui/tuner/TunerScreen.kt) -->
     <string name="advice_come_closer">📱 Dođi bliže mobitelu</string>
     <string name="advice_clear_note">🎵 Odsviraj jedan dug, čist ton</string>
